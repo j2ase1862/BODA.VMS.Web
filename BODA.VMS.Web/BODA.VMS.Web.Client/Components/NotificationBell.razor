@@ -1,0 +1,62 @@
+@inject SignalRService SignalR
+
+<MudBadge Content="@_count" Visible="@(_count > 0)" Color="Color.Error" Overlap="true">
+    <MudMenu Icon="@Icons.Material.Filled.NotificationsNone" Color="Color.Inherit"
+             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+        @if (_notifications.Count == 0)
+        {
+            <MudMenuItem Disabled="true">
+                <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
+                    No notifications
+                </MudText>
+            </MudMenuItem>
+        }
+        else
+        {
+            @foreach (var n in _notifications.TakeLast(10).Reverse())
+            {
+                <MudMenuItem>
+                    <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">@n</MudText>
+                </MudMenuItem>
+            }
+            <MudDivider Class="my-1" />
+            <MudMenuItem OnClick="Clear">
+                <MudText Typo="Typo.body2" Color="Color.Primary" Style="font-size: 0.8rem;">
+                    Clear all
+                </MudText>
+            </MudMenuItem>
+        }
+    </MudMenu>
+</MudBadge>
+
+@code {
+    private List<string> _notifications = new();
+    private int _count;
+
+    protected override void OnInitialized()
+    {
+        SignalR.OnNgAlert += HandleNgAlert;
+        SignalR.OnClientStatusChanged += HandleStatusChange;
+    }
+
+    private async void HandleNgAlert(string message)
+    {
+        _notifications.Add($"[NG] {message}");
+        _count++;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleStatusChange(int clientId, bool isAlive)
+    {
+        var status = isAlive ? "online" : "offline";
+        _notifications.Add($"Client #{clientId} is {status}");
+        _count++;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Clear()
+    {
+        _notifications.Clear();
+        _count = 0;
+    }
+}

@@ -1,0 +1,85 @@
+@page "/login"
+@layout BODA.VMS.Web.Client.Layout.EmptyLayout
+@inject ApiClient Api
+@inject AuthStateProvider AuthProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Login - BODA VMS</PageTitle>
+
+<div class="vms-login-bg">
+    <MudCard Class="vms-login-card pa-8">
+        <MudCardContent>
+            <div class="vms-login-logo mb-1">
+                <span class="navy">BODA</span> <span class="orange">VMS</span>
+            </div>
+            <div class="vms-login-subtitle mb-8">Vision Management System</div>
+
+            <EditForm Model="_model" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="_model.Username" Label="Username"
+                              Variant="Variant.Outlined" Class="mb-4"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              For="@(() => _model.Username)" />
+
+                <MudTextField @bind-Value="_model.Password" Label="Password"
+                              Variant="Variant.Outlined" Class="mb-6"
+                              InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                              OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                              For="@(() => _model.Password)" />
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                           Color="Color.Primary" FullWidth="true" Disabled="_loading"
+                           Size="Size.Large" Class="vms-btn mb-4">
+                    @if (_loading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Sign In
+                </MudButton>
+            </EditForm>
+
+            <div class="d-flex justify-center">
+                <MudLink Href="/register" Typo="Typo.body2" Color="Color.Secondary">
+                    Don't have an account? Register
+                </MudLink>
+            </div>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private LoginRequest _model = new();
+    private bool _loading;
+    private bool _showPassword;
+
+    private async Task HandleLogin()
+    {
+        _loading = true;
+        try
+        {
+            var response = await Api.PostAsync<LoginRequest, LoginResponse>("/api/auth/login", _model);
+            if (response is not null)
+            {
+                await AuthProvider.LoginAsync(response.Token);
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            Snackbar.Add("Invalid credentials or account not approved", Severity.Error);
+        }
+        catch
+        {
+            Snackbar.Add("Login failed. Please try again.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

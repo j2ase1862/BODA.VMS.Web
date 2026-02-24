@@ -1,0 +1,190 @@
+@page "/admin/approvals"
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+<PageTitle>User Approvals - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">User Management</MudText>
+
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4"
+         Color="Color.Primary" SliderColor="Color.Primary"
+         Style="background: var(--vms-bg-surface); border: 1px solid var(--vms-border); border-radius: 8px;">
+    <MudTabPanel Text="Pending Approvals" BadgeData="@_pendingUsers.Count" BadgeColor="Color.Warning">
+        @if (_pendingUsers.Count == 0)
+        {
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"
+                         Style="color: var(--vms-success); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">No pending approval requests</MudText>
+            </div>
+        }
+        else
+        {
+            <div class="vms-table">
+                <MudTable Items="_pendingUsers" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Username</MudTh>
+                        <MudTh>Display Name</MudTh>
+                        <MudTh>Registered</MudTh>
+                        <MudTh Style="text-align: right;">Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudText Style="font-weight: 500;">@context.Username</MudText>
+                        </MudTd>
+                        <MudTd>@context.DisplayName</MudTd>
+                        <MudTd>
+                            <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
+                                @context.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </MudText>
+                        </MudTd>
+                        <MudTd Style="text-align: right;">
+                            <MudButtonGroup Size="Size.Small" OverrideStyles="false">
+                                <MudButton Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small"
+                                           OnClick="@(() => ApproveUser(context, "Guest"))"
+                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                                    Guest
+                                </MudButton>
+                                <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                                           OnClick="@(() => ApproveUser(context, "User"))"
+                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                                    User
+                                </MudButton>
+                                <MudButton Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small"
+                                           OnClick="@(() => ApproveUser(context, "Admin"))"
+                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                                    Admin
+                                </MudButton>
+                                <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small"
+                                           OnClick="@(() => RejectUser(context))"
+                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                                    Reject
+                                </MudButton>
+                            </MudButtonGroup>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="All Users">
+        <div class="vms-table">
+            <MudTable Items="_allUsers" Dense="true" Hover="true" Elevation="0"
+                      Filter="new Func<UserDto, bool>(FilterFunc)">
+                <ToolBarContent>
+                    <MudTextField @bind-Value="_searchString" Placeholder="Search users..."
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Small" Class="mt-0" Immediate="true"
+                                  Style="max-width: 300px;" />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Username</MudTh>
+                    <MudTh>Display Name</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh Style="text-align: right;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Style="font-weight: 500;">@context.Username</MudText>
+                    </MudTd>
+                    <MudTd>@context.DisplayName</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="GetRoleColor(context.Role)"
+                                 Style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600;">
+                            @context.Role.ToUpper()
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.IsApproved)
+                        {
+                            <span class="d-flex align-center">
+                                <span class="vms-status-dot online"></span>
+                                <MudText Style="color: var(--vms-success); font-size: 0.8rem;">Active</MudText>
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="d-flex align-center">
+                                <span class="vms-status-dot offline"></span>
+                                <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">Pending</MudText>
+                            </span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align: right;">
+                        @if (context.Username != "admin")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.LockReset" Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => ResetPassword(context))" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </div>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<UserDto> _pendingUsers = new();
+    private List<UserDto> _allUsers = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _pendingUsers = await Api.GetAsync<List<UserDto>>("/api/admin/pending-users") ?? new();
+        _allUsers = await Api.GetAsync<List<UserDto>>("/api/admin/users") ?? new();
+    }
+
+    private async Task ApproveUser(UserDto user, string role)
+    {
+        await Api.PostAsync("/api/admin/approve", new ApprovalDto { UserId = user.Id, Role = role });
+        Snackbar.Add($"{user.Username} approved as {role}", Severity.Success);
+        await LoadData();
+    }
+
+    private async Task RejectUser(UserDto user)
+    {
+        var confirmed = await Dialog.ShowMessageBox("Confirm",
+            $"Are you sure you want to reject {user.Username}? This will delete their account.",
+            "Yes", "No");
+        if (confirmed != true) return;
+
+        await Api.PostAsync<object>($"/api/admin/reject/{user.Id}", new { });
+        Snackbar.Add($"{user.Username} rejected", Severity.Warning);
+        await LoadData();
+    }
+
+    private async Task ResetPassword(UserDto user)
+    {
+        var result = await Dialog.ShowMessageBox("Reset Password",
+            $"Reset password for {user.Username} to default (1234)?",
+            "Yes", "No");
+        if (result != true) return;
+
+        await Api.PostAsync("/api/admin/reset-password",
+            new { UserId = user.Id, NewPassword = "1234" });
+        Snackbar.Add("Password reset successfully", Severity.Success);
+    }
+
+    private bool FilterFunc(UserDto user) =>
+        string.IsNullOrWhiteSpace(_searchString) ||
+        user.Username.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+        user.DisplayName.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+
+    private Color GetRoleColor(string role) => role switch
+    {
+        "Admin" => Color.Warning,
+        "User" => Color.Primary,
+        "Guest" => Color.Default,
+        _ => Color.Secondary
+    };
+}

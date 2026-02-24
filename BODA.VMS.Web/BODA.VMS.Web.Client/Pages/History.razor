@@ -1,0 +1,233 @@
+@page "/history"
+@inject ApiClient Api
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Production History - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">Production History</MudText>
+
+<!-- Filters -->
+<MudPaper Class="vms-filter-bar pa-4 mb-4">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" @bind-Value="_filter.ClientId" Label="Client" Clearable="true"
+                       Variant="Variant.Outlined" Dense="true">
+                @foreach (var client in _clients)
+                {
+                    <MudSelectItem Value="@((int?)client.Id)">@client.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDateRangePicker @bind-DateRange="_dateRange" Label="Date Range"
+                                Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudSelect T="bool?" @bind-Value="_filter.IsPass" Label="Result" Clearable="true"
+                       Variant="Variant.Outlined" Dense="true">
+                <MudSelectItem Value="@((bool?)true)">PASS</MudSelectItem>
+                <MudSelectItem Value="@((bool?)false)">NG</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Search"
+                       FullWidth="true" Size="Size.Medium"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       Class="vms-btn" Style="height: 40px;">
+                Search
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="ExportExcel" FullWidth="true" Size="Size.Medium"
+                       Class="vms-btn" Style="height: 40px;">
+                Export
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<!-- Summary Chart -->
+@if (_summary.Count > 0)
+{
+    <MudPaper Class="vms-panel pa-5 mb-4">
+        <MudText Class="vms-panel-header mb-3">Daily Summary</MudText>
+        <MudChart ChartType="ChartType.Line" ChartSeries="@_chartSeries" XAxisLabels="@_chartLabels"
+                  Width="100%" Height="250px"
+                  ChartOptions="@(new ChartOptions { LineStrokeWidth = 2 })" />
+    </MudPaper>
+}
+
+<!-- Data Table -->
+<div class="vms-table">
+    <MudTable ServerData="LoadServerData" @ref="_table" Dense="true" Hover="true" Elevation="0"
+              Loading="_loading" RowsPerPage="50">
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Client</MudTh>
+            <MudTh>Recipe</MudTh>
+            <MudTh>Result</MudTh>
+            <MudTh>NG Code</MudTh>
+            <MudTh>Inspected At</MudTh>
+            <MudTh Style="text-align: right;">Detail</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span class="vms-mono">#@context.Id</span>
+            </MudTd>
+            <MudTd>@context.ClientName</MudTd>
+            <MudTd>@context.RecipeName</MudTd>
+            <MudTd>
+                @if (context.IsPass)
+                {
+                    <MudChip T="string" Size="Size.Small" Class="vms-chip-pass">PASS</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Class="vms-chip-ng">NG</MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                <span class="vms-mono">@context.NgCode</span>
+            </MudTd>
+            <MudTd>
+                <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
+                    @context.InspectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                </MudText>
+            </MudTd>
+            <MudTd Style="text-align: right;">
+                @if (!context.IsPass)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => ShowDetail(context))" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">No inspection records found</MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private MudTable<HistoryDetailDto>? _table;
+    private HistoryFilterDto _filter = new();
+    private DateRange? _dateRange;
+    private List<ClientDto> _clients = new();
+    private List<HistorySummaryDto> _summary = new();
+    private List<ChartSeries> _chartSeries = new();
+    private string[] _chartLabels = Array.Empty<string>();
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        _dateRange = new DateRange(DateTime.Today.AddDays(-7), DateTime.Today);
+    }
+
+    private async Task<TableData<HistoryDetailDto>> LoadServerData(TableState state, CancellationToken ct)
+    {
+        _loading = true;
+        ApplyDateRange();
+        _filter.Page = state.Page + 1;
+        _filter.PageSize = state.PageSize;
+
+        var qs = BuildQueryString();
+        var result = await Api.GetAsync<PagedResult<HistoryDetailDto>>($"/api/history?{qs}");
+
+        _loading = false;
+        if (result is null)
+            return new TableData<HistoryDetailDto> { Items = new List<HistoryDetailDto>(), TotalItems = 0 };
+
+        return new TableData<HistoryDetailDto>
+        {
+            Items = result.Items,
+            TotalItems = result.TotalCount
+        };
+    }
+
+    private async Task Search()
+    {
+        ApplyDateRange();
+        await LoadSummary();
+        if (_table is not null)
+            await _table.ReloadServerData();
+    }
+
+    private async Task LoadSummary()
+    {
+        if (_filter.StartDate is null || _filter.EndDate is null) return;
+
+        var summary = await Api.GetAsync<List<HistorySummaryDto>>(
+            $"/api/history/summary?clientId={_filter.ClientId}&startDate={_filter.StartDate:yyyy-MM-dd}&endDate={_filter.EndDate:yyyy-MM-dd}");
+
+        if (summary is not null)
+        {
+            _summary = summary;
+            _chartLabels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
+            _chartSeries = new List<ChartSeries>
+            {
+                new() { Name = "Total", Data = summary.Select(s => (double)s.TotalCount).ToArray() },
+                new() { Name = "Pass", Data = summary.Select(s => (double)s.PassCount).ToArray() },
+                new() { Name = "NG", Data = summary.Select(s => (double)s.NgCount).ToArray() }
+            };
+        }
+    }
+
+    private void ApplyDateRange()
+    {
+        if (_dateRange?.Start is not null)
+            _filter.StartDate = _dateRange.Start.Value.Date;
+        if (_dateRange?.End is not null)
+            _filter.EndDate = _dateRange.End.Value.Date.AddDays(1).AddSeconds(-1);
+    }
+
+    private string BuildQueryString()
+    {
+        var parts = new List<string>();
+        if (_filter.ClientId.HasValue) parts.Add($"clientId={_filter.ClientId}");
+        if (_filter.StartDate.HasValue) parts.Add($"startDate={_filter.StartDate:yyyy-MM-ddTHH:mm:ss}");
+        if (_filter.EndDate.HasValue) parts.Add($"endDate={_filter.EndDate:yyyy-MM-ddTHH:mm:ss}");
+        if (_filter.IsPass.HasValue) parts.Add($"isPass={_filter.IsPass}");
+        if (!string.IsNullOrEmpty(_filter.NgCode)) parts.Add($"ngCode={_filter.NgCode}");
+        parts.Add($"page={_filter.Page}");
+        parts.Add($"pageSize={_filter.PageSize}");
+        return string.Join("&", parts);
+    }
+
+    private async Task ShowDetail(HistoryDetailDto item)
+    {
+        var parameters = new DialogParameters<NgDetailDialog>
+        {
+            { x => x.Detail, item }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await Dialog.ShowAsync<NgDetailDialog>("NG Detail", parameters, options);
+    }
+
+    private async Task ExportExcel()
+    {
+        try
+        {
+            ApplyDateRange();
+            var qs = BuildQueryString();
+            var bytes = await Api.GetBytesAsync($"/api/history/export?{qs}");
+            Snackbar.Add("Export initiated", Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add("Export failed", Severity.Error);
+        }
+    }
+}

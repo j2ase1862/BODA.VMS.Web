@@ -1,0 +1,139 @@
+<CascadingAuthenticationState>
+    <CascadingValue Value="_isDarkMode" Name="IsDarkMode">
+        <CascadingValue Value="ToggleDarkMode" Name="ToggleDarkMode">
+            <Router AppAssembly="typeof(Program).Assembly">
+                <Found Context="routeData">
+                    <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                        <NotAuthorized>
+                            <BODA.VMS.Web.Client.Pages.Login />
+                        </NotAuthorized>
+                    </AuthorizeRouteView>
+                    <FocusOnNavigate RouteData="routeData" Selector="h1" />
+                </Found>
+            </Router>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingAuthenticationState>
+
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+@code {
+    private bool _isDarkMode = false;
+
+    [Inject] private Blazored.LocalStorage.ILocalStorageService LocalStorage { get; set; } = null!;
+
+    private async Task ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        await LocalStorage.SetItemAsync("darkMode", _isDarkMode);
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var saved = await LocalStorage.GetItemAsync<bool?>("darkMode");
+            if (saved.HasValue && saved.Value != _isDarkMode)
+            {
+                _isDarkMode = saved.Value;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#FF6724",
+            Secondary = "#01397D",
+            Tertiary = "#00264C",
+            Background = "#F5F6F8",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#14151A",
+            DrawerBackground = "#00264C",
+            DrawerText = "rgba(255,255,255,0.75)",
+            DrawerIcon = "rgba(255,255,255,0.75)",
+            TextPrimary = "#14151A",
+            TextSecondary = "#5A5A5A",
+            ActionDefault = "#5A5A5A",
+            Success = "#2E7D32",
+            Error = "#D32F2F",
+            Warning = "#ED6C02",
+            Info = "#0288D1",
+            Divider = "#E2E2E2",
+            TableLines = "#F0F0F0",
+            LinesDefault = "#E2E2E2",
+            LinesInputs = "#E2E2E2",
+            HoverOpacity = 0.04
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#FF6724",
+            Secondary = "#4A8FD4",
+            Tertiary = "#FFB74D",
+            Background = "#0D1117",
+            Surface = "#161B22",
+            AppbarBackground = "#161B22",
+            AppbarText = "#E6EDF3",
+            DrawerBackground = "#0D1117",
+            DrawerText = "rgba(255,255,255,0.65)",
+            DrawerIcon = "rgba(255,255,255,0.65)",
+            TextPrimary = "#E6EDF3",
+            TextSecondary = "#8B949E",
+            ActionDefault = "#8B949E",
+            Success = "#3FB950",
+            Error = "#F85149",
+            Warning = "#D29922",
+            Info = "#58A6FF",
+            Divider = "#21262D",
+            TableLines = "#21262D",
+            LinesDefault = "#21262D",
+            LinesInputs = "#30363D",
+            HoverOpacity = 0.06
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "10px",
+            DrawerWidthLeft = "240px",
+            DrawerMiniWidthLeft = "56px"
+        },
+        Typography = new Typography
+        {
+            Default = new Default
+            {
+                FontFamily = new[] { "Roboto", "Segoe UI", "sans-serif" },
+                FontSize = "0.875rem"
+            },
+            H4 = new H4
+            {
+                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontWeight = 700,
+                FontSize = "1.4rem"
+            },
+            H5 = new H5
+            {
+                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontWeight = 600,
+                FontSize = "1.15rem"
+            },
+            H6 = new H6
+            {
+                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontWeight = 600,
+                FontSize = "1rem"
+            },
+            Subtitle1 = new Subtitle1
+            {
+                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontWeight = 600,
+                FontSize = "0.85rem"
+            }
+        }
+    };
+}

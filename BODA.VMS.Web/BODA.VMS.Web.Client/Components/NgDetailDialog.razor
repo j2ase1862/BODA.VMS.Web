@@ -1,0 +1,101 @@
+<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudText Class="vms-panel-header mb-3">Inspection Info</MudText>
+                <MudSimpleTable Dense="true" Hover="true" Style="background: transparent;">
+                    <tbody>
+                        <tr>
+                            <td style="color: var(--vms-text-secondary); width: 35%;">Client</td>
+                            <td style="font-weight: 500;">@Detail.ClientName</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--vms-text-secondary);">Recipe</td>
+                            <td>@Detail.RecipeName</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--vms-text-secondary);">NG Code</td>
+                            <td><span class="vms-mono">@Detail.NgCode</span></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--vms-text-secondary);">Time</td>
+                            <td style="font-size: 0.85rem;">
+                                @Detail.InspectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss.fff")
+                            </td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                @if (!string.IsNullOrEmpty(Detail.ImagePath))
+                {
+                    <MudImage Src="@Detail.ImagePath" Alt="NG Image" Fluid="true"
+                              ObjectFit="ObjectFit.Contain" Class="rounded-lg"
+                              Style="border: 1px solid var(--vms-border);" />
+                }
+                else
+                {
+                    <div class="pa-8 d-flex flex-column align-center"
+                         style="border: 1px dashed var(--vms-border); border-radius: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" Size="Size.Large"
+                                 Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                        <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">No NG image available</MudText>
+                    </div>
+                }
+            </MudItem>
+        </MudGrid>
+
+        @if (Detail.ToolResults is not null && Detail.ToolResults.Count > 0)
+        {
+            <MudText Class="vms-panel-header mt-5 mb-3">Tool Measurements</MudText>
+            <div class="vms-table">
+                <MudTable Items="Detail.ToolResults" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Tool</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Value</MudTh>
+                        <MudTh>Min</MudTh>
+                        <MudTh>Max</MudTh>
+                        <MudTh>Result</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd Style="font-weight: 500;">@context.ToolName</MudTd>
+                        <MudTd>
+                            <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
+                                @context.ToolType
+                            </MudText>
+                        </MudTd>
+                        <MudTd><span class="vms-mono">@context.Value.ToString("F3")</span></MudTd>
+                        <MudTd><span class="vms-mono">@context.Min.ToString("F3")</span></MudTd>
+                        <MudTd><span class="vms-mono">@context.Max.ToString("F3")</span></MudTd>
+                        <MudTd>
+                            @if (context.IsPass)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                         Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error"
+                                         Size="Size.Small" />
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public HistoryDetailDto Detail { get; set; } = new();
+
+    private void Close() => MudDialog.Close();
+}

@@ -1,0 +1,439 @@
+/* ============================================
+   BODA VMS — VASIM Corporate Identity Theme
+   Primary: #FF6724 (Orange)
+   Secondary: #01397D (Blue)
+   Navy: #00264C (Deep Navy)
+
+   Uses MudBlazor CSS variables (--mud-palette-*)
+   for automatic light/dark mode switching.
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+    --vms-primary: #FF6724;
+    --vms-primary-light: #FF8A50;
+    --vms-primary-dark: #E55A1B;
+    --vms-primary-glow: rgba(255, 103, 36, 0.12);
+}
+
+html, body {
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--mud-palette-background, #F5F6F8);
+    color: var(--mud-palette-text-primary, #14151A);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--mud-palette-background, #F5F6F8); }
+::-webkit-scrollbar-thumb { background: var(--mud-palette-lines-default, #C3C3C3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--vms-primary); }
+
+/* ---- AppBar ---- */
+.vms-appbar {
+    background: var(--mud-palette-appbar-background, #FFFFFF) !important;
+    border-bottom: 1px solid var(--mud-palette-divider, #E2E2E2) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+    color: var(--mud-palette-appbar-text, #14151A) !important;
+}
+
+.vms-appbar .mud-icon-button {
+    color: var(--mud-palette-action-default, #5A5A5A) !important;
+}
+
+.vms-logo {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.vms-logo .navy {
+    color: var(--mud-palette-text-primary, #00264C) !important;
+}
+
+.vms-logo-accent {
+    color: var(--vms-primary) !important;
+}
+
+.vms-logo-sub {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+    text-transform: uppercase;
+    margin-left: 10px;
+}
+
+.vms-appbar-page-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--vms-primary) !important;
+    margin-left: 16px;
+    padding-left: 16px;
+    border-left: 1px solid var(--mud-palette-divider, #E2E2E2);
+    white-space: nowrap;
+}
+
+/* ---- Drawer / Sidebar ---- */
+.vms-drawer {
+    background: var(--mud-palette-drawer-background, #00264C) !important;
+    border-right: none !important;
+}
+
+.vms-drawer .mud-nav-link {
+    color: var(--mud-palette-drawer-text, rgba(255,255,255,0.75)) !important;
+    border-radius: 6px;
+    margin: 2px 8px;
+    padding: 10px 14px;
+    font-size: 0.84rem;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    transition: all 0.2s ease;
+}
+
+.vms-drawer .mud-nav-link:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+}
+
+.vms-drawer .mud-nav-link.active {
+    background: var(--vms-primary) !important;
+    color: #FFFFFF !important;
+    font-weight: 500;
+}
+
+.vms-drawer .mud-nav-link .mud-nav-link-icon {
+    color: inherit !important;
+}
+
+.vms-nav-section {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    padding: 18px 20px 6px;
+}
+
+.vms-drawer .mud-divider {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    margin: 8px 16px !important;
+}
+
+/* ---- Page Headers ---- */
+.vms-page-title,
+.vms-page-title.mud-typography {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 1.4rem !important;
+    letter-spacing: 0.3px;
+    color: var(--mud-palette-text-primary, #E6EDF3) !important;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--vms-primary);
+    margin-bottom: 24px !important;
+    display: inline-block;
+}
+
+/* ---- Stat Cards ---- */
+.vms-stat-card {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.vms-stat-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+    transform: translateY(-2px);
+}
+
+.vms-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+}
+
+.vms-stat-card.accent-orange::before { background: var(--vms-primary); }
+.vms-stat-card.accent-green::before { background: var(--mud-palette-success, #4CAF50); }
+.vms-stat-card.accent-red::before { background: var(--mud-palette-error, #EF5350); }
+.vms-stat-card.accent-blue::before { background: var(--mud-palette-secondary, #01397D); }
+
+.vms-stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vms-stat-icon.orange { background: var(--vms-primary-glow); }
+.vms-stat-icon.green { background: rgba(76, 175, 80, 0.1); }
+.vms-stat-icon.red { background: rgba(239, 83, 80, 0.1); }
+.vms-stat-icon.blue { background: rgba(1, 57, 125, 0.1); }
+
+.vms-stat-label {
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+}
+
+.vms-stat-value {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 1.8rem !important;
+    line-height: 1.2;
+    color: var(--mud-palette-text-primary, #14151A) !important;
+}
+
+.vms-stat-sub {
+    font-size: 0.75rem !important;
+    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+}
+
+/* ---- Cards & Panels ---- */
+.vms-panel {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+}
+
+.vms-panel-header {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-primary, #00264C) !important;
+}
+
+/* ---- Tables ---- */
+.vms-table .mud-table {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+}
+
+.vms-table .mud-table-head .mud-table-cell {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+    background: var(--mud-palette-background, #F5F6F8) !important;
+    border-bottom: 2px solid var(--mud-palette-divider, #E2E2E2) !important;
+    padding: 12px 16px !important;
+}
+
+.vms-table .mud-table-body .mud-table-row {
+    border-bottom: 1px solid var(--mud-palette-table-lines, #F0F0F0) !important;
+    transition: background 0.15s ease;
+}
+
+.vms-table .mud-table-body .mud-table-row:hover {
+    background: var(--vms-primary-glow) !important;
+}
+
+.vms-table .mud-table-body .mud-table-cell {
+    color: var(--mud-palette-text-primary, #14151A) !important;
+    font-size: 0.85rem !important;
+    padding: 10px 16px !important;
+    border-bottom: none !important;
+}
+
+.vms-table .mud-table-toolbar {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border-bottom: 1px solid var(--mud-palette-table-lines, #F0F0F0) !important;
+    padding: 8px 16px !important;
+}
+
+.vms-table .mud-table-pagination {
+    background: var(--mud-palette-background, #F5F6F8) !important;
+    border-top: 1px solid var(--mud-palette-table-lines, #F0F0F0) !important;
+}
+
+/* ---- Status Indicators ---- */
+.vms-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.vms-status-dot.online {
+    background: var(--mud-palette-success, #4CAF50);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.vms-status-dot.offline {
+    background: var(--mud-palette-action-default, #C3C3C3);
+}
+
+/* ---- Login Page ---- */
+.vms-login-bg {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #001B36 0%, #01397D 50%, #00264C 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.vms-login-bg::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+}
+
+.vms-login-card {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+}
+
+.vms-login-logo {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.vms-login-logo .navy { color: var(--mud-palette-text-primary, #00264C); }
+.vms-login-logo .orange { color: var(--vms-primary); }
+
+.vms-login-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 3px;
+    color: var(--mud-palette-text-secondary, #8B8B8B);
+    text-transform: uppercase;
+    text-align: center;
+}
+
+/* ---- Chips ---- */
+.vms-chip-pass {
+    background: rgba(46, 125, 50, 0.1) !important;
+    color: var(--mud-palette-success, #2E7D32) !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px;
+}
+
+.vms-chip-ng {
+    background: rgba(211, 47, 47, 0.1) !important;
+    color: var(--mud-palette-error, #D32F2F) !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px;
+}
+
+/* ---- Filter Bar ---- */
+.vms-filter-bar {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+}
+
+/* ---- Monospace ---- */
+.vms-mono {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--mud-palette-secondary, #01397D);
+}
+
+/* ---- Buttons (VASIM style) ---- */
+.vms-btn {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+    font-size: 0.8rem !important;
+}
+
+/* ---- MudBlazor Overrides ---- */
+.mud-dialog {
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+.mud-dialog .mud-dialog-title {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px;
+    color: var(--mud-palette-text-primary, #00264C) !important;
+    background: var(--mud-palette-background, #F5F6F8) !important;
+    border-bottom: 1px solid var(--mud-palette-divider, #E2E2E2) !important;
+}
+
+.mud-tabs-toolbar {
+    background: var(--mud-palette-background, #F5F6F8) !important;
+}
+
+.mud-tab.mud-tab-active {
+    color: var(--vms-primary) !important;
+}
+
+.mud-tabs-panels {
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+}
+
+.mud-chip {
+    font-family: 'Montserrat', sans-serif !important;
+}
+
+/* ---- Blazor Overrides ---- */
+.blazor-error-boundary {
+    background: var(--mud-palette-error, #D32F2F);
+    padding: 1rem;
+    color: white;
+    border-radius: 8px;
+}
+
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}
+
+h1:focus { outline: none; }
+.valid.modified:not([type=checkbox]) { outline: 1px solid var(--mud-palette-success, #4CAF50); }
+.invalid { outline: 1px solid var(--mud-palette-error, #D32F2F); }
+.validation-message { color: var(--mud-palette-error, #D32F2F); }
+
+/* ---- Utility ---- */
+.vms-divider {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    margin: 8px 16px !important;
+}
+
+.text-orange { color: var(--vms-primary) !important; }

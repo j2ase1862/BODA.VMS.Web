@@ -1,0 +1,146 @@
+@page "/"
+@inject ApiClient Api
+@inject SignalRService SignalR
+@implements IDisposable
+
+<PageTitle>Dashboard - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">Dashboard</MudText>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="vms-stat-card accent-orange pa-4">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Class="vms-stat-label">Total Clients</MudText>
+                <div class="vms-stat-icon orange">
+                    <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Small"
+                             Style="color: var(--vms-primary);" />
+                </div>
+            </div>
+            <MudText Class="vms-stat-value">@_totalClients</MudText>
+            <MudText Class="vms-stat-sub mt-1">
+                <span class="vms-status-dot online"></span> @_aliveClients online
+            </MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="vms-stat-card accent-blue pa-4">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Class="vms-stat-label">Today's Production</MudText>
+                <div class="vms-stat-icon blue">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small"
+                             Style="color: var(--vms-secondary);" />
+                </div>
+            </div>
+            <MudText Class="vms-stat-value">@_todayTotal</MudText>
+            <MudText Class="vms-stat-sub mt-1">units inspected</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="vms-stat-card accent-green pa-4">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Class="vms-stat-label">Today's Pass</MudText>
+                <div class="vms-stat-icon green">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"
+                             Style="color: var(--vms-success-light);" />
+                </div>
+            </div>
+            <MudText Class="vms-stat-value" Style="color: var(--vms-success);">@_todayPass</MudText>
+            <MudText Class="vms-stat-sub mt-1">passed inspection</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="vms-stat-card accent-red pa-4">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Class="vms-stat-label">NG Rate</MudText>
+                <div class="vms-stat-icon red">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small"
+                             Style="color: var(--vms-error-light);" />
+                </div>
+            </div>
+            <MudText Class="vms-stat-value"
+                     Style="@($"color: {(_ngRate > 5 ? "var(--vms-error)" : "var(--vms-success)")};")">
+                @_ngRate.ToString("F1")%
+            </MudText>
+            <MudText Class="vms-stat-sub mt-1">defect rate</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@if (_dailySummary.Count > 0)
+{
+    <MudPaper Class="vms-panel pa-5 mt-4">
+        <MudText Class="vms-panel-header mb-3">7-Day Production Trend</MudText>
+        <MudChart ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels"
+                  Width="100%" Height="300px"
+                  ChartOptions="@(new ChartOptions { LineStrokeWidth = 2 })" />
+    </MudPaper>
+}
+
+@code {
+    private int _totalClients, _aliveClients, _todayTotal, _todayPass;
+    private double _ngRate;
+    private List<HistorySummaryDto> _dailySummary = new();
+    private List<ChartSeries> _series = new();
+    private string[] _labels = Array.Empty<string>();
+    private Dictionary<int, bool> _aliveStatus = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalR.OnClientStatusChanged += HandleStatusChange;
+
+        try
+        {
+            var clients = await Api.GetAsync<List<ClientDto>>("/api/clients");
+            if (clients is not null)
+            {
+                _totalClients = clients.Count;
+                foreach (var c in clients)
+                    _aliveStatus[c.Id] = c.IsAlive;
+                _aliveClients = _aliveStatus.Values.Count(v => v);
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var weekAgo = today.AddDays(-6);
+
+            var summary = await Api.GetAsync<List<HistorySummaryDto>>(
+                $"/api/history/summary?startDate={weekAgo:yyyy-MM-dd}&endDate={today.AddDays(1):yyyy-MM-dd}");
+
+            if (summary is not null)
+            {
+                _dailySummary = summary;
+                var todaySummary = summary.FirstOrDefault(s => s.Date.Date == today);
+                if (todaySummary is not null)
+                {
+                    _todayTotal = todaySummary.TotalCount;
+                    _todayPass = todaySummary.PassCount;
+                    _ngRate = todaySummary.NgRate;
+                }
+
+                _labels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
+                _series = new List<ChartSeries>
+                {
+                    new() { Name = "Total", Data = summary.Select(s => (double)s.TotalCount).ToArray() },
+                    new() { Name = "Pass", Data = summary.Select(s => (double)s.PassCount).ToArray() },
+                    new() { Name = "NG", Data = summary.Select(s => (double)s.NgCount).ToArray() }
+                };
+            }
+        }
+        catch
+        {
+            // Dashboard loads even if API is not yet available
+        }
+    }
+
+    private async void HandleStatusChange(int clientId, bool isAlive)
+    {
+        _aliveStatus[clientId] = isAlive;
+        _aliveClients = _aliveStatus.Values.Count(v => v);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SignalR.OnClientStatusChanged -= HandleStatusChange;
+    }
+}

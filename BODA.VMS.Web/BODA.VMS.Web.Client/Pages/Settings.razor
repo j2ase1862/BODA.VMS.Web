@@ -1,0 +1,69 @@
+@page "/settings"
+@inject ISnackbar Snackbar
+
+<PageTitle>Settings - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">Settings</MudText>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="vms-panel pa-5">
+            <div class="d-flex align-center mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small"
+                         Style="color: var(--vms-primary); margin-right: 8px;" />
+                <MudText Class="vms-panel-header">System Information</MudText>
+            </div>
+            <MudSimpleTable Dense="true" Hover="true" Style="background: transparent;">
+                <tbody>
+                    <tr>
+                        <td style="color: var(--vms-text-secondary); width: 40%;">Application</td>
+                        <td style="font-weight: 500;">BODA VMS Web</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--vms-text-secondary);">Version</td>
+                        <td><span class="vms-mono">1.0.0</span></td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--vms-text-secondary);">Platform</td>
+                        <td>.NET 8.0 Blazor WASM</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--vms-text-secondary);">Database</td>
+                        <td>SQLite (WAL Mode)</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="vms-panel pa-5">
+            <div class="d-flex align-center mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                         Style="color: var(--vms-primary); margin-right: 8px;" />
+                <MudText Class="vms-panel-header">Monitoring Configuration</MudText>
+            </div>
+            <MudTextField @bind-Value="_pingIntervalSec" Label="Client Ping Interval (seconds)"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          InputType="InputType.Number" />
+            <MudTextField @bind-Value="_pingPort" Label="Client Ping Port"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          InputType="InputType.Number" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="SaveSettings" Disabled="true" Size="Size.Medium"
+                       Class="vms-btn">
+                Save (Coming Soon)
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private int _pingIntervalSec = 10;
+    private int _pingPort = 9999;
+
+    private void SaveSettings()
+    {
+        Snackbar.Add("Settings saved", Severity.Success);
+    }
+}

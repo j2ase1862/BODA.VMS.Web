@@ -1,0 +1,51 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.Name" Label="Client Name"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Label"
+                          For="@(() => Model.Name)" />
+
+            <MudTextField @bind-Value="Model.IpAddress" Label="IP Address"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Placeholder="192.168.1.100"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lan"
+                          Style="font-family: 'Roboto Mono', monospace;"
+                          For="@(() => Model.IpAddress)" />
+
+            <MudNumericField @bind-Value="Model.ClientIndex" Label="Client Index"
+                             Variant="Variant.Outlined" Class="mb-4"
+                             Min="0" Max="99"
+                             For="@(() => Model.ClientIndex)" />
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Class="vms-btn">
+            @(IsEdit ? "Update" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public ClientDto Model { get; set; } = new();
+
+    [Parameter]
+    public bool IsEdit { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}

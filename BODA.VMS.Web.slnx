@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BODA.VMS.Web/BODA.VMS.Web.Client/BODA.VMS.Web.Client.csproj" />
+  <Project Path="BODA.VMS.Web/BODA.VMS.Web/BODA.VMS.Web.csproj" />
+</Solution>

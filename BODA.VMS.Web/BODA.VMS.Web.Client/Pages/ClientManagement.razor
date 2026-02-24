@@ -1,0 +1,213 @@
+@page "/clients"
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject SignalRService SignalR
+
+<PageTitle>Client Management - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">Vision Clients</MudText>
+
+<div class="vms-table">
+    <MudTable Items="_clients" Dense="true" Hover="true" Loading="_loading" Elevation="0">
+        <ToolBarContent>
+            <MudText Class="vms-panel-header">Registered Clients</MudText>
+            <MudSpacer />
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                               OnClick="OpenCreateDialog"
+                               Class="vms-btn">
+                        Add Client
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Index</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>IP Address</MudTh>
+            <MudTh>Last Seen</MudTh>
+            <MudTh Style="text-align: right;">Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudText Style="font-family: 'Roboto Mono', monospace; color: var(--vms-accent-light);">
+                    #@context.ClientIndex.ToString("D2")
+                </MudText>
+            </MudTd>
+            <MudTd>
+                @if (_aliveStatus.GetValueOrDefault(context.Id))
+                {
+                    <span class="d-flex align-center">
+                        <span class="vms-status-dot online"></span>
+                        <MudText Typo="Typo.body2" Style="color: var(--vms-success-light); font-size: 0.8rem;">Online</MudText>
+                    </span>
+                }
+                else
+                {
+                    <span class="d-flex align-center">
+                        <span class="vms-status-dot offline"></span>
+                        <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); font-size: 0.8rem;">Offline</MudText>
+                    </span>
+                }
+            </MudTd>
+            <MudTd><MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText></MudTd>
+            <MudTd><span class="vms-mono">@context.IpAddress</span></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
+                    @(context.LastSeenAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "—")
+                </MudText>
+            </MudTd>
+            <MudTd Style="text-align: right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="@(() => ShowRecipes(context))" />
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized Context="authContext1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Default"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="authContext2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteClient(context))" />
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">No vision clients configured</MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@if (_selectedRecipes is not null)
+{
+    <MudPaper Class="vms-panel pa-5 mt-4">
+        <MudText Class="vms-panel-header mb-3">Recipes — @_selectedClientName</MudText>
+        @if (_selectedRecipes.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                No recipes found for this client.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTreeView T="string" Color="Color.Primary">
+                @foreach (var recipe in _selectedRecipes)
+                {
+                    <MudTreeViewItem Value="@recipe.Name" Icon="@Icons.Material.Filled.Description">
+                        @foreach (var step in recipe.Steps)
+                        {
+                            <MudTreeViewItem Value="@step.Name" Icon="@Icons.Material.Filled.PlayArrow">
+                                @foreach (var tool in step.InspectionTools)
+                                {
+                                    <MudTreeViewItem Value="@($"{tool.Name} ({tool.ToolType})")"
+                                                     Icon="@Icons.Material.Filled.Build" />
+                                }
+                            </MudTreeViewItem>
+                        }
+                    </MudTreeViewItem>
+                }
+            </MudTreeView>
+        }
+    </MudPaper>
+}
+
+@code {
+    private List<ClientDto> _clients = new();
+    private Dictionary<int, bool> _aliveStatus = new();
+    private bool _loading = true;
+    private List<RecipeDto>? _selectedRecipes;
+    private string _selectedClientName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalR.OnClientStatusChanged += HandleStatusChange;
+        await LoadClients();
+    }
+
+    private async Task LoadClients()
+    {
+        _loading = true;
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        foreach (var c in _clients)
+            _aliveStatus[c.Id] = c.IsAlive;
+        _loading = false;
+    }
+
+    private async void HandleStatusChange(int clientId, bool isAlive)
+    {
+        _aliveStatus[clientId] = isAlive;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<ClientFormDialog>
+        {
+            { x => x.Model, new ClientDto() },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<ClientFormDialog>("Add Client", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            var dto = (ClientDto)result.Data!;
+            await Api.PostAsync<ClientDto, ClientDto>("/api/clients", dto);
+            Snackbar.Add("Client added", Severity.Success);
+            await LoadClients();
+        }
+    }
+
+    private async Task OpenEditDialog(ClientDto client)
+    {
+        var parameters = new DialogParameters<ClientFormDialog>
+        {
+            { x => x.Model, new ClientDto
+                {
+                    Id = client.Id, Name = client.Name, IpAddress = client.IpAddress,
+                    ClientIndex = client.ClientIndex, IsActive = client.IsActive
+                }
+            },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<ClientFormDialog>("Edit Client", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            var dto = (ClientDto)result.Data!;
+            await Api.PutAsync<ClientDto, ClientDto>($"/api/clients/{client.Id}", dto);
+            Snackbar.Add("Client updated", Severity.Success);
+            await LoadClients();
+        }
+    }
+
+    private async Task DeleteClient(ClientDto client)
+    {
+        var confirmed = await Dialog.ShowMessageBox("Confirm Delete",
+            $"Are you sure you want to delete client '{client.Name}'?",
+            "Delete", "Cancel");
+        if (confirmed != true) return;
+
+        await Api.DeleteAsync($"/api/clients/{client.Id}");
+        Snackbar.Add("Client deleted", Severity.Warning);
+        await LoadClients();
+    }
+
+    private async Task ShowRecipes(ClientDto client)
+    {
+        _selectedClientName = client.Name;
+        _selectedRecipes = await Api.GetAsync<List<RecipeDto>>($"/api/clients/{client.Id}/recipes") ?? new();
+    }
+}

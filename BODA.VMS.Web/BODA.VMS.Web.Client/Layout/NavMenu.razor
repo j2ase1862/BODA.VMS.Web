@@ -1,0 +1,20 @@
+<MudNavMenu>
+    <div class="vms-nav-section">Monitoring</div>
+    <MudNavLink Href="/" Match="NavLinkMatch.All"
+                Icon="@Icons.Material.Filled.GridView">Dashboard</MudNavLink>
+    <MudNavLink Href="/history"
+                Icon="@Icons.Material.Filled.Assessment">Production History</MudNavLink>
+    <MudNavLink Href="/clients"
+                Icon="@Icons.Material.Filled.Router">Vision Clients</MudNavLink>
+
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <MudDivider Class="vms-divider" />
+            <div class="vms-nav-section">Administration</div>
+            <MudNavLink Href="/admin/approvals"
+                        Icon="@Icons.Material.Filled.VerifiedUser">User Approvals</MudNavLink>
+            <MudNavLink Href="/settings"
+                        Icon="@Icons.Material.Filled.Tune">Settings</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+</MudNavMenu>

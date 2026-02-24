@@ -1,0 +1,83 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true" Class="vms-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <div class="d-flex align-center">
+            <MudText Class="vms-logo ml-2">
+                <span class="navy">BODA</span><span class="vms-logo-accent"> VMS</span>
+            </MudText>
+            <MudText Class="vms-logo-sub d-none d-sm-block">Vision Management System</MudText>
+        </div>
+        <MudSpacer />
+
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit" OnClick="@HandleToggleDarkMode"
+                       Size="Size.Small" />
+
+        <AuthorizeView>
+            <Authorized>
+                <NotificationBell />
+                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Secondary" Dense="true"
+                         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Disabled="true">
+                        <div class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.User.Identity?.Name</MudText>
+                        </div>
+                    </MudMenuItem>
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="Logout">
+                        Logout
+                    </MudMenuItem>
+                </MudMenu>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Login"
+                           Href="/login" Class="vms-btn">
+                    Sign In
+                </MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
+               Variant="DrawerVariant.Mini" OpenMiniOnHover="true" Class="vms-drawer">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent Class="pa-6" Style="min-height: 100vh; padding-top: 80px !important;">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    [CascadingParameter(Name = "IsDarkMode")]
+    private bool _isDarkMode { get; set; }
+
+    [CascadingParameter(Name = "ToggleDarkMode")]
+    private Func<Task>? _toggleDarkMode { get; set; }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task HandleToggleDarkMode()
+    {
+        if (_toggleDarkMode is not null)
+            await _toggleDarkMode();
+    }
+
+    private async Task Logout()
+    {
+        if (AuthStateProvider is AuthStateProvider auth)
+        {
+            await auth.LogoutAsync();
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

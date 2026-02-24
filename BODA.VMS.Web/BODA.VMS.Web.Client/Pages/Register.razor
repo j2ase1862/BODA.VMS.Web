@@ -1,0 +1,89 @@
+@page "/register"
+@layout BODA.VMS.Web.Client.Layout.EmptyLayout
+@inject ApiClient Api
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Register - BODA VMS</PageTitle>
+
+<div class="vms-login-bg">
+    <MudCard Class="vms-login-card pa-8">
+        <MudCardContent>
+            <div class="vms-login-logo mb-1">
+                <span class="navy">BODA</span> <span class="orange">VMS</span>
+            </div>
+            <div class="vms-login-subtitle mb-2">Create Account</div>
+            <MudText Typo="Typo.body2" Align="Align.Center" Style="color: var(--vms-text-light); font-size: 0.8rem;"
+                     Class="mb-6">
+                Your account will require admin approval before access is granted.
+            </MudText>
+
+            <EditForm Model="_model" OnValidSubmit="HandleRegister">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="_model.Username" Label="Username"
+                              Variant="Variant.Outlined" Class="mb-4"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              For="@(() => _model.Username)" />
+
+                <MudTextField @bind-Value="_model.DisplayName" Label="Display Name"
+                              Variant="Variant.Outlined" Class="mb-4"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Badge"
+                              For="@(() => _model.DisplayName)" />
+
+                <MudTextField @bind-Value="_model.Password" Label="Password"
+                              Variant="Variant.Outlined" Class="mb-6"
+                              InputType="InputType.Password"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Lock"
+                              For="@(() => _model.Password)" />
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                           Color="Color.Primary" FullWidth="true" Disabled="_loading"
+                           Size="Size.Large" Class="vms-btn mb-4">
+                    @if (_loading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Register
+                </MudButton>
+            </EditForm>
+
+            <div class="d-flex justify-center">
+                <MudLink Href="/login" Typo="Typo.body2" Color="Color.Secondary">
+                    Already have an account? Sign In
+                </MudLink>
+            </div>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private RegisterRequest _model = new();
+    private bool _loading;
+
+    private async Task HandleRegister()
+    {
+        _loading = true;
+        try
+        {
+            await Api.PostAsync<RegisterRequest, object>("/api/auth/register", _model);
+            Snackbar.Add("Registration successful! Please wait for admin approval.", Severity.Success);
+            Navigation.NavigateTo("/login");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            Snackbar.Add("Username already exists", Severity.Error);
+        }
+        catch
+        {
+            Snackbar.Add("Registration failed. Please try again.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
