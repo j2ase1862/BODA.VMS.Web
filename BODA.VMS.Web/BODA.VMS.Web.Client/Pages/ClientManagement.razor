@@ -163,10 +163,17 @@
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
-            var dto = (ClientDto)result.Data!;
-            await Api.PostAsync<ClientDto, ClientDto>("/api/clients", dto);
-            Snackbar.Add("Client added", Severity.Success);
-            await LoadClients();
+            try
+            {
+                var dto = (ClientDto)result.Data!;
+                await Api.PostAsync<ClientDto, ClientDto>("/api/clients", dto);
+                Snackbar.Add("Client added", Severity.Success);
+                await LoadClients();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to add client: {ex.Message}", Severity.Error);
+            }
         }
     }
 
@@ -186,10 +193,17 @@
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
-            var dto = (ClientDto)result.Data!;
-            await Api.PutAsync<ClientDto, ClientDto>($"/api/clients/{client.Id}", dto);
-            Snackbar.Add("Client updated", Severity.Success);
-            await LoadClients();
+            try
+            {
+                var dto = (ClientDto)result.Data!;
+                await Api.PutAsync<ClientDto, ClientDto>($"/api/clients/{client.Id}", dto);
+                Snackbar.Add("Client updated", Severity.Success);
+                await LoadClients();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add($"Failed to update client: {ex.Message}", Severity.Error);
+            }
         }
     }
 
@@ -200,9 +214,16 @@
             "Delete", "Cancel");
         if (confirmed != true) return;
 
-        await Api.DeleteAsync($"/api/clients/{client.Id}");
-        Snackbar.Add("Client deleted", Severity.Warning);
-        await LoadClients();
+        try
+        {
+            await Api.DeleteAsync($"/api/clients/{client.Id}");
+            Snackbar.Add("Client deleted", Severity.Warning);
+            await LoadClients();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Failed to delete client: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task ShowRecipes(ClientDto client)

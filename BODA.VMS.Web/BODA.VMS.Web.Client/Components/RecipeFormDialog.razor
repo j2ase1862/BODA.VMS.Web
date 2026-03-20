@@ -1,0 +1,45 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Name" Label="Recipe Name"
+                      Variant="Variant.Outlined" Class="mb-4"
+                      Placeholder="S25_BackGlass, APPLE_I15_CASE"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.MenuBook" />
+
+        <MudTextField @bind-Value="Description" Label="Description"
+                      Variant="Variant.Outlined" Class="mb-4"
+                      Placeholder="제품 모델 설명"
+                      Lines="2" />
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-2">
+            Recipe ID는 서버에서 자동 발급됩니다.
+            생성 후 VisionSetup에서 비전 로직(카메라/툴/스텝)을 구성하세요.
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="@string.IsNullOrWhiteSpace(Name)"
+                   Class="vms-btn">
+            Create
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new RecipeDto
+    {
+        Name = Name,
+        Description = Description
+    }));
+
+    private void Cancel() => MudDialog.Cancel();
+}

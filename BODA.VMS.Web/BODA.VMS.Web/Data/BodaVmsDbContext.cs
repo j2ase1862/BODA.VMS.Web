@@ -13,6 +13,7 @@ public class BodaVmsDbContext : DbContext
     public DbSet<Step> Steps => Set<Step>();
     public DbSet<InspectionTool> InspectionTools => Set<InspectionTool>();
     public DbSet<InspectionHistory> InspectionHistories => Set<InspectionHistory>();
+    public DbSet<RecipeParameter> RecipeParameters => Set<RecipeParameter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,9 +23,19 @@ public class BodaVmsDbContext : DbContext
             .HasIndex(u => u.Username)
             .IsUnique();
 
+        // VisionServer가 AUTOINCREMENT로 Id 부여 — Web은 읽기 전용으로 사용
+        modelBuilder.Entity<VisionClient>()
+            .Property(c => c.Id)
+            .ValueGeneratedNever();
+
         modelBuilder.Entity<VisionClient>()
             .HasIndex(c => c.ClientIndex)
             .IsUnique();
+
+        // Recipe도 VisionServer가 ID 관리
+        modelBuilder.Entity<Recipe>()
+            .Property(r => r.Id)
+            .ValueGeneratedNever();
 
         modelBuilder.Entity<InspectionHistory>()
             .HasIndex(h => h.InspectedAt);
@@ -32,16 +43,8 @@ public class BodaVmsDbContext : DbContext
         modelBuilder.Entity<InspectionHistory>()
             .HasIndex(h => new { h.ClientId, h.InspectedAt });
 
-        // Seed default admin user (password: admin)
-        modelBuilder.Entity<User>().HasData(new User
-        {
-            Id = 1,
-            Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
-            DisplayName = "Administrator",
-            Role = "Admin",
-            IsApproved = true,
-            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+        modelBuilder.Entity<RecipeParameter>()
+            .HasIndex(p => new { p.RecipeId, p.ParamCode })
+            .IsUnique();
     }
 }

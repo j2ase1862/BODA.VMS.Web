@@ -1,0 +1,155 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudSelect T="string" Value="Model.Category" ValueChanged="OnCategoryChanged"
+                       Label="Category"
+                       Variant="Variant.Outlined" Class="mb-4"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Category">
+                <MudSelectItem T="string" Value="@("Pattern")">Pattern Matching</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Blob")">Blob Analysis</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Dimension")">Dimension</MudSelectItem>
+            </MudSelect>
+
+            @if (!string.IsNullOrEmpty(Model.Category))
+            {
+                <MudAlert Severity="@GetCategorySeverity(Model.Category)" Variant="Variant.Text"
+                          Dense="true" Class="mb-4" NoIcon="false">
+                    @(ParameterPresetGroup.GetCategoryDescription(Model.Category))
+                </MudAlert>
+            }
+
+            <MudNumericField T="int" Value="Model.ParamCode" ValueChanged="OnParamCodeChanged"
+                             Label="Parameter Code"
+                             Variant="Variant.Outlined" Class="mb-4"
+                             Min="1"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Tag"
+                             Style="font-family: 'Roboto Mono', monospace;"
+                             Error="@_isDuplicate"
+                             ErrorText="@_duplicateMessage"
+                             HelperText="@(_isDuplicate ? "" : "고유 숫자 코드 (PLC 레지스터 주소 방식)")" />
+
+            <MudNumericField @bind-Value="Model.ParamValue" Label="Value"
+                             Variant="Variant.Outlined" Class="mb-4"
+                             Format="F4"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Numbers" />
+
+            <MudTextField @bind-Value="Model.Description" Label="Description"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Placeholder="@GetDescPlaceholder(Model.Category)"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Description" />
+
+            <MudTextField @bind-Value="Model.Unit" Label="Unit"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Placeholder="@GetUnitPlaceholder(Model.Category)"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Straighten" />
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="@(_isDuplicate && !IsEdit)"
+                   Class="vms-btn">
+            @(IsEdit ? "Update" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public RecipeParameterDto Model { get; set; } = new();
+
+    [Parameter]
+    public bool IsEdit { get; set; }
+
+    /// <summary>
+    /// 현재 레시피에 이미 존재하는 ParamCode 목록 (중복 체크용)
+    /// </summary>
+    [Parameter]
+    public HashSet<int> ExistingCodes { get; set; } = new();
+
+    private bool _isDuplicate;
+    private string _duplicateMessage = "";
+
+    private void OnParamCodeChanged(int newCode)
+    {
+        Model.ParamCode = newCode;
+        CheckDuplicate(newCode);
+    }
+
+    private void CheckDuplicate(int code)
+    {
+        // 편집 모드에서 자기 자신의 코드는 중복이 아님
+        if (IsEdit && code == Model.ParamCode)
+        {
+            _isDuplicate = false;
+            _duplicateMessage = "";
+            return;
+        }
+
+        if (ExistingCodes.Contains(code))
+        {
+            _isDuplicate = true;
+            _duplicateMessage = $"Code {code} is already in use in this recipe";
+        }
+        else
+        {
+            _isDuplicate = false;
+            _duplicateMessage = "";
+        }
+    }
+
+    private void OnCategoryChanged(string newCategory)
+    {
+        Model.Category = newCategory;
+    }
+
+    private static Severity GetCategorySeverity(string category) => category switch
+    {
+        "Pattern" => Severity.Info,
+        "Blob" => Severity.Warning,
+        "Dimension" => Severity.Success,
+        _ => Severity.Normal
+    };
+
+    private static string GetDescPlaceholder(string category) => category switch
+    {
+        "Pattern" => "Pattern_01 Score Threshold",
+        "Blob" => "Blob_01 Min Area",
+        "Dimension" => "Width Reference Value",
+        _ => "파라미터 설명"
+    };
+
+    private static string GetUnitPlaceholder(string category) => category switch
+    {
+        "Pattern" => "score, deg, ratio, mm, px",
+        "Blob" => "ea, px, level",
+        "Dimension" => "mm",
+        _ => "mm, px, score"
+    };
+
+    private void Submit()
+    {
+        if (_isDuplicate && !IsEdit)
+        {
+            Snackbar.Add($"Code {Model.ParamCode} is already in use", Severity.Error);
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

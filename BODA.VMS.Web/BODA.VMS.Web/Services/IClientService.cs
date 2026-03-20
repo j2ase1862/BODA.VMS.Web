@@ -10,4 +10,6 @@ public interface IClientService
     Task<ClientDto?> UpdateClientAsync(int id, ClientDto dto);
     Task<bool> DeleteClientAsync(int id);
     Task<List<RecipeDto>> GetRecipesByClientIdAsync(int clientId);
+    Task<RecipeDto> CreateRecipeAsync(int clientId, RecipeDto dto);
+    Task<bool> DeleteRecipeAsync(int recipeId);
 }
