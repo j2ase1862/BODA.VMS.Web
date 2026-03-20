@@ -81,10 +81,18 @@ public static class ClientEndpoints
             return client is null ? Results.NotFound() : Results.Ok(client);
         });
 
-        group.MapPost("/", async (ClientDto dto, IClientService clientService) =>
+        group.MapPost("/", async (ClientDto dto, IClientService clientService, ILogger<Program> logger) =>
         {
-            var result = await clientService.CreateClientAsync(dto);
-            return Results.Created($"/api/clients/{result.Id}", result);
+            try
+            {
+                var result = await clientService.CreateClientAsync(dto);
+                return Results.Created($"/api/clients/{result.Id}", result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to create client '{Name}'", dto.Name);
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
         }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
 
         group.MapPut("/{id:int}", async (int id, ClientDto dto, IClientService clientService) =>
@@ -104,6 +112,34 @@ public static class ClientEndpoints
             var recipes = await clientService.GetRecipesByClientIdAsync(id);
             return Results.Ok(recipes);
         });
+
+        // Recipe 생성 (Web이 ID 발급 — Single Source of Truth)
+        group.MapPost("/{id:int}/recipes", async (
+            int id,
+            RecipeDto dto,
+            IClientService clientService,
+            ILogger<Program> logger) =>
+        {
+            try
+            {
+                var result = await clientService.CreateRecipeAsync(id, dto);
+                return Results.Created($"/api/clients/{id}/recipes", result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to create recipe '{Name}' for client {ClientId}", dto.Name, id);
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+
+        // Recipe 삭제
+        group.MapDelete("/recipes/{recipeId:int}", async (
+            int recipeId,
+            IClientService clientService) =>
+        {
+            var success = await clientService.DeleteRecipeAsync(recipeId);
+            return success ? Results.Ok() : Results.NotFound();
+        }).RequireAuthorization(policy => policy.RequireRole("Admin"));
     }
 }
 
