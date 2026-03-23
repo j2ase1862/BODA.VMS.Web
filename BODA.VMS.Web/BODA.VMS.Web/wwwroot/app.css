@@ -17,13 +17,26 @@
     --vms-primary-glow: rgba(255, 103, 36, 0.12);
 }
 
-html, body {
+html {
+    overflow-x: hidden;
+}
+
+body {
     font-family: 'Roboto', 'Segoe UI', sans-serif;
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
     background-color: var(--mud-palette-background, #F5F6F8);
     color: var(--mud-palette-text-primary, #14151A);
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+/* Prevent layout overflow from any child */
+.mud-layout,
+.mud-main-content {
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 /* Scrollbar */
@@ -437,3 +450,180 @@ h1:focus { outline: none; }
 }
 
 .text-orange { color: var(--vms-primary) !important; }
+
+/* ============================================
+   Mobile Responsive
+   ============================================ */
+
+/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+input, select, textarea,
+.mud-input input,
+.mud-input textarea,
+.mud-input-slot,
+.mud-select-input {
+    font-size: 16px !important;
+}
+
+/* CRITICAL: Prevent MudTable from stacking cells vertically on mobile.
+   MudBlazor uses @media(max-width:599.99px) to set display:block on cells.
+   We override with higher specificity + !important to keep horizontal layout. */
+.vms-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.vms-table .mud-table-container {
+    overflow-x: auto;
+}
+
+.vms-table .mud-table {
+    /* Disable MudBlazor's built-in breakpoint behavior */
+}
+
+/* Force horizontal table on ALL screen sizes */
+.vms-table table thead {
+    display: table-header-group !important;
+}
+
+.vms-table table tbody {
+    display: table-row-group !important;
+}
+
+.vms-table table thead tr,
+.vms-table table tbody tr,
+.vms-table .mud-table-row {
+    display: table-row !important;
+}
+
+.vms-table table thead th,
+.vms-table table tbody td,
+.vms-table .mud-table-cell,
+.vms-table td.mud-table-cell,
+.vms-table th.mud-table-cell {
+    display: table-cell !important;
+    white-space: nowrap;
+}
+
+/* Hide MudBlazor's mobile cell labels (::before pseudo) */
+.vms-table .mud-table-cell::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* Allow description cells to wrap */
+.vms-table .mud-table-cell .mud-typography-body2 {
+    white-space: normal;
+    min-width: 80px;
+}
+
+@media (max-width: 600px) {
+    /* Dialog fullscreen on mobile */
+    .mud-dialog:not(.mud-dialog-width-false) {
+        margin: 8px !important;
+        max-height: calc(100vh - 16px) !important;
+        width: calc(100% - 16px) !important;
+        max-width: 100% !important;
+    }
+
+    .mud-dialog .mud-dialog-content {
+        padding: 12px !important;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        padding: 8px 12px !important;
+    }
+
+    /* Page title smaller */
+    .vms-page-title,
+    .vms-page-title.mud-typography {
+        font-size: 1.1rem !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Stat cards compact */
+    .vms-stat-value {
+        font-size: 1.4rem !important;
+    }
+
+    .vms-stat-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    /* Touch-friendly nav links */
+    .vms-drawer .mud-nav-link {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+    }
+
+    /* Chart responsive height */
+    .mud-chart {
+        max-height: 220px;
+    }
+
+    /* Table cells compact */
+    .vms-table .mud-table-head .mud-table-cell {
+        padding: 6px 8px !important;
+        font-size: 0.6rem !important;
+    }
+
+    .vms-table .mud-table-body .mud-table-cell {
+        padding: 6px 8px !important;
+        font-size: 0.75rem !important;
+    }
+
+    /* Table toolbar stacking */
+    .vms-table .mud-table-toolbar {
+        padding: 8px !important;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    /* Filter bar stacking */
+    .vms-filter-bar .mud-grid-item {
+        padding: 4px 8px !important;
+    }
+
+    /* Login card padding */
+    .vms-login-card {
+        margin: 16px !important;
+        max-width: calc(100% - 32px) !important;
+    }
+
+    .vms-login-logo {
+        font-size: 1.6rem;
+    }
+
+    /* AppBar compact */
+    .vms-logo {
+        font-size: 1rem;
+    }
+
+    /* Smaller chips on mobile */
+    .mud-chip {
+        font-size: 0.65rem !important;
+        height: 22px !important;
+    }
+
+    /* Compact icon buttons on mobile */
+    .mud-table .mud-icon-button {
+        padding: 4px !important;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 601px) and (max-width: 960px) {
+    .vms-page-title,
+    .vms-page-title.mud-typography {
+        font-size: 1.25rem !important;
+    }
+
+    .vms-stat-value {
+        font-size: 1.5rem !important;
+    }
+
+    .mud-dialog:not(.mud-dialog-width-false) {
+        margin: 16px !important;
+        max-width: calc(100% - 32px) !important;
+    }
+}
