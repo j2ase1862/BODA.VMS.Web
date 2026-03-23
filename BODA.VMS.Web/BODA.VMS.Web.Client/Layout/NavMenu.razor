@@ -1,22 +1,29 @@
 <MudNavMenu>
     <div class="vms-nav-section">Monitoring</div>
     <MudNavLink Href="/" Match="NavLinkMatch.All"
-                Icon="@Icons.Material.Filled.GridView">Dashboard</MudNavLink>
+                Icon="@Icons.Material.Filled.GridView" OnClick="HandleClick">Dashboard</MudNavLink>
     <MudNavLink Href="/history"
-                Icon="@Icons.Material.Filled.Assessment">Production History</MudNavLink>
+                Icon="@Icons.Material.Filled.Assessment" OnClick="HandleClick">Production History</MudNavLink>
     <MudNavLink Href="/clients"
-                Icon="@Icons.Material.Filled.Router">Vision Clients</MudNavLink>
+                Icon="@Icons.Material.Filled.Router" OnClick="HandleClick">Vision Clients</MudNavLink>
     <MudNavLink Href="/inspection-items"
-                Icon="@Icons.Material.Filled.Rule">Inspection Params</MudNavLink>
+                Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">Inspection Params</MudNavLink>
 
     <AuthorizeView Roles="Admin">
         <Authorized>
             <MudDivider Class="vms-divider" />
             <div class="vms-nav-section">Administration</div>
             <MudNavLink Href="/admin/approvals"
-                        Icon="@Icons.Material.Filled.VerifiedUser">User Approvals</MudNavLink>
+                        Icon="@Icons.Material.Filled.VerifiedUser" OnClick="HandleClick">User Approvals</MudNavLink>
             <MudNavLink Href="/settings"
-                        Icon="@Icons.Material.Filled.Tune">Settings</MudNavLink>
+                        Icon="@Icons.Material.Filled.Tune" OnClick="HandleClick">Settings</MudNavLink>
         </Authorized>
     </AuthorizeView>
 </MudNavMenu>
+
+@code {
+    [Parameter]
+    public Action? OnNavClick { get; set; }
+
+    private void HandleClick() => OnNavClick?.Invoke();
+}

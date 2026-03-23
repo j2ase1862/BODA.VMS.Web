@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using BODA.VMS.Web.Components;
 using BODA.VMS.Web.Data;
@@ -5,6 +6,7 @@ using BODA.VMS.Web.Endpoints;
 using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
@@ -13,6 +15,25 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Windows Service 지원 (콘솔 실행 시에는 영향 없음)
 builder.Host.UseWindowsService();
+
+// Response Compression (WASM DLL 전송 크기 대폭 감소)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/octet-stream",
+        "application/wasm",
+        "application/javascript",
+        "text/css"
+    });
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
 
 // MudBlazor
 builder.Services.AddMudServices();
@@ -227,6 +248,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseResponseCompression();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -237,7 +260,24 @@ else
     app.UseHsts();
     app.UseHttpsRedirection();
 }
-app.UseStaticFiles();
+// Static files with aggressive caching for WASM framework files
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // _framework/ DLLs change only on deploy → cache aggressively
+        if (ctx.File.Name.EndsWith(".dll") || ctx.File.Name.EndsWith(".wasm") ||
+            ctx.File.Name.EndsWith(".dat") || ctx.File.Name.EndsWith(".blat"))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=604800, immutable";
+        }
+        // CSS/JS with versioning
+        else if (ctx.File.Name.EndsWith(".css") || ctx.File.Name.EndsWith(".js"))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=86400";
+        }
+    }
+});
 app.UseAntiforgery();
 
 app.UseAuthentication();

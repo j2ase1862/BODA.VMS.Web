@@ -66,20 +66,25 @@
     <MudTable ServerData="LoadServerData" @ref="_table" Dense="true" Hover="true" Elevation="0"
               Loading="_loading" RowsPerPage="50">
         <HeaderContent>
-            <MudTh>ID</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">ID</MudTh>
             <MudTh>Client</MudTh>
-            <MudTh>Recipe</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">Recipe</MudTh>
             <MudTh>Result</MudTh>
-            <MudTh>NG Code</MudTh>
-            <MudTh>Inspected At</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">NG Code</MudTh>
+            <MudTh>Time</MudTh>
             <MudTh Style="text-align: right;">Detail</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>
+            <MudTd Class="d-none d-sm-table-cell">
                 <span class="vms-mono">#@context.Id</span>
             </MudTd>
-            <MudTd>@context.ClientName</MudTd>
-            <MudTd>@context.RecipeName</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.ClientName</MudText>
+                <MudText Typo="Typo.caption" Class="d-sm-none" Style="color: var(--vms-text-secondary);">
+                    @context.RecipeName
+                </MudText>
+            </MudTd>
+            <MudTd Class="d-none d-sm-table-cell">@context.RecipeName</MudTd>
             <MudTd>
                 @if (context.IsPass)
                 {
@@ -90,12 +95,13 @@
                     <MudChip T="string" Size="Size.Small" Class="vms-chip-ng">NG</MudChip>
                 }
             </MudTd>
-            <MudTd>
+            <MudTd Class="d-none d-sm-table-cell">
                 <span class="vms-mono">@context.NgCode</span>
             </MudTd>
             <MudTd>
                 <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
-                    @context.InspectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                    <span class="d-none d-sm-inline">@context.InspectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+                    <span class="d-sm-none">@context.InspectedAt.ToLocalTime().ToString("HH:mm:ss")</span>
                 </MudText>
             </MudTd>
             <MudTd Style="text-align: right;">

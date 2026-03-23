@@ -69,13 +69,11 @@ public class ParameterPresetGroup
             GroupName = "Blob Tool", Category = "Blob",
             Entries = new()
             {
-                new() { DescriptionTemplate = "Threshold",         Unit = "level" },
-                new() { DescriptionTemplate = "Expected Count",    Unit = "ea" },
-                new() { DescriptionTemplate = "Min Area",          Unit = "px" },
-                new() { DescriptionTemplate = "Max Area",          Unit = "px" },
-                new() { DescriptionTemplate = "Max Defect Size",   Unit = "px" },
-                new() { DescriptionTemplate = "Total Area Min",    Unit = "px" },
-                new() { DescriptionTemplate = "Total Area Max",    Unit = "px" },
+                new() { DescriptionTemplate = "Total Area Min",        Unit = "px" },
+                new() { DescriptionTemplate = "Total Area Max",        Unit = "px" },
+                new() { DescriptionTemplate = "Blob Count Reference",  Unit = "ea" },
+                new() { DescriptionTemplate = "Blob Count Upper Tol",  Unit = "ea" },
+                new() { DescriptionTemplate = "Blob Count Lower Tol",  Unit = "ea" },
             }
         },
         new()

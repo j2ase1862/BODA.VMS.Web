@@ -26,42 +26,40 @@
         </ToolBarContent>
         <HeaderContent>
             <MudTh>Index</MudTh>
-            <MudTh>Status</MudTh>
             <MudTh>Name</MudTh>
-            <MudTh>IP Address</MudTh>
-            <MudTh>Last Seen</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">IP Address</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">Last Seen</MudTh>
             <MudTh Style="text-align: right;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudText Style="font-family: 'Roboto Mono', monospace; color: var(--vms-accent-light);">
-                    #@context.ClientIndex.ToString("D2")
+                <div class="d-flex align-center gap-2">
+                    @if (_aliveStatus.GetValueOrDefault(context.Id))
+                    {
+                        <span class="vms-status-dot online"></span>
+                    }
+                    else
+                    {
+                        <span class="vms-status-dot offline"></span>
+                    }
+                    <MudText Style="font-family: 'Roboto Mono', monospace; color: var(--vms-accent-light);">
+                        #@context.ClientIndex.ToString("D2")
+                    </MudText>
+                </div>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
+                <MudText Typo="Typo.caption" Class="d-sm-none" Style="color: var(--vms-text-secondary);">
+                    @context.IpAddress
                 </MudText>
             </MudTd>
-            <MudTd>
-                @if (_aliveStatus.GetValueOrDefault(context.Id))
-                {
-                    <span class="d-flex align-center">
-                        <span class="vms-status-dot online"></span>
-                        <MudText Typo="Typo.body2" Style="color: var(--vms-success-light); font-size: 0.8rem;">Online</MudText>
-                    </span>
-                }
-                else
-                {
-                    <span class="d-flex align-center">
-                        <span class="vms-status-dot offline"></span>
-                        <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); font-size: 0.8rem;">Offline</MudText>
-                    </span>
-                }
-            </MudTd>
-            <MudTd><MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText></MudTd>
-            <MudTd><span class="vms-mono">@context.IpAddress</span></MudTd>
-            <MudTd>
+            <MudTd Class="d-none d-sm-table-cell"><span class="vms-mono">@context.IpAddress</span></MudTd>
+            <MudTd Class="d-none d-sm-table-cell">
                 <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
                     @(context.LastSeenAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "—")
                 </MudText>
             </MudTd>
-            <MudTd Style="text-align: right;">
+            <MudTd Style="text-align: right; white-space: nowrap;">
                 <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
                                Color="Color.Primary"
                                OnClick="@(() => ShowRecipes(context))" />

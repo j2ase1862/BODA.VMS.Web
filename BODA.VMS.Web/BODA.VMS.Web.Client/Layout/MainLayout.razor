@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 
+
 <MudLayout>
     <MudAppBar Elevation="0" Dense="true" Class="vms-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
@@ -46,11 +47,12 @@
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
-               Variant="DrawerVariant.Mini" OpenMiniOnHover="true" Class="vms-drawer">
-        <NavMenu />
+               Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
+               Class="vms-drawer">
+        <NavMenu OnNavClick="OnMobileNavClick" />
     </MudDrawer>
 
-    <MudMainContent Class="pa-6" Style="min-height: 100vh; padding-top: 80px !important;">
+    <MudMainContent Class="@(_drawerOpen ? "pa-6" : "pa-3")" Style="min-height: 100vh; padding-top: 80px !important;">
         @Body
     </MudMainContent>
 </MudLayout>
@@ -65,6 +67,13 @@
     private Func<Task>? _toggleDarkMode { get; set; }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void OnMobileNavClick()
+    {
+        // Responsive variant auto-switches to Temporary on mobile,
+        // so closing on nav click works correctly
+        _drawerOpen = false;
+    }
 
     private async Task HandleToggleDarkMode()
     {

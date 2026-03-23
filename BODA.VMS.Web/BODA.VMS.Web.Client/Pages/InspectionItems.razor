@@ -8,44 +8,48 @@
 <MudText Typo="Typo.h4" Class="vms-page-title">Recipe Parameters</MudText>
 
 <div class="vms-panel pa-4 mb-4">
-    <div class="d-flex gap-4">
-        <MudSelect T="int?" Label="Select Client" Variant="Variant.Outlined"
-                   Value="_selectedClientId" ValueChanged="OnClientChanged"
-                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
-                   Dense="true" Style="flex: 1;">
-            <MudSelectItem T="int?" Value="@((int?)null)">-- Select a client --</MudSelectItem>
-            @foreach (var client in _clients)
-            {
-                <MudSelectItem T="int?" Value="@((int?)client.Id)">
-                    #@client.ClientIndex.ToString("D2") — @client.Name
-                </MudSelectItem>
-            }
-        </MudSelect>
-
-        <MudSelect T="int?" Label="Select Recipe" Variant="Variant.Outlined"
-                   Value="_selectedRecipeId" ValueChanged="OnRecipeChanged"
-                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.MenuBook"
-                   Dense="true" Style="flex: 1;"
-                   Disabled="@(!_selectedClientId.HasValue)">
-            <MudSelectItem T="int?" Value="@((int?)null)">-- Select a recipe --</MudSelectItem>
-            @foreach (var recipe in _recipes)
-            {
-                <MudSelectItem T="int?" Value="@((int?)recipe.Id)">
-                    @recipe.Name @(string.IsNullOrEmpty(recipe.Description) ? "" : $"— {recipe.Description}")
-                </MudSelectItem>
-            }
-        </MudSelect>
-
-        <AuthorizeView Roles="Admin,User">
-            <Authorized>
-                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                               Size="Size.Medium" Style="margin-top: 4px;"
-                               OnClick="OpenCreateRecipeDialog"
-                               Disabled="@(!_selectedClientId.HasValue)"
-                               Title="Create New Recipe" />
-            </Authorized>
-        </AuthorizeView>
-    </div>
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="5">
+            <MudSelect T="int?" Label="Select Client" Variant="Variant.Outlined"
+                       Value="_selectedClientId" ValueChanged="OnClientChanged"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
+                       Dense="true">
+                <MudSelectItem T="int?" Value="@((int?)null)">-- Select a client --</MudSelectItem>
+                @foreach (var client in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)client.Id)">
+                        #@client.ClientIndex.ToString("D2") — @client.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="10" sm="5">
+            <MudSelect T="int?" Label="Select Recipe" Variant="Variant.Outlined"
+                       Value="_selectedRecipeId" ValueChanged="OnRecipeChanged"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.MenuBook"
+                       Dense="true"
+                       Disabled="@(!_selectedClientId.HasValue)">
+                <MudSelectItem T="int?" Value="@((int?)null)">-- Select a recipe --</MudSelectItem>
+                @foreach (var recipe in _recipes)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)recipe.Id)">
+                        @recipe.Name @(string.IsNullOrEmpty(recipe.Description) ? "" : $"— {recipe.Description}")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="2" sm="2" Class="d-flex align-center justify-center">
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                                   Size="Size.Medium"
+                                   OnClick="OpenCreateRecipeDialog"
+                                   Disabled="@(!_selectedClientId.HasValue)"
+                                   Title="Create New Recipe" />
+                </Authorized>
+            </AuthorizeView>
+        </MudItem>
+    </MudGrid>
 </div>
 
 @if (_selectedClientId.HasValue && !_selectedRecipeId.HasValue && _recipes.Count == 0)
@@ -76,56 +80,55 @@
         <MudTable Items="_params" Dense="true" Hover="true" Loading="_loading" Elevation="0"
                   GroupBy="_groupDefinition" GroupHeaderStyle="background-color: rgba(255,255,255,0.03);">
             <ToolBarContent>
-                <MudText Class="vms-panel-header">
-                    @(_recipes.FirstOrDefault(r => r.Id == _selectedRecipeId)?.Name ?? "")
-                </MudText>
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Style="color: var(--vms-text-secondary);">
-                    Recipe ID: @_selectedRecipeId — @_params.Count codes
-                </MudChip>
-                <MudSpacer />
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                       Color="Color.Error" Class="mr-2"
-                                       OnClick="DeleteSelectedRecipe"
-                                       Title="Delete this recipe" />
-                    </Authorized>
-                </AuthorizeView>
-                <AuthorizeView Roles="Admin,User">
-                    <Authorized>
-                        <MudMenu Label="Add Preset Group" StartIcon="@Icons.Material.Filled.PlaylistAdd"
-                                 Variant="Variant.Outlined" Size="Size.Small" Class="mr-2"
-                                 Dense="true" AnchorOrigin="Origin.BottomRight">
-                            @foreach (var group in ParameterPresetGroup.PresetGroups)
-                            {
-                                <MudMenuItem OnClick="@(() => AddPresetGroup(group))">
-                                    <span style="font-weight: 600;">@group.GroupName</span>
-                                    <span style="color: var(--vms-text-secondary); margin-left: 8px; font-size: 0.8rem;">
-                                        (@group.Entries.Count params)
-                                    </span>
-                                </MudMenuItem>
-                            }
-                        </MudMenu>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
-                                   OnClick="OpenCreateDialog"
-                                   Class="vms-btn">
-                            Add Parameter
-                        </MudButton>
-                    </Authorized>
-                </AuthorizeView>
+                <div class="d-flex align-center flex-wrap gap-1" style="width: 100%;">
+                    <MudText Class="vms-panel-header">
+                        @(_recipes.FirstOrDefault(r => r.Id == _selectedRecipeId)?.Name ?? "")
+                    </MudText>
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        @_params.Count codes
+                    </MudText>
+                    <MudSpacer />
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="DeleteSelectedRecipe"
+                                           Title="Delete this recipe" />
+                        </Authorized>
+                    </AuthorizeView>
+                    <AuthorizeView Roles="Admin,User">
+                        <Authorized>
+                            <MudMenu Icon="@Icons.Material.Filled.PlaylistAdd"
+                                     Variant="Variant.Outlined" Size="Size.Small"
+                                     Dense="true" AnchorOrigin="Origin.BottomRight"
+                                     Title="Add Preset Group">
+                                @foreach (var group in ParameterPresetGroup.PresetGroups)
+                                {
+                                    <MudMenuItem OnClick="@(() => AddPresetGroup(group))">
+                                        <span style="font-weight: 600;">@group.GroupName</span>
+                                        <span style="color: var(--mud-palette-text-secondary); margin-left: 8px; font-size: 0.8rem;">
+                                            (@group.Entries.Count)
+                                        </span>
+                                    </MudMenuItem>
+                                }
+                            </MudMenu>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                                           Variant="Variant.Filled" Size="Size.Small"
+                                           OnClick="OpenCreateDialog"
+                                           Title="Add Parameter" />
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
             </ToolBarContent>
             <HeaderContent>
-                <MudTh>Category</MudTh>
-                <MudTh Style="text-align: right;">Code</MudTh>
-                <MudTh Style="text-align: right;">Value</MudTh>
+                <MudTh>Code</MudTh>
                 <MudTh>Description</MudTh>
-                <MudTh>Unit</MudTh>
+                <MudTh Style="text-align: right;">Value</MudTh>
                 <MudTh>Status</MudTh>
                 <MudTh Style="text-align: right;">Actions</MudTh>
             </HeaderContent>
             <GroupHeaderTemplate>
-                <MudTd colspan="7" Style="padding: 8px 16px;">
+                <MudTd colspan="5" Style="padding: 8px 16px;">
                     <span style="font-weight: 600; color: var(--vms-text-primary);">@context.Key</span>
                     <span style="color: var(--vms-text-secondary); margin-left: 8px; font-size: 0.8rem;">
                         (@context.Items.Count() parameters)
@@ -134,22 +137,19 @@
             </GroupHeaderTemplate>
             <RowTemplate>
                 <MudTd>
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                             Style="@GetCategoryStyle(context.Category)">
-                        @context.Category
-                    </MudChip>
-                </MudTd>
-                <MudTd Style="text-align: right;">
-                    <MudText Style="font-family: 'Roboto Mono', monospace; color: var(--vms-accent-light); font-weight: 700; font-size: 1rem;">
+                    <MudText Style="font-family: 'Roboto Mono', monospace; font-weight: 700;">
                         @context.ParamCode
                     </MudText>
                 </MudTd>
-                <MudTd Style="text-align: right;">
-                    <span class="vms-mono" style="font-size: 0.95rem;">@context.ParamValue.ToString("F4")</span>
-                </MudTd>
-                <MudTd><MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Description</MudText></MudTd>
                 <MudTd>
-                    <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">@(context.Unit ?? "—")</MudText>
+                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Description</MudText>
+                    @if (!string.IsNullOrEmpty(context.Unit))
+                    {
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@context.Unit</MudText>
+                    }
+                </MudTd>
+                <MudTd Style="text-align: right;">
+                    <span class="vms-mono">@context.ParamValue.ToString("F4")</span>
                 </MudTd>
                 <MudTd>
                     @if (context.IsActive)
@@ -161,7 +161,7 @@
                         <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Inactive</MudChip>
                     }
                 </MudTd>
-                <MudTd Style="text-align: right;">
+                <MudTd Style="text-align: right; white-space: nowrap;">
                     <AuthorizeView Roles="Admin,User">
                         <Authorized Context="authContext1">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
