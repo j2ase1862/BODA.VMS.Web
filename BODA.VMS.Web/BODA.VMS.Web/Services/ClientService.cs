@@ -4,6 +4,7 @@ using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BODA.VMS.Web.Services;
 
@@ -11,6 +12,7 @@ public class ClientService : IClientService
 {
     private readonly BodaVmsDbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly IOptionsMonitor<VisionServerOptions> _visionServerOptions;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ClientService> _logger;
 
@@ -22,14 +24,18 @@ public class ClientService : IClientService
     public ClientService(
         BodaVmsDbContext db,
         IConfiguration configuration,
+        IOptionsMonitor<VisionServerOptions> visionServerOptions,
         IHttpClientFactory httpClientFactory,
         ILogger<ClientService> logger)
     {
         _db = db;
         _configuration = configuration;
+        _visionServerOptions = visionServerOptions;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
+
+    private bool IsVisionServerEnabled => _visionServerOptions.CurrentValue.Enabled;
 
     public async Task<List<ClientDto>> GetAllClientsAsync()
     {
@@ -74,23 +80,32 @@ public class ClientService : IClientService
 
     public async Task<ClientDto> CreateClientAsync(ClientDto dto)
     {
-        // 1. VisionServer에 Client 생성 (shared DB에 직접 INSERT됨)
-        var visionServerResult = await CreateClientOnVisionServerAsync(dto);
+        Data.Entities.VisionClient entity;
 
-        // 2. VisionServer가 shared DB에 이미 INSERT한 행을 읽어서 Web 전용 컬럼 업데이트
-        // DbContext 캐시를 우회하여 DB에서 직접 읽기
-        var entity = await _db.Clients
-            .FirstOrDefaultAsync(c => c.Id == visionServerResult.Id);
-
-        if (entity is null)
+        if (IsVisionServerEnabled)
         {
-            // VisionServer가 아직 커밋하지 않았거나 다른 DB를 쓰는 경우 fallback
+            var visionServerResult = await CreateClientOnVisionServerAsync(dto);
+            entity = await _db.Clients
+                .FirstOrDefaultAsync(c => c.Id == visionServerResult.Id)
+                ?? new Data.Entities.VisionClient
+                {
+                    Id = visionServerResult.Id,
+                    Name = visionServerResult.Name,
+                    IpAddress = visionServerResult.IpAddress,
+                    ClientIndex = visionServerResult.Index,
+                };
+            if (_db.Entry(entity).State == EntityState.Detached)
+                _db.Clients.Add(entity);
+        }
+        else
+        {
+            var nextId = (await _db.Clients.MaxAsync(c => (int?)c.Id) ?? 0) + 1;
             entity = new Data.Entities.VisionClient
             {
-                Id = visionServerResult.Id,
-                Name = visionServerResult.Name,
-                IpAddress = visionServerResult.IpAddress,
-                ClientIndex = visionServerResult.Index,
+                Id = nextId,
+                Name = dto.Name,
+                IpAddress = dto.IpAddress,
+                ClientIndex = dto.ClientIndex,
             };
             _db.Clients.Add(entity);
         }
@@ -104,8 +119,8 @@ public class ClientService : IClientService
         dto.CreatedAt = entity.CreatedAt;
 
         _logger.LogInformation(
-            "Client '{Name}' created (VisionServer Id={Id}, Index={Index})",
-            dto.Name, dto.Id, dto.ClientIndex);
+            "Client '{Name}' created (Id={Id}, Index={Index}, Standalone={Standalone})",
+            dto.Name, dto.Id, dto.ClientIndex, !IsVisionServerEnabled);
 
         return dto;
     }
@@ -115,10 +130,10 @@ public class ClientService : IClientService
         var entity = await _db.Clients.FindAsync(id);
         if (entity is null) return null;
 
-        // 1. VisionServer에 먼저 동기화
-        await UpdateClientOnVisionServerAsync(id, dto);
+        if (IsVisionServerEnabled)
+            await UpdateClientOnVisionServerAsync(id, dto);
 
-        // 2. Web DB 업데이트
+        // Web DB 업데이트
         entity.Name = dto.Name;
         entity.IpAddress = dto.IpAddress;
         entity.ClientIndex = dto.ClientIndex;
@@ -137,10 +152,10 @@ public class ClientService : IClientService
         var entity = await _db.Clients.FindAsync(id);
         if (entity is null) return false;
 
-        // 1. VisionServer에서 먼저 삭제
-        await DeleteClientFromVisionServerAsync(id);
+        if (IsVisionServerEnabled)
+            await DeleteClientFromVisionServerAsync(id);
 
-        // 2. Web DB에서 삭제
+        // Web DB에서 삭제
         _db.Clients.Remove(entity);
         await _db.SaveChangesAsync();
         return true;
@@ -170,10 +185,10 @@ public class ClientService : IClientService
 
     private string GetVisionServerBaseUrl()
     {
-        var baseUrl = _configuration["VisionServer:BaseUrl"];
+        var baseUrl = _visionServerOptions.CurrentValue.BaseUrl;
         if (string.IsNullOrEmpty(baseUrl))
             throw new InvalidOperationException(
-                "VisionServer:BaseUrl is not configured. VisionServer is the single data owner and must be reachable.");
+                "VisionServer:BaseUrl is not configured.");
         return baseUrl.TrimEnd('/');
     }
 
@@ -278,29 +293,46 @@ public class ClientService : IClientService
 
     public async Task<RecipeDto> CreateRecipeAsync(int clientId, RecipeDto dto)
     {
-        // 1. VisionServer에 Recipe 생성 (shared DB에 INSERT)
-        var visionServerResult = await CreateRecipeOnVisionServerAsync(clientId, dto);
+        Data.Entities.Recipe entity;
 
-        // 2. VisionServer가 shared DB에 INSERT한 행을 읽어 확인
-        var entity = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == visionServerResult.RecipeId);
-
-        if (entity is null)
+        if (IsVisionServerEnabled)
         {
+            var visionServerResult = await CreateRecipeOnVisionServerAsync(clientId, dto);
+            entity = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == visionServerResult.RecipeId)
+                ?? new Data.Entities.Recipe
+                {
+                    Id = visionServerResult.RecipeId,
+                    Name = visionServerResult.RecipeName,
+                    Description = dto.Description,
+                    ClientId = clientId,
+                    CreatedAt = DateTime.UtcNow
+                };
+            if (_db.Entry(entity).State == EntityState.Detached)
+                _db.Recipes.Add(entity);
+        }
+        else
+        {
+            var nextId = (await _db.Recipes.MaxAsync(r => (int?)r.Id) ?? 0) + 1;
+            var nextIndex = (await _db.Recipes
+                .Where(r => r.ClientId == clientId)
+                .MaxAsync(r => (int?)r.RecipeIndex) ?? 0) + 1;
             entity = new Data.Entities.Recipe
             {
-                Id = visionServerResult.RecipeId,
-                Name = visionServerResult.RecipeName,
+                Id = nextId,
+                Name = dto.Name,
+                RecipeIndex = nextIndex,
                 Description = dto.Description,
                 ClientId = clientId,
                 CreatedAt = DateTime.UtcNow
             };
             _db.Recipes.Add(entity);
-            await _db.SaveChangesAsync();
         }
 
+        await _db.SaveChangesAsync();
+
         _logger.LogInformation(
-            "Recipe '{Name}' created (Id={Id}) for Client {ClientId}",
-            entity.Name, entity.Id, clientId);
+            "Recipe '{Name}' created (Id={Id}) for Client {ClientId} (Standalone={Standalone})",
+            entity.Name, entity.Id, clientId, !IsVisionServerEnabled);
 
         return new RecipeDto
         {
@@ -314,10 +346,10 @@ public class ClientService : IClientService
 
     public async Task<bool> DeleteRecipeAsync(int recipeId)
     {
-        // 1. VisionServer에서 삭제
-        await DeleteRecipeFromVisionServerAsync(recipeId);
+        if (IsVisionServerEnabled)
+            await DeleteRecipeFromVisionServerAsync(recipeId);
 
-        // 2. Web DB에서 관련 파라미터 삭제
+        // Web DB에서 관련 파라미터 삭제
         var parameters = await _db.RecipeParameters
             .Where(p => p.RecipeId == recipeId)
             .ToListAsync();

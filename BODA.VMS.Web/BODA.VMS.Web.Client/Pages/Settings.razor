@@ -1,4 +1,5 @@
 @page "/settings"
+@inject ApiClient Api
 @inject ISnackbar Snackbar
 
 <PageTitle>Settings - BODA VMS</PageTitle>
@@ -56,14 +57,105 @@
             </MudButton>
         </MudPaper>
     </MudItem>
+
+    <MudItem xs="12" md="6">
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <MudPaper Class="vms-panel pa-5">
+                    <div class="d-flex align-center mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Small"
+                                 Style="color: var(--vms-primary); margin-right: 8px;" />
+                        <MudText Class="vms-panel-header">VisionServer Connection</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_vsEnabled" Label="VisionServer Enabled"
+                               Color="Color.Primary" Class="mb-4" />
+                    <MudTextField @bind-Value="_vsBaseUrl" Label="VisionServer Base URL"
+                                  Variant="Variant.Outlined" Class="mb-4"
+                                  Placeholder="http://localhost:5000"
+                                  Disabled="@(!_vsEnabled)" />
+                    <MudAlert Severity="@(_vsEnabled ? Severity.Normal : Severity.Info)"
+                              Variant="Variant.Text" Dense="true" Class="mb-4">
+                        @if (_vsEnabled)
+                        {
+                            <text>Client/Recipe 변경 시 VisionServer에 먼저 동기화합니다.</text>
+                        }
+                        else
+                        {
+                            <text>Standalone 모드: 모든 변경사항이 로컬 SQLite에 직접 저장됩니다.</text>
+                        }
+                    </MudAlert>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="SaveVisionServerSettings" Size="Size.Medium"
+                               Disabled="_vsSaving" Class="vms-btn">
+                        @if (_vsSaving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Save
+                    </MudButton>
+                </MudPaper>
+            </Authorized>
+        </AuthorizeView>
+    </MudItem>
 </MudGrid>
 
 @code {
     private int _pingIntervalSec = 10;
     private int _pingPort = 9999;
 
+    // VisionServer settings
+    private bool _vsEnabled;
+    private string _vsBaseUrl = "";
+    private bool _vsSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Api.GetResponseAsync("/api/settings/visionserver");
+            if (response.IsSuccessStatusCode)
+            {
+                var settings = await response.Content.ReadFromJsonAsync<VsSettings>();
+                if (settings is not null)
+                {
+                    _vsEnabled = settings.Enabled;
+                    _vsBaseUrl = settings.BaseUrl;
+                }
+            }
+        }
+        catch
+        {
+            // Not logged in as Admin or API not available — ignore
+        }
+    }
+
     private void SaveSettings()
     {
         Snackbar.Add("Settings saved", Severity.Success);
+    }
+
+    private async Task SaveVisionServerSettings()
+    {
+        _vsSaving = true;
+        try
+        {
+            await Api.PutAsync<object, object>("/api/settings/visionserver",
+                new { Enabled = _vsEnabled, BaseUrl = _vsBaseUrl });
+            Snackbar.Add("VisionServer settings saved", Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Failed to save: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _vsSaving = false;
+        }
+    }
+
+    private class VsSettings
+    {
+        public bool Enabled { get; set; }
+        public string BaseUrl { get; set; } = "";
     }
 }
