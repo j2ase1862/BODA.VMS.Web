@@ -87,6 +87,8 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddHttpClient();
+builder.Services.Configure<VisionServerOptions>(
+    builder.Configuration.GetSection(VisionServerOptions.SectionName));
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IRecipeParameterService, RecipeParameterService>();
 builder.Services.AddScoped<IHistoryService, HistoryService>();
@@ -289,6 +291,7 @@ app.MapAdminEndpoints();
 app.MapClientEndpoints();
 app.MapInspectionItemEndpoints();
 app.MapHistoryEndpoints();
+app.MapSettingsEndpoints();
 
 // Map SignalR hub
 app.MapHub<VmsHub>("/hubs/vms");
