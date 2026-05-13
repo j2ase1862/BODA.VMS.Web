@@ -103,6 +103,24 @@ using (var scope = app.Services.CreateScope())
     var conn = db.Database.GetDbConnection();
     await conn.OpenAsync();
 
+    // 0. VisionServer가 없는 환경(웹 단독 부팅)을 위해 VisionServer 소유 테이블의
+    //    원본 컬럼만으로 스켈레톤을 생성. VisionServer가 나중에 동일 스키마로
+    //    CREATE TABLE 하더라도 IF NOT EXISTS 라서 충돌 없음.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""Clients"" (
+            ""Id""        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""Name""      TEXT NOT NULL,
+            ""IpAddress"" TEXT NOT NULL,
+            ""Index""     INTEGER NOT NULL DEFAULT 0
+        );");
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""Recipes"" (
+            ""RecipeID""    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""RecipeName""  TEXT NOT NULL,
+            ""ClientID""    INTEGER NOT NULL,
+            ""RecipeIndex"" INTEGER
+        );");
+
     // 1. Add Web-specific columns to VisionServer's Clients table
     using (var cmd = conn.CreateCommand())
     {
