@@ -1,28 +1,42 @@
 @inject SignalRService SignalR
+@inject ApiClient Api
+@inject NavigationManager Nav
+@implements IDisposable
 
-<MudBadge Content="@_count" Visible="@(_count > 0)" Color="Color.Error" Overlap="true">
+<MudBadge Content="@_count" Visible="@(_count > 0)" Color="@_badgeColor" Overlap="true" Bordered="true">
     <MudMenu Icon="@Icons.Material.Filled.NotificationsNone" Color="Color.Inherit"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-        @if (_notifications.Count == 0)
+        @if (_recent.Count == 0)
         {
             <MudMenuItem Disabled="true">
                 <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
-                    No notifications
+                    No active alarms
                 </MudText>
             </MudMenuItem>
         }
         else
         {
-            @foreach (var n in _notifications.TakeLast(10).Reverse())
+            @foreach (var a in _recent)
             {
-                <MudMenuItem>
-                    <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">@n</MudText>
+                <MudMenuItem OnClick="@(() => GoToAlarm(a))">
+                    <div style="min-width: 260px;">
+                        <div class="d-flex align-center" style="gap:6px;">
+                            <MudChip T="string" Size="Size.Small" Color="@SevColor(a.Severity)"
+                                     Variant="Variant.Filled"
+                                     Style="height:16px; font-size:10px;">@a.Severity</MudChip>
+                            <span style="font-weight:600; font-size:13px;">@a.Title</span>
+                        </div>
+                        <div style="font-size:11px; color: var(--vms-text-secondary); margin-top:2px;">
+                            @a.OccurredAt.ToLocalTime().ToString("MM-dd HH:mm:ss")
+                            @(string.IsNullOrEmpty(a.ClientName) ? "" : $" — {a.ClientName}")
+                        </div>
+                    </div>
                 </MudMenuItem>
             }
             <MudDivider Class="my-1" />
-            <MudMenuItem OnClick="Clear">
+            <MudMenuItem OnClick="GoToAlarms">
                 <MudText Typo="Typo.body2" Color="Color.Primary" Style="font-size: 0.8rem;">
-                    Clear all
+                    View all alarms →
                 </MudText>
             </MudMenuItem>
         }
@@ -30,33 +44,59 @@
 </MudBadge>
 
 @code {
-    private List<string> _notifications = new();
+    private List<AlarmEventDto> _recent = new();
     private int _count;
+    private Color _badgeColor = Color.Warning;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        SignalR.OnNgAlert += HandleNgAlert;
-        SignalR.OnClientStatusChanged += HandleStatusChange;
+        SignalR.OnAlarmCreated += HandleAlarmCreated;
+        SignalR.OnAlarmUpdated += HandleAlarmUpdated;
+        await Refresh();
     }
 
-    private async void HandleNgAlert(string message)
+    private async Task Refresh()
     {
-        _notifications.Add($"[NG] {message}");
-        _count++;
+        try
+        {
+            // 미확인 + 확인됨(미해제) 알람 최신 10건
+            var page = await Api.GetAsync<PagedResult<AlarmEventDto>>(
+                "/api/alarms?state=New&pageSize=10");
+            var newOnly = page?.Items ?? new();
+            _recent = newOnly;
+
+            var summary = await Api.GetAsync<AlarmSummaryDto>("/api/alarms/summary");
+            if (summary is not null)
+            {
+                _count = summary.NewCount;
+                _badgeColor = summary.CriticalCount > 0 ? Color.Error
+                            : (summary.NewCount > 0 ? Color.Warning : Color.Default);
+            }
+        }
+        catch
+        {
+            // 미로그인 등 — 무시
+        }
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void HandleStatusChange(int clientId, bool isAlive)
-    {
-        var status = isAlive ? "online" : "offline";
-        _notifications.Add($"Client #{clientId} is {status}");
-        _count++;
-        await InvokeAsync(StateHasChanged);
-    }
+    private async void HandleAlarmCreated(AlarmEventDto alarm) => await Refresh();
+    private async void HandleAlarmUpdated(AlarmEventDto alarm) => await Refresh();
 
-    private void Clear()
+    private void GoToAlarm(AlarmEventDto a) => Nav.NavigateTo($"/alarms?id={a.Id}");
+    private void GoToAlarms() => Nav.NavigateTo("/alarms");
+
+    private static Color SevColor(string sev) => sev switch
     {
-        _notifications.Clear();
-        _count = 0;
+        "Critical" => Color.Error,
+        "Major" => Color.Warning,
+        "Minor" => Color.Info,
+        _ => Color.Default
+    };
+
+    public void Dispose()
+    {
+        SignalR.OnAlarmCreated -= HandleAlarmCreated;
+        SignalR.OnAlarmUpdated -= HandleAlarmUpdated;
     }
 }

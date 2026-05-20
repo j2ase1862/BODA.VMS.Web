@@ -1,0 +1,73 @@
+@inject ApiClient Api
+
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 420px;">
+            <MudText Typo="Typo.subtitle1" Class="mb-1">@Schedule.Name</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);" Class="mb-3">
+                주기 @(Schedule.IntervalDays)일 · 예상 소요 @(Schedule.EstimatedDurationMinutes)분
+            </MudText>
+
+            @if (!Schedule.ClientId.HasValue)
+            {
+                <MudSelect T="int?" @bind-Value="_clientId" Label="수행 라인"
+                           Variant="Variant.Outlined" Class="mb-3" Required="true"
+                           HelperText="공통 일정은 수행 시 라인을 명시해야 합니다">
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- 선택 --</MudSelectItem>
+                    @foreach (var c in _clients)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                            #@c.ClientIndex.ToString("D2") @c.Name
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+            <MudNumericField T="int?" @bind-Value="_duration" Label="실제 소요 시간 (분)"
+                             Variant="Variant.Outlined" Class="mb-3"
+                             Min="1" Clearable="true"
+                             HelperText="실제 소요 시간 (선택)" />
+
+            <MudTextField @bind-Value="_notes" Label="비고"
+                          Variant="Variant.Outlined" Lines="3"
+                          HelperText="확인 사항, 부품 교체, 이상 발견 등" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled"
+                   OnClick="Submit"
+                   Disabled="@(!Schedule.ClientId.HasValue && !_clientId.HasValue)"
+                   Class="vms-btn">
+            ✓ 수행 기록
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public MaintenanceScheduleDto Schedule { get; set; } = new();
+
+    private List<ClientDto> _clients = new();
+    private int? _clientId;
+    private int? _duration;
+    private string _notes = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Schedule.ClientId.HasValue)
+            _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+    }
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new PerformMaintenanceRequest
+        {
+            ClientId = _clientId ?? Schedule.ClientId,
+            ActualDurationMinutes = _duration,
+            Notes = string.IsNullOrWhiteSpace(_notes) ? null : _notes
+        }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

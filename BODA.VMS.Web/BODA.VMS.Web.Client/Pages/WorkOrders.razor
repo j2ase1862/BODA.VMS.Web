@@ -1,0 +1,324 @@
+@page "/workorders"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.workorders"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.workorders"]</MudText>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2" AlignItems="Center">
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string?" Value="_statusFilter" ValueChanged="OnStatusFilterChanged"
+                       Label="@(L["common.status"])" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.FilterList">
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Planned")">@L["status.planned"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("InProgress")">@L["status.inProgress"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Completed")">@L["status.completed"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Closed")">@L["status.closed"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="int?" Value="_clientFilter" ValueChanged="OnClientFilterChanged"
+                       Label="@(L["common.line"])" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") — @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                               Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                        @L["workorder.btnCreate"]
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </MudItem>
+    </MudGrid>
+</div>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>@L["workorder.colOrderNo"]</MudTh>
+            <MudTh>@L["common.product"]</MudTh>
+            <MudTh>@L["common.line"]</MudTh>
+            <MudTh>@L["common.recipe"]</MudTh>
+            <MudTh Style="text-align: right;">@L["workorder.colPlannedQty"]</MudTh>
+            <MudTh Style="text-align: right;">@L["workorder.colProducedQty"]</MudTh>
+            <MudTh Style="text-align: right;">@L["workorder.colPassNg"]</MudTh>
+            <MudTh>@L["workorder.colProgress"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span class="vms-mono" style="font-weight: 700;">@context.OrderNo</span>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductCode</MudText>
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@context.ProductName</MudText>
+            </MudTd>
+            <MudTd>
+                @if (context.ClientIndex.HasValue)
+                {
+                    <span>#@context.ClientIndex.Value.ToString("D2")</span> <span>—</span> <span>@context.ClientName</span>
+                }
+            </MudTd>
+            <MudTd>@context.RecipeName</MudTd>
+            <MudTd Style="text-align: right;">@context.PlannedQuantity</MudTd>
+            <MudTd Style="text-align: right;">@context.ProducedQuantity</MudTd>
+            <MudTd Style="text-align: right;">
+                <span style="color: var(--mud-palette-success); font-weight: 600;">@context.PassQuantity</span>
+                <span style="color: var(--vms-text-secondary);"> / </span>
+                <span style="color: var(--mud-palette-error); font-weight: 600;">@context.NgQuantity</span>
+            </MudTd>
+            <MudTd>
+                <div style="min-width: 80px;">
+                    <MudProgressLinear Color="@GetProgressColor(context)"
+                                       Value="@Math.Min(context.Progress, 100)"
+                                       Size="Size.Small" Class="my-1" />
+                    <MudText Typo="Typo.caption">@context.Progress.ToString("F1")%</MudText>
+                </div>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)"
+                         Variant="@(context.Status == "InProgress" ? Variant.Filled : Variant.Outlined)">
+                    @StatusLabel(context.Status, L)
+                </MudChip>
+            </MudTd>
+            <MudTd Style="text-align: right; white-space: nowrap;">
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized Context="auth1">
+                        @if (context.Status == "Planned")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small"
+                                           Color="Color.Success"
+                                           OnClick="@(() => ChangeStatus(context, "Start"))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => OpenEditDialog(context))" />
+                        }
+                        else if (context.Status == "InProgress")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small"
+                                           Color="Color.Warning"
+                                           OnClick="@(() => ChangeStatus(context, "Complete"))" />
+                        }
+                        else if (context.Status == "Completed")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Lock" Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => ChangeStatus(context, "Close"))" />
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Inventory" Size="Size.Small"
+                                       Color="Color.Info"
+                                       OnClick="@(() => OpenLots(context))" />
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="auth2">
+                        @if (context.Status == "Planned")
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteItem(context))" />
+                        }
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">@L["workorder.noOrders"]</MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<WorkOrderDto> _items = new();
+    private List<ClientDto> _clients = new();
+    private bool _loading;
+    private string? _statusFilter;
+    private int? _clientFilter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        var q = new List<string>();
+        if (!string.IsNullOrEmpty(_statusFilter)) q.Add($"status={_statusFilter}");
+        if (_clientFilter.HasValue) q.Add($"clientId={_clientFilter}");
+        var url = "/api/workorders" + (q.Count > 0 ? "?" + string.Join("&", q) : "");
+        _items = await Api.GetAsync<List<WorkOrderDto>>(url) ?? new();
+        _loading = false;
+    }
+
+    private async Task OnStatusFilterChanged(string? s) { _statusFilter = s; await Load(); }
+    private async Task OnClientFilterChanged(int? id) { _clientFilter = id; await Load(); }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<WorkOrderFormDialog>
+        {
+            { x => x.Model, new WorkOrderDto { PlannedQuantity = 100 } },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<WorkOrderFormDialog>(L["workorder.btnCreate"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (WorkOrderDto)result.Data!;
+                var created = await Api.PostAsync<WorkOrderDto, WorkOrderDto>("/api/workorders", dto);
+                Snackbar.Add(L.Format("workorder.createdFmt", created?.OrderNo ?? ""), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(WorkOrderDto src)
+    {
+        var copy = new WorkOrderDto
+        {
+            Id = src.Id,
+            OrderNo = src.OrderNo,
+            ProductId = src.ProductId,
+            ClientId = src.ClientId,
+            RecipeId = src.RecipeId,
+            PlannedQuantity = src.PlannedQuantity,
+            Status = src.Status,
+            PlannedStartAt = src.PlannedStartAt,
+            Note = src.Note
+        };
+        var parameters = new DialogParameters<WorkOrderFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<WorkOrderFormDialog>(L.Format("workorder.editTitleFmt", src.OrderNo), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (WorkOrderDto)result.Data!;
+                await Api.PutAsync<WorkOrderDto, WorkOrderDto>($"/api/workorders/{src.Id}", dto);
+                Snackbar.Add(L.Format("workorder.updatedFmt", dto.OrderNo), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task ChangeStatus(WorkOrderDto wo, string action)
+    {
+        var actionLabel = action switch
+        {
+            "Start" => L["workorder.actStart"],
+            "Complete" => L["workorder.actComplete"],
+            "Close" => L["workorder.actClose"],
+            _ => action
+        };
+        var confirmed = await Dialog.ShowMessageBox(L["action.confirm"],
+            L.Format("workorder.confirmActionFmt", wo.OrderNo, actionLabel),
+            actionLabel, L["action.cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.PostAsync<WorkOrderStatusChangeRequest, WorkOrderDto>(
+                $"/api/workorders/{wo.Id}/status",
+                new WorkOrderStatusChangeRequest { Action = action });
+            Snackbar.Add(L.Format("workorder.transitionFmt", wo.OrderNo, actionLabel), Severity.Success);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private async Task OpenLots(WorkOrderDto wo)
+    {
+        var parameters = new DialogParameters<LotListDialog>
+        {
+            { x => x.WorkOrderId, wo.Id },
+            { x => x.WorkOrderNo, wo.OrderNo }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = false };
+        var dialog = await Dialog.ShowAsync<LotListDialog>(L.Format("workorder.lotsTitleFmt", wo.OrderNo), parameters, options);
+        await dialog.Result;
+        await Load();
+    }
+
+    private async Task DeleteItem(WorkOrderDto wo)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("workorder.confirmDeleteFmt", wo.OrderNo),
+            L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.DeleteAsync($"/api/workorders/{wo.Id}");
+            Snackbar.Add(L.Format("workorder.deletedFmt", wo.OrderNo), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private static string StatusLabel(string s, ILocalizer L) => s switch
+    {
+        "Planned" => L["status.planned"],
+        "InProgress" => L["status.inProgress"],
+        "Completed" => L["status.completed"],
+        "Closed" => L["status.closed"],
+        _ => s
+    };
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Planned" => Color.Default,
+        "InProgress" => Color.Info,
+        "Completed" => Color.Success,
+        "Closed" => Color.Dark,
+        _ => Color.Default
+    };
+
+    private static Color GetProgressColor(WorkOrderDto wo)
+    {
+        if (wo.Progress >= 100) return Color.Success;
+        if (wo.Status == "InProgress") return Color.Info;
+        return Color.Default;
+    }
+}

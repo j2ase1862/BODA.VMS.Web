@@ -1,0 +1,40 @@
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 420px;">
+            <MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-3">
+                알람 해제 시 조치 내용을 반드시 입력해주세요. 향후 동일 이슈 발생 시 참고됩니다.
+            </MudAlert>
+
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@Alarm.Title</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);" Class="mb-3">
+                발생 @Alarm.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                @(string.IsNullOrEmpty(Alarm.ClientName) ? "" : $" · {Alarm.ClientName}")
+            </MudText>
+
+            <MudTextField @bind-Value="_resolution" Label="조치 내용"
+                          Variant="Variant.Outlined" Lines="4" Required="true"
+                          Placeholder="원인 / 조치 / 재발 방지 방안 등" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled"
+                   OnClick="Submit" Disabled="@(string.IsNullOrWhiteSpace(_resolution))"
+                   Class="vms-btn">
+            해제
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public AlarmEventDto Alarm { get; set; } = new();
+
+    private string _resolution = "";
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_resolution));
+    private void Cancel() => MudDialog.Cancel();
+}

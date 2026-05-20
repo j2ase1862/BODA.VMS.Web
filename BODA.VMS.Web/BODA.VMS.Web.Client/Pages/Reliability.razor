@@ -1,0 +1,159 @@
+@page "/reliability"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject ILocalizer L
+
+<PageTitle>@L["page.reliability"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.reliability"]</MudText>
+
+<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    @L["reliability.formulaAlert"]
+    <br />@L["reliability.formulaDetail"]
+</MudAlert>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Calculate"
+                       OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+@if (_stats.Count > 0)
+{
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
+        @foreach (var s in _stats)
+        {
+            <div class="vms-panel pa-3" style="border-top: 4px solid @(AvailColor(s.Availability));">
+                <div class="d-flex align-center mb-2">
+                    <MudText Typo="Typo.h6" Style="font-weight:700;">
+                        #@s.ClientIndex.ToString("D2") @s.ClientName
+                    </MudText>
+                    <MudSpacer />
+                    <div style="text-align:right;">
+                        <div style="font-size:10px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.failureCount"]</div>
+                        <div style="font-size:24px; font-weight:800; font-family:'Roboto Mono',monospace; color:@(s.FailureCount > 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)");">
+                            @s.FailureCount
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+                    <div style="text-align:center; padding:8px; background:rgba(255,255,255,0.03); border-radius:6px;">
+                        <div style="font-size:10px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.mtbf"]</div>
+                        <div style="font-size:22px; font-weight:800; font-family:'Roboto Mono',monospace;">
+                            @(s.MtbfHours.HasValue ? $"{s.MtbfHours.Value:F1}h" : "—")
+                        </div>
+                        <div style="font-size:10px; color:var(--vms-text-secondary);">@L["reliability.mtbfDescription"]</div>
+                    </div>
+                    <div style="text-align:center; padding:8px; background:rgba(255,255,255,0.03); border-radius:6px;">
+                        <div style="font-size:10px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.mttr"]</div>
+                        <div style="font-size:22px; font-weight:800; font-family:'Roboto Mono',monospace;">
+                            @(s.MttrHours.HasValue ? $"{s.MttrHours.Value:F1}h" : "—")
+                        </div>
+                        <div style="font-size:10px; color:var(--vms-text-secondary);">@L["reliability.mttrDescription"]</div>
+                    </div>
+                </div>
+
+                @if (s.Availability.HasValue)
+                {
+                    <div style="text-align:center; padding:10px; background:rgba(79,195,247,0.08); border-radius:6px;">
+                        <div style="font-size:11px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.availability"]</div>
+                        <div style="font-size:30px; font-weight:800; font-family:'Roboto Mono',monospace; color:@(AvailColor(s.Availability));">
+                            @((s.Availability * 100).Value.ToString("F2"))%
+                        </div>
+                    </div>
+                }
+
+                <MudDivider Class="my-2" />
+                <div class="d-flex justify-space-between" style="font-size:12px;">
+                    <span style="color: var(--mud-palette-success);">@L.Format("reliability.runningHoursFmt", s.TotalRunningHours.ToString("F1"))</span>
+                    <span style="color: var(--mud-palette-error);">@L.Format("reliability.downHoursFmt", s.TotalDownHours.ToString("F1"))</span>
+                </div>
+            </div>
+        }
+    </div>
+}
+else if (_loaded)
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudText Style="color: var(--vms-text-secondary);">@L["reliability.noData"]</MudText>
+    </div>
+}
+else
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large"
+                 Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+        <MudText Style="color: var(--vms-text-secondary);">@L["reliability.promptCalc"]</MudText>
+    </div>
+}
+
+@code {
+    private DateTime? _startDate = DateTime.Today.AddDays(-7);
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private int? _clientId;
+    private List<ClientDto> _clients = new();
+    private List<ReliabilityStatsDto> _stats = new();
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        await Calculate();
+    }
+
+    private async Task Calculate()
+    {
+        if (!_startDate.HasValue || !_endDate.HasValue) return;
+        var req = new ReliabilityRequestDto
+        {
+            StartDate = _startDate.Value.ToUniversalTime(),
+            EndDate = _endDate.Value.ToUniversalTime(),
+            ClientId = _clientId
+        };
+        try
+        {
+            _stats = await Api.PostAsync<ReliabilityRequestDto, List<ReliabilityStatsDto>>(
+                "/api/reliability/calculate", req) ?? new();
+            _loaded = true;
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private static string AvailColor(double? avail)
+    {
+        if (!avail.HasValue) return "var(--mud-palette-default)";
+        if (avail >= 0.95) return "var(--mud-palette-success)";
+        if (avail >= 0.85) return "var(--mud-palette-info)";
+        if (avail >= 0.70) return "var(--mud-palette-warning)";
+        return "var(--mud-palette-error)";
+    }
+}

@@ -1,0 +1,495 @@
+@page "/andon"
+@attribute [Authorize]
+@layout BODA.VMS.Web.Client.Layout.EmptyLayout
+@inject ApiClient Api
+@inject SignalRService SignalR
+@inject ILocalizer L
+@implements IAsyncDisposable
+
+<PageTitle>@L["page.andon"] - BODA VMS</PageTitle>
+
+<HeadContent>
+    <style>
+        body { background: #050810; overflow: hidden; }
+    </style>
+</HeadContent>
+
+<div class="andon-root">
+    <!-- 상단 헤더 -->
+    <header class="andon-header">
+        <div class="brand">
+            <span class="title">BODA VMS</span>
+            <span class="subtitle">Andon Board</span>
+        </div>
+        <div class="clock">@_now.ToString("yyyy-MM-dd")<span class="time">@_now.ToString("HH:mm:ss")</span></div>
+        <div class="line-summary">
+            <span class="dot running"></span><span>@_snap?.RunningLines Running</span>
+            <span class="dot idle"></span><span>@_snap?.IdleLines Idle</span>
+            <span class="dot down"></span><span>@_snap?.DownLines Down</span>
+        </div>
+    </header>
+
+    <div class="andon-main">
+        <!-- 좌측: 라인 그리드 -->
+        <section class="lines-section">
+            @if (_snap is null || _snap.Lines.Count == 0)
+            {
+                <div class="empty">활성 Client가 없습니다</div>
+            }
+            else
+            {
+                <div class="lines-grid" style="grid-template-columns: repeat(@GetColumnCount(), 1fr);">
+                    @foreach (var l in _snap.Lines)
+                    {
+                        <div class="line-card @StatusClass(l.Status)">
+                            <div class="line-head">
+                                <span class="line-num">#@l.ClientIndex.ToString("D2")</span>
+                                <span class="line-status">@l.Status.ToUpper()</span>
+                            </div>
+                            <div class="line-name">@l.ClientName</div>
+
+                            @if (!string.IsNullOrEmpty(l.ActiveWorkOrderNo))
+                            {
+                                <div class="line-wo">
+                                    <span class="wo-label">WO</span>
+                                    <span class="wo-no">@l.ActiveWorkOrderNo</span>
+                                    @if (l.ActiveWorkOrderProgress.HasValue)
+                                    {
+                                        <span class="wo-progress">@l.ActiveWorkOrderProgress%</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(l.ActiveProductCode))
+                                {
+                                    <div class="line-product">@l.ActiveProductCode</div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="line-wo none">No active WorkOrder</div>
+                            }
+
+                            <div class="line-counts">
+                                <div class="count">
+                                    <div class="label">Total</div>
+                                    <div class="value">@l.TodayTotal.ToString("N0")</div>
+                                </div>
+                                <div class="count pass">
+                                    <div class="label">Pass</div>
+                                    <div class="value">@l.TodayPass.ToString("N0")</div>
+                                </div>
+                                <div class="count ng">
+                                    <div class="label">NG</div>
+                                    <div class="value">@l.TodayNg.ToString("N0")</div>
+                                </div>
+                                <div class="count rate">
+                                    <div class="label">NG%</div>
+                                    <div class="value">@l.TodayNgRate.ToString("F1")</div>
+                                </div>
+                            </div>
+
+                            @if (l.OpenAlarmCount > 0)
+                            {
+                                <div class="line-alarm @(l.CriticalAlarmCount > 0 ? "critical" : "")">
+                                    <span>⚠ @l.OpenAlarmCount alarm@(l.OpenAlarmCount > 1 ? "s" : "")</span>
+                                    @if (l.CriticalAlarmCount > 0)
+                                    {
+                                        <span class="crit">@l.CriticalAlarmCount CRITICAL</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <!-- 우측 사이드 패널 -->
+        <aside class="side-panel">
+            <!-- 오늘 KPI -->
+            <div class="kpi-block">
+                <div class="kpi-title">TODAY</div>
+                <div class="kpi-value">@(_snap?.TotalToday.ToString("N0") ?? "0")</div>
+                <div class="kpi-label">Total Inspections</div>
+                <div class="kpi-row">
+                    <div class="kpi-mini pass">
+                        <div class="mini-label">Pass</div>
+                        <div class="mini-value">@(_snap?.PassToday.ToString("N0") ?? "0")</div>
+                    </div>
+                    <div class="kpi-mini ng">
+                        <div class="mini-label">NG</div>
+                        <div class="mini-value">@(_snap?.NgToday.ToString("N0") ?? "0")</div>
+                    </div>
+                </div>
+                <div class="kpi-rate @(GetNgRateClass(_snap?.NgRateToday ?? 0))">
+                    NG Rate <span class="big">@((_snap?.NgRateToday ?? 0).ToString("F2"))%</span>
+                </div>
+            </div>
+
+            <!-- Active Alarms -->
+            <div class="alarms-block">
+                <div class="alarms-header">
+                    <span>Active Alarms</span>
+                    <span class="count-badge @(_snap?.ActiveAlarms.Any(a => a.Severity == "Critical") == true ? "critical" : "")">
+                        @(_snap?.ActiveAlarms.Count ?? 0)
+                    </span>
+                </div>
+                <div class="alarms-list">
+                    @if (_snap is null || _snap.ActiveAlarms.Count == 0)
+                    {
+                        <div class="no-alarms">✓ No active alarms</div>
+                    }
+                    else
+                    {
+                        @foreach (var a in _snap.ActiveAlarms)
+                        {
+                            <div class="alarm-item @a.Severity.ToLower()">
+                                <div class="alarm-line1">
+                                    <span class="sev">@a.Severity</span>
+                                    <span class="title">@a.Title</span>
+                                </div>
+                                <div class="alarm-line2">
+                                    <span>@a.OccurredAt.ToLocalTime().ToString("HH:mm:ss")</span>
+                                    @if (!string.IsNullOrEmpty(a.ClientName))
+                                    {
+                                        <span> · #@a.ClientIndex?.ToString("D2") @a.ClientName</span>
+                                    }
+                                    @if (a.AcknowledgedAt.HasValue)
+                                    {
+                                        <span class="ack">· ACK by @a.AcknowledgedByName</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- 마지막 갱신 -->
+            <div class="footer-info">
+                <span>Last updated: @_lastRefresh.ToString("HH:mm:ss")</span>
+                <span class="sep">·</span>
+                <span class="@(SignalR.IsConnected ? "connected" : "disconnected")">
+                    ● @(SignalR.IsConnected ? "Live" : "Offline")
+                </span>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<style>
+    .andon-root {
+        position: fixed; inset: 0;
+        background: linear-gradient(135deg, #050810 0%, #0a1220 100%);
+        color: #e8eef4; display: flex; flex-direction: column;
+        font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    }
+
+    /* ===== Header ===== */
+    .andon-header {
+        height: 64px; padding: 0 24px;
+        display: flex; align-items: center;
+        border-bottom: 1px solid #1a2538;
+        background: rgba(0, 0, 0, 0.3);
+    }
+    .brand { display: flex; align-items: baseline; gap: 12px; }
+    .brand .title { font-size: 22px; font-weight: 800; color: #4fc3f7; letter-spacing: 1px; }
+    .brand .subtitle { font-size: 13px; color: #95a4b3; text-transform: uppercase; letter-spacing: 2px; }
+    .clock {
+        margin-left: 32px; font-family: 'Roboto Mono', monospace;
+        font-size: 18px; color: #95a4b3;
+    }
+    .clock .time { color: #e8eef4; margin-left: 8px; font-weight: 600; }
+    .line-summary {
+        margin-left: auto; display: flex; align-items: center; gap: 8px;
+        font-family: 'Roboto Mono', monospace; font-size: 15px;
+    }
+    .line-summary > span { margin-right: 14px; }
+    .line-summary .dot {
+        width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; margin-left: 8px;
+    }
+    .dot.running { background: #4caf50; box-shadow: 0 0 8px #4caf50; }
+    .dot.idle { background: #ffa726; }
+    .dot.down { background: #ef5350; }
+
+    /* ===== Main ===== */
+    .andon-main {
+        flex: 1; display: grid; grid-template-columns: 1fr 360px;
+        overflow: hidden;
+    }
+    .lines-section {
+        padding: 20px; overflow: auto;
+    }
+    .lines-grid {
+        display: grid; gap: 16px;
+    }
+    .empty {
+        display: flex; align-items: center; justify-content: center;
+        height: 100%; font-size: 24px; color: #95a4b3;
+    }
+
+    /* ===== Line Card ===== */
+    .line-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 2px solid #1a2538;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex; flex-direction: column; gap: 8px;
+        transition: all 0.3s;
+    }
+    .line-card.running {
+        border-color: #4caf50;
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.02));
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.15);
+    }
+    .line-card.idle {
+        border-color: #ffa726;
+        background: linear-gradient(135deg, rgba(255, 167, 38, 0.08), rgba(255, 167, 38, 0.02));
+    }
+    .line-card.down {
+        border-color: #ef5350;
+        background: linear-gradient(135deg, rgba(239, 83, 80, 0.12), rgba(239, 83, 80, 0.03));
+        animation: pulseDown 2s ease-in-out infinite;
+    }
+    @@keyframes pulseDown {
+        0%, 100% { box-shadow: 0 0 10px rgba(239, 83, 80, 0.3); }
+        50% { box-shadow: 0 0 24px rgba(239, 83, 80, 0.6); }
+    }
+    .line-head {
+        display: flex; justify-content: space-between; align-items: center;
+        font-family: 'Roboto Mono', monospace;
+    }
+    .line-num { font-size: 24px; font-weight: 800; color: #95a4b3; }
+    .line-status {
+        font-size: 13px; font-weight: 800; letter-spacing: 1.5px;
+        padding: 3px 10px; border-radius: 4px;
+    }
+    .running .line-status { background: #4caf50; color: white; }
+    .idle .line-status { background: #ffa726; color: #1a1a1a; }
+    .down .line-status { background: #ef5350; color: white; }
+
+    .line-name { font-size: 20px; font-weight: 700; }
+    .line-wo {
+        display: flex; align-items: center; gap: 8px;
+        font-family: 'Roboto Mono', monospace; font-size: 13px;
+    }
+    .line-wo.none { color: #95a4b3; font-style: italic; font-size: 12px; }
+    .line-wo .wo-label {
+        background: #1a2538; padding: 1px 6px; border-radius: 3px;
+        font-size: 10px; font-weight: 700; color: #4fc3f7;
+    }
+    .line-wo .wo-no { font-weight: 600; }
+    .line-wo .wo-progress {
+        margin-left: auto; color: #4caf50; font-weight: 700;
+    }
+    .line-product { font-size: 12px; color: #95a4b3; font-family: 'Roboto Mono', monospace; }
+
+    .line-counts {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+        margin-top: auto; padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .count { text-align: center; }
+    .count .label { font-size: 10px; color: #95a4b3; text-transform: uppercase; letter-spacing: 1px; }
+    .count .value { font-size: 22px; font-weight: 800; font-family: 'Roboto Mono', monospace; }
+    .count.pass .value { color: #4caf50; }
+    .count.ng .value { color: #ef5350; }
+    .count.rate .value { color: #ffa726; }
+
+    .line-alarm {
+        margin-top: 4px; padding: 6px 10px;
+        background: rgba(255, 167, 38, 0.18);
+        border-radius: 4px;
+        font-size: 12px; font-weight: 600;
+        display: flex; justify-content: space-between;
+    }
+    .line-alarm.critical {
+        background: rgba(239, 83, 80, 0.25);
+        border: 1px solid rgba(239, 83, 80, 0.6);
+        animation: blink 1s ease-in-out infinite;
+    }
+    .line-alarm .crit { color: #ef5350; font-weight: 800; }
+    @@keyframes blink {
+        50% { opacity: 0.5; }
+    }
+
+    /* ===== Side Panel ===== */
+    .side-panel {
+        background: rgba(0, 0, 0, 0.35);
+        border-left: 1px solid #1a2538;
+        padding: 20px;
+        display: flex; flex-direction: column; gap: 16px;
+        overflow: hidden;
+    }
+    .kpi-block {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid #1a2538;
+        border-radius: 8px; padding: 16px;
+    }
+    .kpi-title { font-size: 11px; color: #4fc3f7; letter-spacing: 2px; font-weight: 700; }
+    .kpi-value { font-size: 48px; font-weight: 800; font-family: 'Roboto Mono', monospace; line-height: 1; margin: 4px 0; }
+    .kpi-label { font-size: 12px; color: #95a4b3; text-transform: uppercase; letter-spacing: 1px; }
+    .kpi-row {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+    }
+    .kpi-mini { padding: 8px; border-radius: 6px; text-align: center; }
+    .kpi-mini.pass { background: rgba(76, 175, 80, 0.15); }
+    .kpi-mini.ng { background: rgba(239, 83, 80, 0.15); }
+    .mini-label { font-size: 10px; text-transform: uppercase; color: #95a4b3; letter-spacing: 1px; }
+    .mini-value { font-size: 24px; font-weight: 800; font-family: 'Roboto Mono', monospace; }
+    .kpi-mini.pass .mini-value { color: #4caf50; }
+    .kpi-mini.ng .mini-value { color: #ef5350; }
+
+    .kpi-rate {
+        margin-top: 12px; padding: 10px;
+        text-align: center; border-radius: 6px;
+        font-size: 13px; color: #95a4b3;
+    }
+    .kpi-rate .big { font-size: 22px; font-weight: 800; font-family: 'Roboto Mono', monospace; margin-left: 8px; }
+    .kpi-rate.good .big { color: #4caf50; }
+    .kpi-rate.warn .big { color: #ffa726; }
+    .kpi-rate.bad .big { color: #ef5350; }
+    .kpi-rate.bad { background: rgba(239, 83, 80, 0.1); }
+
+    .alarms-block {
+        flex: 1; display: flex; flex-direction: column;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid #1a2538;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .alarms-header {
+        padding: 12px 16px;
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid #1a2538;
+        font-size: 13px; font-weight: 700;
+        color: #4fc3f7; letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .count-badge {
+        background: #1a2538; padding: 2px 10px;
+        border-radius: 12px; font-family: 'Roboto Mono', monospace;
+        color: #95a4b3;
+    }
+    .count-badge.critical {
+        background: #ef5350; color: white;
+        animation: blink 1s ease-in-out infinite;
+    }
+    .alarms-list { flex: 1; overflow: auto; padding: 8px; }
+    .no-alarms {
+        text-align: center; padding: 24px;
+        color: #4caf50; font-size: 14px;
+    }
+    .alarm-item {
+        padding: 8px 10px; margin-bottom: 6px;
+        border-radius: 4px; border-left: 3px solid #95a4b3;
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .alarm-item.critical { border-left-color: #ef5350; background: rgba(239, 83, 80, 0.08); }
+    .alarm-item.major { border-left-color: #ffa726; }
+    .alarm-item.minor { border-left-color: #29b6f6; }
+    .alarm-line1 {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 600;
+    }
+    .alarm-line1 .sev {
+        font-size: 10px; padding: 1px 6px; border-radius: 3px;
+        background: #1a2538; letter-spacing: 1px;
+    }
+    .alarm-item.critical .sev { background: #ef5350; color: white; }
+    .alarm-item.major .sev { background: #ffa726; color: #1a1a1a; }
+    .alarm-item.minor .sev { background: #29b6f6; color: #1a1a1a; }
+    .alarm-line1 .title { flex: 1; }
+    .alarm-line2 {
+        font-size: 11px; color: #95a4b3; margin-top: 3px;
+        font-family: 'Roboto Mono', monospace;
+    }
+    .alarm-line2 .ack { color: #4caf50; margin-left: 6px; }
+
+    .footer-info {
+        text-align: center; font-size: 11px; color: #95a4b3;
+        font-family: 'Roboto Mono', monospace;
+    }
+    .footer-info .connected { color: #4caf50; }
+    .footer-info .disconnected { color: #ef5350; }
+    .footer-info .sep { margin: 0 8px; }
+</style>
+
+@code {
+    private AndonSnapshotDto? _snap;
+    private DateTime _now = DateTime.Now;
+    private DateTime _lastRefresh = DateTime.Now;
+    private Timer? _clockTimer;
+    private Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalR.OnAlarmCreated += HandleEvent;
+        SignalR.OnAlarmUpdated += HandleEvent;
+        SignalR.OnClientStatusChanged += HandleClientStatus;
+
+        await Refresh();
+
+        // 1초 시계
+        _clockTimer = new Timer(_ =>
+        {
+            _now = DateTime.Now;
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+
+        // 30초 polling (OEE/생산 카운트 갱신)
+        _refreshTimer = new Timer(async _ =>
+        {
+            await Refresh();
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            _snap = await Api.GetAsync<AndonSnapshotDto>("/api/andon/snapshot");
+            _lastRefresh = DateTime.Now;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+            // 일시적 네트워크 오류 — 다음 polling 때 재시도
+        }
+    }
+
+    private async void HandleEvent(AlarmEventDto a) => await Refresh();
+    private async void HandleClientStatus(int id, bool alive) => await Refresh();
+
+    private int GetColumnCount()
+    {
+        var n = _snap?.Lines.Count ?? 0;
+        if (n <= 4) return n == 0 ? 1 : n;
+        if (n <= 6) return 3;
+        if (n <= 9) return 3;
+        if (n <= 12) return 4;
+        if (n <= 16) return 4;
+        return 5;
+    }
+
+    private static string StatusClass(string status) => status switch
+    {
+        "Running" => "running",
+        "Idle" => "idle",
+        _ => "down"
+    };
+
+    private static string GetNgRateClass(double rate)
+    {
+        if (rate >= 5) return "bad";
+        if (rate >= 1) return "warn";
+        return "good";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SignalR.OnAlarmCreated -= HandleEvent;
+        SignalR.OnAlarmUpdated -= HandleEvent;
+        SignalR.OnClientStatusChanged -= HandleClientStatus;
+        if (_clockTimer is not null) await _clockTimer.DisposeAsync();
+        if (_refreshTimer is not null) await _refreshTimer.DisposeAsync();
+    }
+}

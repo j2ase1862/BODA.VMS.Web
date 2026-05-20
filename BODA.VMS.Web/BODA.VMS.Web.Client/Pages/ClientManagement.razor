@@ -3,15 +3,16 @@
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 @inject SignalRService SignalR
+@inject ILocalizer L
 
-<PageTitle>Client Management - BODA VMS</PageTitle>
+<PageTitle>@L["page.clients"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">Vision Clients</MudText>
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.clients"]</MudText>
 
 <div class="vms-table">
     <MudTable Items="_clients" Dense="true" Hover="true" Loading="_loading" Elevation="0">
         <ToolBarContent>
-            <MudText Class="vms-panel-header">Registered Clients</MudText>
+            <MudText Class="vms-panel-header">@L["client.headerRegistered"]</MudText>
             <MudSpacer />
             <AuthorizeView Roles="Admin,User">
                 <Authorized>
@@ -19,17 +20,17 @@
                                StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
                                OnClick="OpenCreateDialog"
                                Class="vms-btn">
-                        Add Client
+                        @L["client.btnCreate"]
                     </MudButton>
                 </Authorized>
             </AuthorizeView>
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Index</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh Class="d-none d-sm-table-cell">IP Address</MudTh>
-            <MudTh Class="d-none d-sm-table-cell">Last Seen</MudTh>
-            <MudTh Style="text-align: right;">Actions</MudTh>
+            <MudTh>@L["client.colIndex"]</MudTh>
+            <MudTh>@L["common.name"]</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">@L["client.colIp"]</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">@L["client.lastSeen"]</MudTh>
+            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -83,7 +84,7 @@
             <div class="pa-8 d-flex flex-column align-center">
                 <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large"
                          Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">No vision clients configured</MudText>
+                <MudText Style="color: var(--vms-text-secondary);">@L["client.noClients"]</MudText>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -92,11 +93,11 @@
 @if (_selectedRecipes is not null)
 {
     <MudPaper Class="vms-panel pa-5 mt-4">
-        <MudText Class="vms-panel-header mb-3">Recipes — @_selectedClientName</MudText>
+        <MudText Class="vms-panel-header mb-3">@L.Format("client.recipesTitleFmt", _selectedClientName)</MudText>
         @if (_selectedRecipes.Count == 0)
         {
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                No recipes found for this client.
+                @L["client.noRecipes"]
             </MudAlert>
         }
         else
@@ -157,7 +158,7 @@
             { x => x.Model, new ClientDto() },
             { x => x.IsEdit, false }
         };
-        var dialog = await Dialog.ShowAsync<ClientFormDialog>("Add Client", parameters);
+        var dialog = await Dialog.ShowAsync<ClientFormDialog>(L["client.createTitle"], parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
@@ -165,12 +166,12 @@
             {
                 var dto = (ClientDto)result.Data!;
                 await Api.PostAsync<ClientDto, ClientDto>("/api/clients", dto);
-                Snackbar.Add("Client added", Severity.Success);
+                Snackbar.Add(L["client.snackbarCreated"], Severity.Success);
                 await LoadClients();
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Failed to add client: {ex.Message}", Severity.Error);
+                Snackbar.Add(L.Format("client.snackbarCreateFailedFmt", ex.Message), Severity.Error);
             }
         }
     }
@@ -187,7 +188,7 @@
             },
             { x => x.IsEdit, true }
         };
-        var dialog = await Dialog.ShowAsync<ClientFormDialog>("Edit Client", parameters);
+        var dialog = await Dialog.ShowAsync<ClientFormDialog>(L["client.editTitleSimple"], parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
@@ -195,32 +196,32 @@
             {
                 var dto = (ClientDto)result.Data!;
                 await Api.PutAsync<ClientDto, ClientDto>($"/api/clients/{client.Id}", dto);
-                Snackbar.Add("Client updated", Severity.Success);
+                Snackbar.Add(L["client.snackbarUpdated"], Severity.Success);
                 await LoadClients();
             }
             catch (HttpRequestException ex)
             {
-                Snackbar.Add($"Failed to update client: {ex.Message}", Severity.Error);
+                Snackbar.Add(L.Format("client.snackbarUpdateFailedFmt", ex.Message), Severity.Error);
             }
         }
     }
 
     private async Task DeleteClient(ClientDto client)
     {
-        var confirmed = await Dialog.ShowMessageBox("Confirm Delete",
-            $"Are you sure you want to delete client '{client.Name}'?",
-            "Delete", "Cancel");
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("client.confirmDeleteFmt", client.Name),
+            L["action.delete"], L["action.cancel"]);
         if (confirmed != true) return;
 
         try
         {
             await Api.DeleteAsync($"/api/clients/{client.Id}");
-            Snackbar.Add("Client deleted", Severity.Warning);
+            Snackbar.Add(L["client.snackbarDeleted"], Severity.Warning);
             await LoadClients();
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"Failed to delete client: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("client.snackbarDeleteFailedFmt", ex.Message), Severity.Error);
         }
     }
 

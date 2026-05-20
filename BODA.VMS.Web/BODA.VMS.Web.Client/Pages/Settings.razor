@@ -1,10 +1,11 @@
 @page "/settings"
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
-<PageTitle>Settings - BODA VMS</PageTitle>
+<PageTitle>@L["page.settings"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">Settings</MudText>
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.settings"]</MudText>
 
 <MudGrid Spacing="3">
     <MudItem xs="12" md="6">
@@ -12,25 +13,25 @@
             <div class="d-flex align-center mb-4">
                 <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small"
                          Style="color: var(--vms-primary); margin-right: 8px;" />
-                <MudText Class="vms-panel-header">System Information</MudText>
+                <MudText Class="vms-panel-header">@L["settings.sectionSystemInfo"]</MudText>
             </div>
             <MudSimpleTable Dense="true" Hover="true" Style="background: transparent;">
                 <tbody>
                     <tr>
-                        <td style="color: var(--vms-text-secondary); width: 40%;">Application</td>
+                        <td style="color: var(--vms-text-secondary); width: 40%;">@L["settings.fieldApp"]</td>
                         <td style="font-weight: 500;">BODA VMS Web</td>
                     </tr>
                     <tr>
-                        <td style="color: var(--vms-text-secondary);">Version</td>
+                        <td style="color: var(--vms-text-secondary);">@L["settings.fieldVersion"]</td>
                         <td><span class="vms-mono">1.0.0</span></td>
                     </tr>
                     <tr>
-                        <td style="color: var(--vms-text-secondary);">Platform</td>
+                        <td style="color: var(--vms-text-secondary);">@L["settings.fieldPlatform"]</td>
                         <td>.NET 8.0 Blazor WASM</td>
                     </tr>
                     <tr>
-                        <td style="color: var(--vms-text-secondary);">Database</td>
-                        <td>SQLite (WAL Mode)</td>
+                        <td style="color: var(--vms-text-secondary);">@L["settings.fieldDatabase"]</td>
+                        <td>SQLite (WAL)</td>
                     </tr>
                 </tbody>
             </MudSimpleTable>
@@ -42,18 +43,18 @@
             <div class="d-flex align-center mb-4">
                 <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
                          Style="color: var(--vms-primary); margin-right: 8px;" />
-                <MudText Class="vms-panel-header">Monitoring Configuration</MudText>
+                <MudText Class="vms-panel-header">@L["settings.sectionMonitoring"]</MudText>
             </div>
-            <MudTextField @bind-Value="_pingIntervalSec" Label="Client Ping Interval (seconds)"
+            <MudTextField @bind-Value="_pingIntervalSec" Label="@(L["settings.pingInterval"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           InputType="InputType.Number" />
-            <MudTextField @bind-Value="_pingPort" Label="Client Ping Port"
+            <MudTextField @bind-Value="_pingPort" Label="@(L["settings.pingPort"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           InputType="InputType.Number" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        OnClick="SaveSettings" Disabled="true" Size="Size.Medium"
                        Class="vms-btn">
-                Save (Coming Soon)
+                @L["settings.btnSavePreparing"]
             </MudButton>
         </MudPaper>
     </MudItem>
@@ -65,11 +66,11 @@
                     <div class="d-flex align-center mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Small"
                                  Style="color: var(--vms-primary); margin-right: 8px;" />
-                        <MudText Class="vms-panel-header">VisionServer Connection</MudText>
+                        <MudText Class="vms-panel-header">@L["settings.sectionVs"]</MudText>
                     </div>
-                    <MudSwitch @bind-Value="_vsEnabled" Label="VisionServer Enabled"
+                    <MudSwitch @bind-Value="_vsEnabled" Label="@(L["settings.vsEnabled"])"
                                Color="Color.Primary" Class="mb-4" />
-                    <MudTextField @bind-Value="_vsBaseUrl" Label="VisionServer Base URL"
+                    <MudTextField @bind-Value="_vsBaseUrl" Label="@(L["settings.vsBaseUrl"])"
                                   Variant="Variant.Outlined" Class="mb-4"
                                   Placeholder="http://localhost:5000"
                                   Disabled="@(!_vsEnabled)" />
@@ -77,11 +78,11 @@
                               Variant="Variant.Text" Dense="true" Class="mb-4">
                         @if (_vsEnabled)
                         {
-                            <text>Client/Recipe 변경 시 VisionServer에 먼저 동기화합니다.</text>
+                            <text>@L["settings.vsAlertEnabled"]</text>
                         }
                         else
                         {
-                            <text>Standalone 모드: 모든 변경사항이 로컬 SQLite에 직접 저장됩니다.</text>
+                            <text>@L["settings.vsAlertDisabled"]</text>
                         }
                     </MudAlert>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -91,7 +92,7 @@
                         {
                             <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                         }
-                        Save
+                        @L["settings.btnSave"]
                     </MudButton>
                 </MudPaper>
             </Authorized>
@@ -131,7 +132,7 @@
 
     private void SaveSettings()
     {
-        Snackbar.Add("Settings saved", Severity.Success);
+        Snackbar.Add(L["settings.snackbarSaved"], Severity.Success);
     }
 
     private async Task SaveVisionServerSettings()
@@ -141,11 +142,11 @@
         {
             await Api.PutAsync<object, object>("/api/settings/visionserver",
                 new { Enabled = _vsEnabled, BaseUrl = _vsBaseUrl });
-            Snackbar.Add("VisionServer settings saved", Severity.Success);
+            Snackbar.Add(L["settings.snackbarVsSaved"], Severity.Success);
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"Failed to save: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("settings.snackbarSaveFailedFmt", ex.Message), Severity.Error);
         }
         finally
         {

@@ -12,6 +12,8 @@ public class RecipeParameterDto
     public string Description { get; set; } = string.Empty;
     public string Category { get; set; } = "Dimension";
     public string? Unit { get; set; }
+    public double? LowerLimit { get; set; }
+    public double? UpperLimit { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -36,6 +38,12 @@ public class ParameterResultUploadRequest
     public int ClientIndex { get; set; }
     public int RecipeId { get; set; }
     public List<ParameterResultDto> Results { get; set; } = new();
+
+    // === 추적성(Traceability) 필드 — Phase 1 ===
+    public int? WorkOrderId { get; set; }
+    public int? LotId { get; set; }
+    public int? OperatorId { get; set; }
+    public string? SerialNumber { get; set; }
 }
 
 /// <summary>

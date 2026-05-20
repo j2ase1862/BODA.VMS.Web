@@ -1,3 +1,4 @@
+using BODA.VMS.Web.Client.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -11,6 +12,8 @@ public class SignalRService : IAsyncDisposable
 
     public event Action<int, bool>? OnClientStatusChanged;
     public event Action<string>? OnNgAlert;
+    public event Action<AlarmEventDto>? OnAlarmCreated;
+    public event Action<AlarmEventDto>? OnAlarmUpdated;
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
     public SignalRService(NavigationManager navigation, AuthStateProvider authProvider)
@@ -39,6 +42,12 @@ public class SignalRService : IAsyncDisposable
 
         _hub.On<string>("NgAlert", (message) =>
             OnNgAlert?.Invoke(message));
+
+        _hub.On<AlarmEventDto>("AlarmCreated", (alarm) =>
+            OnAlarmCreated?.Invoke(alarm));
+
+        _hub.On<AlarmEventDto>("AlarmUpdated", (alarm) =>
+            OnAlarmUpdated?.Invoke(alarm));
 
         try
         {

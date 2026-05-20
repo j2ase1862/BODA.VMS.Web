@@ -1,0 +1,430 @@
+@page "/kiosk/{ClientIndex:int}"
+@layout BODA.VMS.Web.Client.Layout.EmptyLayout
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<PageTitle>키오스크 — 라인 @ClientIndex</PageTitle>
+
+<HeadContent>
+    <style>
+        body { background: #050810; overflow: hidden; }
+    </style>
+</HeadContent>
+
+<div class="kiosk-root">
+    <header class="kiosk-header">
+        <div class="brand">
+            <span class="title">BODA VMS</span>
+            <span class="subtitle">Operator Kiosk</span>
+        </div>
+        <div class="line-info">
+            <span class="line-num">#@ClientIndex.ToString("D2")</span>
+            <span class="line-name">@(_lineName ?? "(loading...)")</span>
+        </div>
+        <div class="clock">@_now.ToString("yyyy-MM-dd")<span class="time">@_now.ToString("HH:mm:ss")</span></div>
+    </header>
+
+    <main class="kiosk-main">
+        @if (_invalidLine)
+        {
+            <div class="error-card">
+                <div class="big-icon">⚠</div>
+                <div class="big-text">Line #@ClientIndex.ToString("D2") not found</div>
+                <div class="sub-text">관리자에게 라인 등록을 요청하세요.</div>
+            </div>
+        }
+        else if (_current is not null)
+        {
+            <div class="active-card">
+                <div class="status-row">
+                    <span class="dot running"></span>
+                    <span class="status-text">ON DUTY</span>
+                </div>
+                <div class="operator-name">@_current.OperatorName</div>
+                <div class="operator-meta">
+                    <span class="emp-num">@_current.EmployeeNumber</span>
+                    @if (!string.IsNullOrEmpty(_current.Department))
+                    {
+                        <span class="sep">·</span>
+                        <span>@_current.Department</span>
+                    }
+                </div>
+                <div class="duration">
+                    <span class="label">Working since</span>
+                    <span class="value">@_current.StartedAt.ToLocalTime().ToString("HH:mm:ss")</span>
+                    <span class="elapsed">(@FormatDuration(_current.DurationMinutes))</span>
+                </div>
+
+                <div class="actions">
+                    <button class="btn-logout" @onclick="Logout" disabled="@_busy">
+                        @if (_busy) { <span>...</span> } else { <span>🚪 End Shift / Logout</span> }
+                    </button>
+                </div>
+                <div class="hint">
+                    다른 작업자가 출근하려면 아래 폼에 사번과 PIN을 입력하세요. 자동 교대됩니다.
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="login-card">
+                <div class="big-icon">👤</div>
+                <div class="login-title">Please log in</div>
+                <div class="login-sub">사번과 PIN을 입력하세요</div>
+            </div>
+        }
+
+        @if (!_invalidLine)
+        {
+            <div class="form-card">
+                <div class="form-title">@(_current is null ? "Login" : "Shift Change — New Operator")</div>
+                <input type="text" inputmode="numeric" autocomplete="off"
+                       placeholder="Employee Number / 사번"
+                       class="kiosk-input"
+                       @bind="_employeeNumber" @bind:event="oninput"
+                       @onkeydown="OnEmployeeKeyDown"
+                       @ref="_employeeInput" />
+                <input type="password" inputmode="numeric" autocomplete="off"
+                       placeholder="PIN"
+                       maxlength="8"
+                       class="kiosk-input"
+                       @bind="_pin" @bind:event="oninput"
+                       @onkeydown="OnPinKeyDown"
+                       @ref="_pinInput" />
+                <button class="btn-login" @onclick="Login"
+                        disabled="@(_busy || string.IsNullOrEmpty(_employeeNumber) || string.IsNullOrEmpty(_pin))">
+                    @if (_busy) { <span>Authenticating...</span> } else { <span>✓ Log In</span> }
+                </button>
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="error-msg">@_errorMessage</div>
+                }
+            </div>
+        }
+    </main>
+
+    <footer class="kiosk-footer">
+        <span>Anonymous kiosk · No web login required</span>
+        <span class="sep">·</span>
+        <span>검사 결과는 현재 작업자에게 자동 귀속됩니다</span>
+    </footer>
+</div>
+
+<style>
+    .kiosk-root {
+        position: fixed; inset: 0;
+        background: linear-gradient(135deg, #050810 0%, #0a1220 100%);
+        color: #e8eef4;
+        display: flex; flex-direction: column;
+        font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    }
+    .kiosk-header {
+        height: 64px; padding: 0 32px;
+        display: flex; align-items: center; gap: 24px;
+        border-bottom: 1px solid #1a2538;
+        background: rgba(0,0,0,0.3);
+    }
+    .brand { display: flex; flex-direction: column; }
+    .brand .title { font-size: 18px; font-weight: 800; color: #4fc3f7; letter-spacing: 1px; }
+    .brand .subtitle { font-size: 11px; color: #95a4b3; text-transform: uppercase; letter-spacing: 2px; }
+    .line-info {
+        flex: 1; display: flex; align-items: baseline; gap: 16px;
+        font-family: 'Roboto Mono', monospace;
+    }
+    .line-info .line-num { font-size: 28px; font-weight: 800; color: #ffa726; }
+    .line-info .line-name { font-size: 18px; color: #e8eef4; font-weight: 600; }
+    .clock {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 16px; color: #95a4b3;
+    }
+    .clock .time { color: #e8eef4; margin-left: 8px; font-weight: 600; }
+
+    .kiosk-main {
+        flex: 1;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 24px; padding: 32px;
+    }
+
+    .error-card, .login-card, .active-card, .form-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid #1a2538;
+        border-radius: 16px;
+        padding: 32px 48px;
+        width: 100%; max-width: 520px;
+        text-align: center;
+    }
+    .active-card {
+        border: 2px solid #4caf50;
+        background: linear-gradient(135deg, rgba(76,175,80,0.1), rgba(76,175,80,0.02));
+    }
+
+    .big-icon { font-size: 56px; line-height: 1; margin-bottom: 8px; }
+    .big-text { font-size: 22px; font-weight: 700; color: #ef5350; margin-bottom: 4px; }
+    .sub-text { font-size: 14px; color: #95a4b3; }
+
+    .login-title { font-size: 28px; font-weight: 700; }
+    .login-sub { font-size: 14px; color: #95a4b3; margin-top: 4px; }
+
+    .status-row {
+        display: flex; align-items: center; justify-content: center;
+        gap: 8px; margin-bottom: 12px;
+        font-size: 11px; letter-spacing: 2px;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.running { background: #4caf50; box-shadow: 0 0 12px #4caf50; }
+    .status-text { color: #4caf50; font-weight: 700; }
+
+    .operator-name {
+        font-size: 42px; font-weight: 800;
+        letter-spacing: -1px; margin: 8px 0;
+    }
+    .operator-meta {
+        font-family: 'Roboto Mono', monospace;
+        color: #95a4b3; font-size: 14px;
+        margin-bottom: 16px;
+    }
+    .operator-meta .sep { margin: 0 8px; }
+    .operator-meta .emp-num {
+        background: rgba(255,167,38,0.15);
+        color: #ffa726;
+        padding: 2px 10px;
+        border-radius: 4px;
+        font-weight: 700;
+    }
+    .duration {
+        margin: 16px 0;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px; color: #95a4b3;
+    }
+    .duration .value { color: #e8eef4; font-weight: 700; margin: 0 4px; }
+    .duration .elapsed { color: #4fc3f7; }
+
+    .actions { margin-top: 20px; }
+    .btn-logout {
+        width: 100%; padding: 16px;
+        background: #ef5350; color: white;
+        border: none; border-radius: 10px;
+        font-size: 18px; font-weight: 700; letter-spacing: 1px;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout:hover:not(:disabled) {
+        background: #d32f2f;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239,83,80,0.4);
+    }
+    .btn-logout:disabled { opacity: 0.5; cursor: wait; }
+
+    .hint {
+        margin-top: 16px; font-size: 11px;
+        color: #95a4b3; opacity: 0.8;
+    }
+
+    .form-card { padding: 28px 32px; }
+    .form-title {
+        font-size: 14px; font-weight: 700; color: #4fc3f7;
+        text-transform: uppercase; letter-spacing: 2px;
+        margin-bottom: 16px;
+    }
+    .kiosk-input {
+        width: 100%; padding: 14px 18px; margin-bottom: 10px;
+        background: rgba(255,255,255,0.06);
+        border: 2px solid #2d3744;
+        border-radius: 8px;
+        color: #e8eef4;
+        font-size: 18px;
+        font-family: 'Roboto Mono', monospace;
+        text-align: center;
+        letter-spacing: 2px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .kiosk-input:focus { border-color: #4fc3f7; }
+    .btn-login {
+        width: 100%; padding: 14px;
+        background: #4fc3f7; color: #0a1220;
+        border: none; border-radius: 8px;
+        font-size: 16px; font-weight: 800; letter-spacing: 1px;
+        cursor: pointer; transition: all 0.2s;
+        margin-top: 4px;
+    }
+    .btn-login:hover:not(:disabled) {
+        background: #29b6f6;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79,195,247,0.4);
+    }
+    .btn-login:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .error-msg {
+        margin-top: 12px; padding: 8px 12px;
+        background: rgba(239,83,80,0.15);
+        border: 1px solid rgba(239,83,80,0.4);
+        color: #ef5350;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+
+    .kiosk-footer {
+        padding: 12px 24px; text-align: center;
+        font-size: 11px; color: #95a4b3;
+        border-top: 1px solid #1a2538;
+        background: rgba(0,0,0,0.2);
+    }
+    .kiosk-footer .sep { margin: 0 10px; }
+</style>
+
+@code {
+    [Parameter] public int ClientIndex { get; set; }
+
+    private string? _lineName;
+    private bool _invalidLine;
+    private OperatorSessionDto? _current;
+    private DateTime _now = DateTime.Now;
+    private Timer? _clockTimer;
+    private Timer? _refreshTimer;
+
+    private string _employeeNumber = "";
+    private string _pin = "";
+    private bool _busy;
+    private string? _errorMessage;
+
+    private ElementReference _employeeInput;
+    private ElementReference _pinInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLine();
+        await LoadCurrent();
+
+        _clockTimer = new Timer(_ =>
+        {
+            _now = DateTime.Now;
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+
+        // 10초 polling — 외부에서 세션이 바뀌었을 때 자동 갱신
+        _refreshTimer = new Timer(async _ => await LoadCurrent(), null, 10000, 10000);
+    }
+
+    private async Task LoadLine()
+    {
+        try
+        {
+            var resp = await Api.GetResponseAsync($"/api/kiosk/line/{ClientIndex}");
+            if (!resp.IsSuccessStatusCode)
+            {
+                _invalidLine = true;
+                return;
+            }
+            using var stream = await resp.Content.ReadAsStreamAsync();
+            var doc = await System.Text.Json.JsonDocument.ParseAsync(stream);
+            _lineName = doc.RootElement.GetProperty("name").GetString();
+        }
+        catch { _invalidLine = true; }
+    }
+
+    private async Task LoadCurrent()
+    {
+        try
+        {
+            var resp = await Api.GetResponseAsync($"/api/kiosk/current/{ClientIndex}");
+            if (resp.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                _current = null;
+            }
+            else if (resp.IsSuccessStatusCode)
+            {
+                _current = await resp.Content.ReadFromJsonAsync<OperatorSessionDto>();
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+            // 무시 — 다음 polling 시 재시도
+        }
+    }
+
+    private async Task Login()
+    {
+        if (string.IsNullOrEmpty(_employeeNumber) || string.IsNullOrEmpty(_pin))
+            return;
+
+        _busy = true;
+        _errorMessage = null;
+        try
+        {
+            var req = new KioskLoginRequest
+            {
+                ClientIndex = ClientIndex,
+                EmployeeNumber = _employeeNumber.Trim(),
+                Pin = _pin
+            };
+            _current = await Api.PostAsync<KioskLoginRequest, OperatorSessionDto>("/api/kiosk/login", req);
+            _employeeNumber = "";
+            _pin = "";
+            Snackbar.Add($"환영합니다, {_current?.OperatorName}님", Severity.Success);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _errorMessage = "사번 또는 PIN이 일치하지 않습니다.";
+            _pin = "";
+        }
+        catch (HttpRequestException ex)
+        {
+            _errorMessage = $"오류: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Logout()
+    {
+        if (_current is null) return;
+        _busy = true;
+        try
+        {
+            await Api.PostAsync<KioskLogoutRequest, OperatorSessionDto>(
+                "/api/kiosk/logout",
+                new KioskLogoutRequest { ClientIndex = ClientIndex });
+            Snackbar.Add("로그아웃되었습니다", Severity.Info);
+            _current = null;
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"실패: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OnEmployeeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(_employeeNumber))
+            await _pinInput.FocusAsync();
+    }
+
+    private async Task OnPinKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Login();
+    }
+
+    private static string FormatDuration(double minutes)
+    {
+        if (minutes < 1) return "방금 시작";
+        if (minutes < 60) return $"{(int)minutes}분";
+        var h = (int)(minutes / 60);
+        var m = (int)(minutes % 60);
+        return $"{h}시간 {m}분";
+    }
+
+    public void Dispose()
+    {
+        _clockTimer?.Dispose();
+        _refreshTimer?.Dispose();
+    }
+}

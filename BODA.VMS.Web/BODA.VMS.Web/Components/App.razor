@@ -7,16 +7,45 @@
     <base href="/" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="app.css?v=20260323-6" />
+    <link rel="stylesheet" href="app.css?v=20260520-9" />
     <link rel="stylesheet" href="BODA.VMS.Web.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
 </head>
 
 <body>
+    <div id="vms-boot-loader" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#F5F6F8; z-index:99999; transition:opacity 0.3s;">
+        <div style="text-align:center; font-family:'Montserrat', 'Segoe UI', sans-serif;">
+            <div style="font-size:36px; font-weight:800; letter-spacing:-0.5px;">
+                <span style="color:#00264C;">BODA</span> <span style="color:#FF6724;">VMS</span>
+            </div>
+            <div style="font-size:13px; color:#5A5A5A; margin-top:6px; letter-spacing:1px;">VISION MANAGEMENT SYSTEM</div>
+            <div style="margin-top:24px; width:42px; height:42px; border:3px solid #E2E2E2; border-top-color:#FF6724; border-radius:50%; animation:vms-spin 0.8s linear infinite; display:inline-block;"></div>
+        </div>
+        <style>@@keyframes vms-spin { to { transform: rotate(360deg); } }</style>
+    </div>
     <Routes @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
+    <script src="js/download.js"></script>
+    <script>
+        (function () {
+            var hide = function () {
+                var el = document.getElementById('vms-boot-loader');
+                if (!el) return;
+                el.style.opacity = '0';
+                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+            };
+            var observer = new MutationObserver(function () {
+                if (document.querySelector('.mud-layout, .vms-login-bg, .vms-login-card')) {
+                    hide();
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            setTimeout(function () { hide(); observer.disconnect(); }, 30000);
+        })();
+    </script>
 </body>
 
 </html>

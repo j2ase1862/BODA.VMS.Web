@@ -1,0 +1,389 @@
+@page "/maintenance"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.maintenance"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.maintenance"]</MudText>
+
+<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    @L["maintenance.alertSemi"]
+</MudAlert>
+
+<MudTabs Elevation="0" Rounded="true" PanelClass="pa-0 mt-3" Outlined="true">
+    <MudTabPanel Text="@(L.Format("maintenance.tabSchedulesFmt", _schedules.Count))" Icon="@Icons.Material.Filled.EventRepeat">
+        <div class="vms-table">
+            <MudTable Items="_schedules" Dense="true" Hover="true" Loading="_loading" Elevation="0">
+                <ToolBarContent>
+                    <MudText Class="vms-panel-header">@L["maintenance.panelHeader"]</MudText>
+                    <MudSpacer />
+                    <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
+                    <AuthorizeView Roles="Admin,User">
+                        <Authorized>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                                       Variant="Variant.Filled" Size="Size.Small"
+                                       OnClick="OpenCreateDialog" Class="vms-btn">@L["maintenance.btnCreate"]</MudButton>
+                        </Authorized>
+                    </AuthorizeView>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>@L["maintenance.colScheduleName"]</MudTh>
+                    <MudTh>@L["common.line"]</MudTh>
+                    <MudTh Style="text-align:right;">@L["maintenance.colInterval"]</MudTh>
+                    <MudTh>@L["maintenance.colLastPerformed"]</MudTh>
+                    <MudTh>@L["maintenance.colNextDue"]</MudTh>
+                    <MudTh>@L["common.status"]</MudTh>
+                    <MudTh Style="text-align:right;">@L["common.actions"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <strong>@context.Name</strong>
+                        @if (!string.IsNullOrEmpty(context.Description))
+                        {
+                            <div style="font-size:11px; color: var(--vms-text-secondary);">@context.Description</div>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.ClientId.HasValue)
+                        {
+                            <span style="font-size:12px;">#@context.ClientIndex?.ToString("D2") @context.ClientName</span>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@L["maintenance.lineAll"]</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right;">
+                        <span class="vms-mono">@L.Format("maintenance.intervalDaysFmt", context.IntervalDays)</span>
+                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L.Format("maintenance.durationMinutesFmt", context.EstimatedDurationMinutes)</div>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.LastPerformedAt.HasValue)
+                        {
+                            <span class="vms-mono" style="font-size:12px;">@context.LastPerformedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span style="color: var(--vms-text-secondary); font-style: italic;">@L["maintenance.lastPerformedNone"]</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <span class="vms-mono" style="font-size:12px;">@context.NextDueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                        <div style="font-size:10px;">@FormatDueIn(context.DueInDays, L)</div>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)"
+                                 Variant="@(context.Status == "Overdue" ? Variant.Filled : Variant.Outlined)">
+                            @StatusLabel(context.Status, L)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd Style="text-align:right; white-space:nowrap;">
+                        @{ var row = context; }
+                        <AuthorizeView Roles="Admin,User" Context="auth1">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayCircle" Size="Size.Small"
+                                               Color="Color.Success" Title="@(L["maintenance.tooltipPerform"])"
+                                               OnClick="@(() => PerformPm(row))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               OnClick="@(() => OpenEditDialog(row))" />
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin" Context="auth2">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteSchedule(row))" />
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["maintenance.noSchedules"]</div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@(L.Format("maintenance.tabDueFmt", _due.Count))" Icon="@Icons.Material.Filled.Warning">
+        @if (_due.Count == 0)
+        {
+            <div class="vms-panel pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"
+                         Color="Color.Success" Class="mb-2" />
+                <MudText>@L["maintenance.allHealthy"]</MudText>
+            </div>
+        }
+        else
+        {
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:10px;">
+                @foreach (var d in _due)
+                {
+                    <div class="vms-panel pa-3" style="border-left: 4px solid @(DueColor(d.Status));">
+                        <div style="font-weight:700;">@d.Name</div>
+                        <div style="font-size:11px; color: var(--vms-text-secondary);">
+                            @(d.ClientId.HasValue ? $"#{d.ClientIndex:D2} {d.ClientName}" : L["maintenance.lineAllText"])
+                        </div>
+                        <div class="vms-mono mt-1" style="font-size:13px;">
+                            @d.NextDueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                        </div>
+                        <div style="font-size:11px; font-weight:700; color: @(DueColor(d.Status));">
+                            @FormatDueIn(d.DueInDays, L)
+                        </div>
+                        <AuthorizeView Roles="Admin,User" Context="authDue">
+                            <Authorized>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success"
+                                           StartIcon="@Icons.Material.Filled.PlayCircle"
+                                           OnClick="@(() => PerformPm(d))" Class="mt-2 vms-btn">
+                                    @L["maintenance.btnPerformShort"]
+                                </MudButton>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                }
+            </div>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@(L["maintenance.tabHistory"])" Icon="@Icons.Material.Filled.History">
+        <div class="vms-panel pa-3 mb-3">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_histStart" Label="@(L["common.startDate"])"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_histEnd" Label="@(L["common.endDate"])"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="LoadHistory" Class="vms-btn">@L["action.search"]</MudButton>
+                </MudItem>
+            </MudGrid>
+        </div>
+
+        <div class="vms-table">
+            <MudTable Items="_history" Dense="true" Hover="true" Loading="_loadingHist" Elevation="0">
+                <HeaderContent>
+                    <MudTh>@L["maintenance.histColPerformedAt"]</MudTh>
+                    <MudTh>@L["maintenance.histColSchedule"]</MudTh>
+                    <MudTh>@L["common.line"]</MudTh>
+                    <MudTh>@L["maintenance.histColPerformer"]</MudTh>
+                    <MudTh Style="text-align:right;">@L["maintenance.histColDuration"]</MudTh>
+                    <MudTh>@L["maintenance.histColNotes"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span class="vms-mono" style="font-size:12px;">@context.PerformedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                    </MudTd>
+                    <MudTd><strong>@context.ScheduleName</strong></MudTd>
+                    <MudTd>@context.ClientName</MudTd>
+                    <MudTd>@context.PerformedByName</MudTd>
+                    <MudTd Style="text-align:right;">
+                        @if (context.ActualDurationMinutes.HasValue)
+                        {
+                            <span class="vms-mono">@L.Format("maintenance.minutesShortFmt", context.ActualDurationMinutes)</span>
+                        }
+                        else { <span style="color: var(--vms-text-secondary);">—</span> }
+                    </MudTd>
+                    <MudTd>
+                        @if (!string.IsNullOrEmpty(context.Notes))
+                        {
+                            <span style="font-size:12px;">@context.Notes</span>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["maintenance.histNoData"]</div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<MaintenanceScheduleDto> _schedules = new();
+    private List<MaintenanceScheduleDto> _due = new();
+    private List<MaintenanceRecordDto> _history = new();
+    private bool _loading;
+    private bool _loadingHist;
+    private bool _showInactive;
+    private DateTime? _histStart = DateTime.Today.AddDays(-30);
+    private DateTime? _histEnd = DateTime.Today.AddDays(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSchedules();
+        await LoadDue();
+        await LoadHistory();
+    }
+
+    private async Task LoadSchedules()
+    {
+        _loading = true;
+        _schedules = await Api.GetAsync<List<MaintenanceScheduleDto>>(
+            $"/api/maintenance/schedules?includeInactive={_showInactive}") ?? new();
+        _loading = false;
+    }
+
+    private async Task LoadDue()
+    {
+        _due = await Api.GetAsync<List<MaintenanceScheduleDto>>(
+            "/api/maintenance/schedules/due?withinDays=7") ?? new();
+    }
+
+    private async Task LoadHistory()
+    {
+        _loadingHist = true;
+        var q = new List<string> { "limit=200" };
+        if (_histStart.HasValue) q.Add($"startDate={_histStart.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_histEnd.HasValue) q.Add($"endDate={_histEnd.Value:yyyy-MM-ddTHH:mm:ss}");
+        _history = await Api.GetAsync<List<MaintenanceRecordDto>>(
+            "/api/maintenance/records?" + string.Join("&", q)) ?? new();
+        _loadingHist = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<MaintenanceScheduleDialog>
+        {
+            { x => x.Model, new MaintenanceScheduleUpsertDto { IsActive = true, IntervalDays = 7, EstimatedDurationMinutes = 30 } },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<MaintenanceScheduleDialog>(L["maintenance.dialogCreateTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (MaintenanceScheduleUpsertDto)result.Data!;
+                await Api.PostAsync<MaintenanceScheduleUpsertDto, MaintenanceScheduleDto>(
+                    "/api/maintenance/schedules", dto);
+                Snackbar.Add(L.Format("maintenance.snackbarCreatedFmt", dto.Name), Severity.Success);
+                await LoadSchedules();
+                await LoadDue();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(MaintenanceScheduleDto src)
+    {
+        var copy = new MaintenanceScheduleUpsertDto
+        {
+            ClientId = src.ClientId,
+            Name = src.Name,
+            Description = src.Description,
+            IntervalDays = src.IntervalDays,
+            EstimatedDurationMinutes = src.EstimatedDurationMinutes,
+            NextDueAt = src.NextDueAt,
+            IsActive = src.IsActive
+        };
+        var parameters = new DialogParameters<MaintenanceScheduleDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<MaintenanceScheduleDialog>(L.Format("maintenance.dialogEditTitleFmt", src.Name), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (MaintenanceScheduleUpsertDto)result.Data!;
+                await Api.PutAsync<MaintenanceScheduleUpsertDto, MaintenanceScheduleDto>(
+                    $"/api/maintenance/schedules/{src.Id}", dto);
+                Snackbar.Add(L.Format("maintenance.snackbarUpdatedFmt", dto.Name), Severity.Success);
+                await LoadSchedules();
+                await LoadDue();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task PerformPm(MaintenanceScheduleDto schedule)
+    {
+        var parameters = new DialogParameters<PerformPmDialog>
+        {
+            { x => x.Schedule, schedule }
+        };
+        var dialog = await Dialog.ShowAsync<PerformPmDialog>(L.Format("maintenance.dialogPerformTitleFmt", schedule.Name), parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            var req = (PerformMaintenanceRequest)result.Data!;
+            await Api.PostAsync<PerformMaintenanceRequest, MaintenanceRecordDto>(
+                $"/api/maintenance/schedules/{schedule.Id}/perform", req);
+            Snackbar.Add(L.Format("maintenance.snackbarPerformedFmt", schedule.Name), Severity.Success);
+            await LoadSchedules();
+            await LoadDue();
+            await LoadHistory();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private async Task DeleteSchedule(MaintenanceScheduleDto s)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["maintenance.confirmDeleteTitle"],
+            L.Format("maintenance.confirmDeleteMsgFmt", s.Name), L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+        try
+        {
+            await Api.DeleteAsync($"/api/maintenance/schedules/{s.Id}");
+            Snackbar.Add(L.Format("maintenance.snackbarDeletedFmt", s.Name), Severity.Warning);
+            await LoadSchedules();
+            await LoadDue();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private static string FormatDueIn(int days, ILocalizer L)
+    {
+        if (days < 0) return L.Format("maintenance.dueOverdueFmt", -days);
+        if (days == 0) return L["maintenance.dueTodayShort"];
+        if (days == 1) return L["maintenance.dueTomorrow"];
+        return L.Format("maintenance.dueInDaysFmt", days);
+    }
+
+    private static string StatusLabel(string s, ILocalizer L) => s switch
+    {
+        "Overdue" => L["maintenance.statusOverdue"],
+        "DueToday" => L["maintenance.statusDueToday"],
+        "Soon" => L["maintenance.statusSoon"],
+        _ => L["maintenance.statusNormal"]
+    };
+
+    private static Color StatusColor(string status) => status switch
+    {
+        "Overdue" => Color.Error,
+        "DueToday" => Color.Warning,
+        "Soon" => Color.Info,
+        _ => Color.Success
+    };
+
+    private static string DueColor(string status) => status switch
+    {
+        "Overdue" => "var(--mud-palette-error)",
+        "DueToday" => "var(--mud-palette-warning)",
+        "Soon" => "var(--mud-palette-info)",
+        _ => "var(--mud-palette-success)"
+    };
+}

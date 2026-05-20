@@ -1,0 +1,319 @@
+@page "/alarms"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject SignalRService SignalR
+@inject ILocalizer L
+@implements IDisposable
+
+<PageTitle>@L["page.alarms"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.alarms"]</MudText>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px;" class="mb-3">
+    <div class="vms-panel pa-3" style="border-left: 4px solid var(--mud-palette-error);">
+        <div style="font-size:11px; text-transform:uppercase; color: var(--vms-text-secondary);">@L["alarms.summaryNew"]</div>
+        <div style="font-size:28px; font-weight:700; font-family: 'Roboto Mono', monospace;">@_summary?.NewCount</div>
+    </div>
+    <div class="vms-panel pa-3" style="border-left: 4px solid var(--mud-palette-warning);">
+        <div style="font-size:11px; text-transform:uppercase; color: var(--vms-text-secondary);">@L["alarms.summaryAck"]</div>
+        <div style="font-size:28px; font-weight:700; font-family: 'Roboto Mono', monospace;">@_summary?.AckCount</div>
+    </div>
+    <div class="vms-panel pa-3" style="border-left: 4px solid var(--mud-palette-error);">
+        <div style="font-size:11px; text-transform:uppercase; color: var(--vms-text-secondary);">@L["alarms.summaryCritical"]</div>
+        <div style="font-size:28px; font-weight:700; font-family: 'Roboto Mono', monospace; color: var(--mud-palette-error);">
+            @_summary?.CriticalCount
+        </div>
+    </div>
+</div>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="string?" @bind-Value="_state" Label="@(L["alarms.filterState"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("New")">@L["status.new"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Ack")">@L["status.ack"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Resolved")">@L["status.resolved"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="string?" @bind-Value="_severity" Label="@(L["alarms.filterSeverity"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Critical")">@L["status.critical"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Major")">@L["status.major"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Minor")">@L["status.minor"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="string?" @bind-Value="_type" Label="@(L["alarms.filterType"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("NG")">@L["alarms.typeNG"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Offline")">@L["alarms.typeOffline"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("HighNgRate")">@L["alarms.typeHighNgRate"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Other")">@L["alarms.typeOther"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       OnClick="Load" Class="vms-btn">@L["action.search"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>@L["alarms.colOccurred"]</MudTh>
+            <MudTh>@L["common.type"]</MudTh>
+            <MudTh>@L["common.severity"]</MudTh>
+            <MudTh>@L["common.line"]</MudTh>
+            <MudTh>@L["alarms.colTitle"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh>@L["alarms.colAck"]</MudTh>
+            <MudTh>@L["alarms.colResolved"]</MudTh>
+            <MudTh Style="text-align:right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span class="vms-mono" style="font-size:12px;">
+                    @context.OccurredAt.ToLocalTime().ToString("MM-dd HH:mm:ss")
+                </span>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                         Color="@TypeColor(context.AlarmType)">
+                    @TypeLabel(context.AlarmType)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                         Color="@SevColor(context.Severity)">
+                    @SevLabel(context.Severity)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.ClientName is not null)
+                {
+                    <span style="font-size:12px;">
+                        #@context.ClientIndex?.ToString("D2") @context.ClientName
+                    </span>
+                }
+            </MudTd>
+            <MudTd>
+                <div>
+                    <MudText Typo="Typo.body2" Style="font-weight:600;">@context.Title</MudText>
+                    @if (!string.IsNullOrEmpty(context.Message))
+                    {
+                        <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);">@context.Message</MudText>
+                    }
+                </div>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small"
+                         Color="@StateColor(context.State)"
+                         Variant="@(context.State == "New" ? Variant.Filled : Variant.Outlined)">
+                    @StateLabel(context.State)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.AcknowledgedAt.HasValue)
+                {
+                    <div style="font-size:11px;">
+                        <div>@context.AcknowledgedByName</div>
+                        <div style="color: var(--vms-text-secondary);">
+                            @context.AcknowledgedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")
+                        </div>
+                    </div>
+                }
+                else { <span style="color: var(--vms-text-secondary);">—</span> }
+            </MudTd>
+            <MudTd>
+                @if (context.ResolvedAt.HasValue)
+                {
+                    <div style="font-size:11px;">
+                        <div>@context.ResolvedByName</div>
+                        <div style="color: var(--vms-text-secondary);">
+                            @context.ResolvedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")
+                        </div>
+                        @if (!string.IsNullOrEmpty(context.Resolution))
+                        {
+                            <div style="color: var(--mud-palette-success); margin-top:2px; max-width:200px; white-space: normal;">
+                                @context.Resolution
+                            </div>
+                        }
+                    </div>
+                }
+                else { <span style="color: var(--vms-text-secondary);">—</span> }
+            </MudTd>
+            <MudTd Style="text-align:right; white-space:nowrap;">
+                @{ var row = context; }
+                <AuthorizeView Roles="Admin,User" Context="auth">
+                    <Authorized>
+                        @if (row.ResolvedAt is null)
+                        {
+                            @if (row.AcknowledgedAt is null)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small"
+                                               Color="Color.Info"
+                                               OnClick="@(() => Acknowledge(row))" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Small"
+                                           Color="Color.Success"
+                                           OnClick="@(() => Resolve(row))" />
+                        }
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.NotificationsOff" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">@L["alarms.noData"]</MudText>
+            </div>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<AlarmEventDto> _items = new();
+    private AlarmSummaryDto? _summary;
+    private bool _loading;
+    private string? _state = "New";
+    private string? _severity;
+    private string? _type;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalR.OnAlarmCreated += HandleAlarmChanged;
+        SignalR.OnAlarmUpdated += HandleAlarmChanged;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        var q = new List<string> { "pageSize=100" };
+        if (!string.IsNullOrEmpty(_state)) q.Add($"state={_state}");
+        if (!string.IsNullOrEmpty(_severity)) q.Add($"severity={_severity}");
+        if (!string.IsNullOrEmpty(_type)) q.Add($"alarmType={_type}");
+        var url = "/api/alarms?" + string.Join("&", q);
+
+        try
+        {
+            var page = await Api.GetAsync<PagedResult<AlarmEventDto>>(url);
+            _items = page?.Items ?? new();
+            _summary = await Api.GetAsync<AlarmSummaryDto>("/api/alarms/summary");
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private async void HandleAlarmChanged(AlarmEventDto a) => await InvokeAsync(Load);
+
+    private async Task Acknowledge(AlarmEventDto a)
+    {
+        try
+        {
+            await Api.PostAsync<AlarmActionRequest, AlarmEventDto>(
+                $"/api/alarms/{a.Id}/action",
+                new AlarmActionRequest { Action = "Acknowledge" });
+            Snackbar.Add(L.Format("alarms.ackedFmt", a.Title), Severity.Info);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private async Task Resolve(AlarmEventDto a)
+    {
+        var parameters = new DialogParameters<AlarmResolveDialog>
+        {
+            { x => x.Alarm, a }
+        };
+        var dialog = await Dialog.ShowAsync<AlarmResolveDialog>(L.Format("alarms.resolveTitleFmt", a.Title), parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            await Api.PostAsync<AlarmActionRequest, AlarmEventDto>(
+                $"/api/alarms/{a.Id}/action",
+                new AlarmActionRequest { Action = "Resolve", Resolution = (string)result.Data! });
+            Snackbar.Add(L.Format("alarms.resolvedFmt", a.Title), Severity.Success);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private string TypeLabel(string t) => t switch
+    {
+        "NG" => L["alarms.typeNG"],
+        "Offline" => L["alarms.typeOffline"],
+        "HighNgRate" => L["alarms.typeHighNgRate"],
+        _ => L["alarms.typeOther"]
+    };
+
+    private string SevLabel(string s) => s switch
+    {
+        "Critical" => L["status.critical"],
+        "Major" => L["status.major"],
+        "Minor" => L["status.minor"],
+        _ => s
+    };
+
+    private string StateLabel(string s) => s switch
+    {
+        "New" => L["status.new"],
+        "Ack" => L["status.ack"],
+        "Resolved" => L["status.resolved"],
+        _ => s
+    };
+
+    private static Color SevColor(string sev) => sev switch
+    {
+        "Critical" => Color.Error,
+        "Major" => Color.Warning,
+        "Minor" => Color.Info,
+        _ => Color.Default
+    };
+
+    private static Color TypeColor(string t) => t switch
+    {
+        "NG" => Color.Error,
+        "Offline" => Color.Warning,
+        "HighNgRate" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color StateColor(string s) => s switch
+    {
+        "New" => Color.Error,
+        "Ack" => Color.Warning,
+        "Resolved" => Color.Success,
+        _ => Color.Default
+    };
+
+    public void Dispose()
+    {
+        SignalR.OnAlarmCreated -= HandleAlarmChanged;
+        SignalR.OnAlarmUpdated -= HandleAlarmChanged;
+    }
+}

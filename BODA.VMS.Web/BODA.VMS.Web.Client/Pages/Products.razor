@@ -1,0 +1,204 @@
+@page "/products"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.products"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.products"]</MudText>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
+              Filter="new Func<ProductDto, bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Class="vms-panel-header">@L["product.header"]</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
+                @L.Format("product.totalCountFmt", _items.Count)
+            </MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="@(L["product.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
+                          Style="max-width: 280px;" />
+            <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary"
+                       Class="mr-2" />
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                               Variant="Variant.Filled" Size="Size.Small"
+                               OnClick="OpenCreateDialog" Class="vms-btn">
+                        @L["product.btnCreate"]
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>@L["product.colCode"]</MudTh>
+            <MudTh>@L["product.colName"]</MudTh>
+            <MudTh>@L["product.colSpec"]</MudTh>
+            <MudTh>@L["product.colDefaultRecipe"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span class="vms-mono" style="font-weight: 700;">@context.Code</span>
+            </MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
+                    @(string.IsNullOrEmpty(context.Specification) ? "—" : context.Specification)
+                </MudText>
+            </MudTd>
+            <MudTd>
+                @if (context.DefaultRecipeId.HasValue)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                        @context.DefaultRecipeName
+                    </MudChip>
+                }
+                else
+                {
+                    <span style="color: var(--vms-text-secondary);">—</span>
+                }
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align: right; white-space: nowrap;">
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized Context="auth1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="auth2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteItem(context))" />
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">@L["product.noProducts"]</MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<ProductDto> _items = new();
+    private bool _loading;
+    private bool _showInactive;
+    private string _search = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _items = await Api.GetAsync<List<ProductDto>>(
+            $"/api/products?includeInactive={_showInactive}") ?? new();
+        _loading = false;
+    }
+
+    private bool FilterFunc(ProductDto p)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return p.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<ProductFormDialog>
+        {
+            { x => x.Model, new ProductDto() },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<ProductFormDialog>(L["product.createTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (ProductDto)result.Data!;
+                await Api.PostAsync<ProductDto, ProductDto>("/api/products", dto);
+                Snackbar.Add(L.Format("product.createdFmt", dto.Code), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(ProductDto src)
+    {
+        var copy = new ProductDto
+        {
+            Id = src.Id,
+            Code = src.Code,
+            Name = src.Name,
+            Specification = src.Specification,
+            DefaultRecipeId = src.DefaultRecipeId,
+            DefaultRecipeName = src.DefaultRecipeName,
+            IsActive = src.IsActive
+        };
+        var parameters = new DialogParameters<ProductFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<ProductFormDialog>(L.Format("product.editTitleFmt", src.Code), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (ProductDto)result.Data!;
+                await Api.PutAsync<ProductDto, ProductDto>($"/api/products/{src.Id}", dto);
+                Snackbar.Add(L.Format("product.updatedFmt", dto.Code), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(ProductDto p)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("product.confirmDeleteFmt", p.Code, p.Name),
+            L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.DeleteAsync($"/api/products/{p.Id}");
+            Snackbar.Add(L.Format("product.deletedFmt", p.Code), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+}

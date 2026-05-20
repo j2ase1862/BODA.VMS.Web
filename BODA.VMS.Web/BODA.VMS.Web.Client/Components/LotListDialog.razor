@@ -1,0 +1,142 @@
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+            로트 — @WorkOrderNo
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <div style="min-width: 600px;">
+            <div class="d-flex align-center mb-3">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                    이 작업 지시에 속한 모든 로트. 새 원자재/교대 전환 시 새 로트를 발행하세요.
+                </MudText>
+                <MudSpacer />
+                <AuthorizeView Roles="Admin,User" Context="authHeader">
+                    <Authorized>
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                                   Variant="Variant.Filled" Size="Size.Small"
+                                   OnClick="CreateLot" Class="vms-btn">
+                            로트 발행
+                        </MudButton>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+
+            <MudTable Items="_lots" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>로트 번호</MudTh>
+                    <MudTh Style="text-align: right;">수량</MudTh>
+                    <MudTh Style="text-align: right;">합격</MudTh>
+                    <MudTh Style="text-align: right;">불량</MudTh>
+                    <MudTh Style="text-align: right;">불량률</MudTh>
+                    <MudTh>상태</MudTh>
+                    <MudTh>발행일</MudTh>
+                    <MudTh Style="text-align: right;">작업</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span class="vms-mono" style="font-weight: 600;">@context.LotNumber</span>
+                    </MudTd>
+                    <MudTd Style="text-align: right;">@context.Quantity</MudTd>
+                    <MudTd Style="text-align: right; color: var(--mud-palette-success);">@context.PassCount</MudTd>
+                    <MudTd Style="text-align: right; color: var(--mud-palette-error);">@context.NgCount</MudTd>
+                    <MudTd Style="text-align: right;">@context.NgRate.ToString("F2")%</MudTd>
+                    <MudTd>
+                        @if (context.Status == "Open")
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">진행중</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">마감</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("MM-dd HH:mm")</MudText>
+                    </MudTd>
+                    <MudTd Style="text-align: right;">
+                        @{
+                            var lot = context;
+                        }
+                        @if (lot.Status == "Open")
+                        {
+                            <AuthorizeView Roles="Admin,User" Context="authRow">
+                                <Authorized>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Lock" Size="Size.Small"
+                                                   Color="Color.Warning"
+                                                   OnClick="@(() => CloseLot(lot))" />
+                                </Authorized>
+                            </AuthorizeView>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">
+                        아직 발행된 로트가 없습니다.
+                    </div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">닫기</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WorkOrderId { get; set; }
+    [Parameter] public string WorkOrderNo { get; set; } = "";
+
+    private List<LotDto> _lots = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _lots = await Api.GetAsync<List<LotDto>>(
+            $"/api/workorders/{WorkOrderId}/lots") ?? new();
+    }
+
+    private async Task CreateLot()
+    {
+        try
+        {
+            var lot = await Api.PostAsync<CreateLotRequest, LotDto>(
+                $"/api/workorders/{WorkOrderId}/lots",
+                new CreateLotRequest { Note = null });
+            Snackbar.Add($"로트 '{lot?.LotNumber}' 발행됨", Severity.Success);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"실패: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CloseLot(LotDto lot)
+    {
+        var confirmed = await Dialog.ShowMessageBox("마감 확인",
+            $"로트 '{lot.LotNumber}'을(를) 마감하시겠습니까?\n마감 후에는 새 검사 결과를 받지 않습니다.",
+            "마감", "취소");
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.PostAsync<object, LotDto>($"/api/lots/{lot.Id}/close", new { });
+            Snackbar.Add($"로트 '{lot.LotNumber}' 마감됨", Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"실패: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}

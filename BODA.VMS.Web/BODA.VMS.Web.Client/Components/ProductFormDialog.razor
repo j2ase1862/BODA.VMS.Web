@@ -1,0 +1,76 @@
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.Code" Label="제품 코드"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.QrCode2"
+                          HelperText="고유 품번 (예: PRD-A001)" />
+
+            <MudTextField @bind-Value="Model.Name" Label="제품명"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Inventory" />
+
+            <MudTextField @bind-Value="Model.Specification" Label="사양"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Lines="2"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Description"
+                          HelperText="규격, 재질, 치수 등 (선택)" />
+
+            <MudSelect T="int?" @bind-Value="Model.DefaultRecipeId" Label="기본 레시피"
+                       Variant="Variant.Outlined" Class="mb-4"
+                       Clearable="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.MenuBook"
+                       HelperText="작업 지시 발행 시 기본 선택될 레시피 (선택)">
+                <MudSelectItem T="int?" Value="@((int?)null)">-- 없음 --</MudSelectItem>
+                @foreach (var r in _allRecipes)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)r.Id)">
+                        @r.Name @(string.IsNullOrEmpty(r.Description) ? "" : $"— {r.Description}")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? "수정" : "등록")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public ProductDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private List<RecipeDto> _allRecipes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 모든 클라이언트의 레시피를 합쳐서 보여줌 (제품은 라인 무관)
+        var clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        foreach (var c in clients)
+        {
+            var recipes = await Api.GetAsync<List<RecipeDto>>($"/api/clients/{c.Id}/recipes") ?? new();
+            _allRecipes.AddRange(recipes);
+        }
+        _allRecipes = _allRecipes.DistinctBy(r => r.Id).OrderBy(r => r.Name).ToList();
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,159 @@
+@page "/shift-report"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject ILocalizer L
+
+<PageTitle>@L["page.shiftReport"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.shiftReport"]</MudText>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Schedule"
+                       OnClick="Load" Class="vms-btn">@L["action.run"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+@if (_rows.Count > 0)
+{
+    @* Shift별 집계 카드 *@
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;" class="mb-3">
+        @foreach (var grp in _rows.GroupBy(r => r.ShiftId))
+        {
+            var total = grp.Sum(g => g.TotalCount);
+            var pass = grp.Sum(g => g.PassCount);
+            var ng = total - pass;
+            var rate = total > 0 ? Math.Round((double)ng / total * 100, 2) : 0;
+            <div class="vms-panel pa-3" style="border-top: 4px solid @(GetRateColor(rate));">
+                <div style="font-size:12px; color: var(--vms-text-secondary);">@(grp.First().ShiftName)</div>
+                <div style="font-size:24px; font-weight:800; font-family: 'Roboto Mono', monospace;">
+                    @total.ToString("N0")
+                </div>
+                <div style="font-size:12px;">
+                    <span style="color: var(--mud-palette-success);">@L["shiftReport.passLabel"] @pass.ToString("N0")</span>
+                    ·
+                    <span style="color: var(--mud-palette-error);">@L["shiftReport.ngLabel"] @ng.ToString("N0")</span>
+                </div>
+                <div style="font-size:14px; font-weight:700; color: @(GetRateColor(rate)); margin-top:4px;">
+                    @L["shiftReport.ngRateLabel"] @rate.ToString("F2")%
+                </div>
+            </div>
+        }
+    </div>
+
+    @* 일자 × Shift 매트릭스 *@
+    <div class="vms-table">
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="0">
+            <ToolBarContent>
+                <MudText Class="vms-panel-header">@L["shiftReport.matrixTitle"]</MudText>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>@L["shiftReport.colDate"]</MudTh>
+                <MudTh>@L["shiftReport.colShift"]</MudTh>
+                <MudTh Style="text-align:right;">@L["shiftReport.colTotal"]</MudTh>
+                <MudTh Style="text-align:right;">@L["shiftReport.colPass"]</MudTh>
+                <MudTh Style="text-align:right;">@L["shiftReport.colNg"]</MudTh>
+                <MudTh Style="text-align:right;">@L["shiftReport.colNgRate"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><span class="vms-mono">@context.Date.ToString("yyyy-MM-dd")</span></MudTd>
+                <MudTd><strong>@context.ShiftName</strong></MudTd>
+                <MudTd Style="text-align:right;"><span class="vms-mono">@context.TotalCount.ToString("N0")</span></MudTd>
+                <MudTd Style="text-align:right; color: var(--mud-palette-success);">
+                    <span class="vms-mono">@context.PassCount.ToString("N0")</span>
+                </MudTd>
+                <MudTd Style="text-align:right; color: var(--mud-palette-error);">
+                    <span class="vms-mono">@context.NgCount.ToString("N0")</span>
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    <span class="vms-mono" style="color: @(GetRateColor(context.NgRate)); font-weight: 600;">
+                        @context.NgRate.ToString("F2")%
+                    </span>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+}
+else if (_loaded)
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudText Style="color: var(--vms-text-secondary);">@L["shiftReport.noData"]</MudText>
+        <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
+            @L["shiftReport.noDataHint"]
+        </MudText>
+    </div>
+}
+else
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudText Style="color: var(--vms-text-secondary);">@L["shiftReport.promptRun"]</MudText>
+    </div>
+}
+
+@code {
+    private DateTime? _startDate = DateTime.Today.AddDays(-7);
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private int? _clientId;
+
+    private List<ClientDto> _clients = new();
+    private List<ShiftReportEntryDto> _rows = new();
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        if (!_startDate.HasValue || !_endDate.HasValue) return;
+        var req = new ShiftReportRequestDto
+        {
+            StartDate = _startDate.Value.ToUniversalTime(),
+            EndDate = _endDate.Value.ToUniversalTime(),
+            ClientId = _clientId
+        };
+        try
+        {
+            _rows = await Api.PostAsync<ShiftReportRequestDto, List<ShiftReportEntryDto>>(
+                "/api/shifts/report", req) ?? new();
+            _loaded = true;
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private static string GetRateColor(double rate)
+    {
+        if (rate >= 5) return "var(--mud-palette-error)";
+        if (rate >= 1) return "var(--mud-palette-warning)";
+        return "var(--mud-palette-success)";
+    }
+}

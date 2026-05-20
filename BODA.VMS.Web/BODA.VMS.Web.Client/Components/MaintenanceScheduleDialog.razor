@@ -1,0 +1,79 @@
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.Name" Label="일정 이름"
+                          Variant="Variant.Outlined" Class="mb-4" Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Build" />
+
+            <MudTextField @bind-Value="Model.Description" Label="설명"
+                          Variant="Variant.Outlined" Class="mb-4" Lines="2"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Description" />
+
+            <MudSelect T="int?" @bind-Value="Model.ClientId" Label="라인" Clearable="true"
+                       Variant="Variant.Outlined" Class="mb-4"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
+                       HelperText="비워두면 전체 라인 공통">
+                <MudSelectItem T="int?" Value="@((int?)null)">전체 라인 (공통)</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="6">
+                    <MudNumericField T="int" @bind-Value="Model.IntervalDays" Label="주기 (일)"
+                                     Variant="Variant.Outlined" Min="1"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Repeat"
+                                     HelperText="1=매일 / 7=매주 / 30=매월" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField T="int" @bind-Value="Model.EstimatedDurationMinutes" Label="예상 소요 (분)"
+                                     Variant="Variant.Outlined" Min="1"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Timer" />
+                </MudItem>
+            </MudGrid>
+
+            <MudDatePicker @bind-Date="Model.NextDueAt" Label="다음 수행 예정 (선택)"
+                           Variant="Variant.Outlined" Class="mb-4"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                           HelperText="비워두면 오늘 + 주기로 자동 설정" />
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? "수정" : "등록")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public MaintenanceScheduleUpsertDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private List<ClientDto> _clients = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,144 @@
+using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Data.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace BODA.VMS.Web.Services;
+
+public class AndonService : IAndonService
+{
+    private readonly BodaVmsDbContext _db;
+
+    public AndonService(BodaVmsDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<AndonSnapshotDto> GetSnapshotAsync()
+    {
+        var todayStart = DateTime.UtcNow.Date;
+        var asOf = DateTime.UtcNow;
+
+        var clients = await _db.Clients
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.ClientIndex)
+            .ToListAsync();
+
+        var clientIds = clients.Select(c => c.Id).ToList();
+
+        // 현재 상태 (open log) 일괄 조회 — ClientId당 EndedAt이 null인 row
+        var currentStatuses = await _db.EquipmentStatusLogs
+            .Where(e => clientIds.Contains(e.ClientId) && e.EndedAt == null)
+            .ToDictionaryAsync(e => e.ClientId, e => e);
+
+        // 오늘 검사 집계 (Client별)
+        var todayInspections = await _db.InspectionHistories
+            .Where(h => clientIds.Contains(h.ClientId) && h.InspectedAt >= todayStart)
+            .GroupBy(h => h.ClientId)
+            .Select(g => new
+            {
+                ClientId = g.Key,
+                Total = g.Count(),
+                Pass = g.Count(h => h.IsPass)
+            })
+            .ToDictionaryAsync(x => x.ClientId, x => x);
+
+        // 활성 WorkOrder (InProgress) — Client별 가장 최근 1개
+        var activeWos = await _db.WorkOrders
+            .Include(w => w.Product)
+            .Where(w => clientIds.Contains(w.ClientId) && w.Status == WorkOrderStatus.InProgress)
+            .OrderByDescending(w => w.ActualStartAt)
+            .ToListAsync();
+        var activeWoByClient = activeWos
+            .GroupBy(w => w.ClientId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        // 미해제 알람 (Client별 카운트)
+        var openAlarms = await _db.AlarmEvents
+            .Where(a => a.ResolvedAt == null && a.ClientId != null && clientIds.Contains(a.ClientId.Value))
+            .Select(a => new { a.ClientId, a.Severity })
+            .ToListAsync();
+        var alarmByClient = openAlarms
+            .GroupBy(a => a.ClientId!.Value)
+            .ToDictionary(g => g.Key, g => new
+            {
+                Total = g.Count(),
+                Critical = g.Count(x => x.Severity == AlarmSeverity.Critical)
+            });
+
+        // === 라인별 DTO 조립 ===
+        var lines = new List<AndonLineDto>();
+        foreach (var c in clients)
+        {
+            currentStatuses.TryGetValue(c.Id, out var statusLog);
+            todayInspections.TryGetValue(c.Id, out var insp);
+            activeWoByClient.TryGetValue(c.Id, out var wo);
+            alarmByClient.TryGetValue(c.Id, out var alarm);
+
+            var line = new AndonLineDto
+            {
+                ClientId = c.Id,
+                ClientIndex = c.ClientIndex,
+                ClientName = c.Name,
+                Status = statusLog?.Status ?? EquipmentStatus.Down,
+                StatusSince = statusLog?.StartedAt,
+                LastSeenAt = c.LastSeenAt,
+                TodayTotal = insp?.Total ?? 0,
+                TodayPass = insp?.Pass ?? 0,
+                TodayNg = (insp?.Total ?? 0) - (insp?.Pass ?? 0),
+                ActiveWorkOrderNo = wo?.OrderNo,
+                ActiveProductCode = wo?.Product?.Code,
+                ActiveWorkOrderProgress = wo is null || wo.PlannedQuantity == 0
+                    ? null
+                    : (int)Math.Round((double)wo.ProducedQuantity / wo.PlannedQuantity * 100),
+                OpenAlarmCount = alarm?.Total ?? 0,
+                CriticalAlarmCount = alarm?.Critical ?? 0
+            };
+            lines.Add(line);
+        }
+
+        // === 전체 KPI ===
+        var totalToday = lines.Sum(l => l.TodayTotal);
+        var passToday = lines.Sum(l => l.TodayPass);
+        var ngToday = totalToday - passToday;
+
+        // 활성 알람 Top 10 (미해제 + Critical/Major 우선)
+        var activeAlarmRaws = await _db.AlarmEvents
+            .Include(a => a.Client)
+            .Where(a => a.ResolvedAt == null)
+            .OrderByDescending(a => a.Severity == AlarmSeverity.Critical)
+            .ThenByDescending(a => a.OccurredAt)
+            .Take(10)
+            .ToListAsync();
+
+        var activeAlarmDtos = activeAlarmRaws.Select(a => new AlarmEventDto
+        {
+            Id = a.Id,
+            ClientId = a.ClientId,
+            ClientName = a.Client?.Name,
+            ClientIndex = a.Client?.ClientIndex,
+            AlarmType = a.AlarmType,
+            Severity = a.Severity,
+            Title = a.Title,
+            Message = a.Message,
+            OccurredAt = a.OccurredAt,
+            AcknowledgedAt = a.AcknowledgedAt,
+            AcknowledgedByName = a.AcknowledgedByName,
+            ResolvedAt = a.ResolvedAt,
+            Resolution = a.Resolution
+        }).ToList();
+
+        return new AndonSnapshotDto
+        {
+            AsOf = asOf,
+            Lines = lines,
+            TotalToday = totalToday,
+            PassToday = passToday,
+            NgToday = ngToday,
+            RunningLines = lines.Count(l => l.Status == EquipmentStatus.Running),
+            IdleLines = lines.Count(l => l.Status == EquipmentStatus.Idle),
+            DownLines = lines.Count(l => l.Status == EquipmentStatus.Down),
+            ActiveAlarms = activeAlarmDtos
+        };
+    }
+}

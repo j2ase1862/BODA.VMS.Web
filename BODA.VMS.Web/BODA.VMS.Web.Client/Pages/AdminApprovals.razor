@@ -2,21 +2,23 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
+@inject ILocalizer L
 
-<PageTitle>User Approvals - BODA VMS</PageTitle>
+<PageTitle>@L["page.approvals"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">User Management</MudText>
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.approvals"]</MudText>
 
-<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4"
-         Color="Color.Primary" SliderColor="Color.Primary"
-         Style="background: var(--vms-bg-surface); border: 1px solid var(--vms-border); border-radius: 8px;">
-    <MudTabPanel Text="Pending Approvals" BadgeData="@_pendingUsers.Count" BadgeColor="Color.Warning">
+<MudTabs Elevation="0" Rounded="false" PanelClass="pa-4"
+         SliderColor="Color.Primary"
+         Class="vms-tabs"
+         Style="background: transparent;">
+    <MudTabPanel Text="@(L["approval.tabPending"])" BadgeData="@_pendingUsers.Count" BadgeColor="Color.Warning">
         @if (_pendingUsers.Count == 0)
         {
             <div class="pa-8 d-flex flex-column align-center">
                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"
                          Style="color: var(--vms-success); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">No pending approval requests</MudText>
+                <MudText Style="color: var(--vms-text-secondary);">@L["approval.noPending"]</MudText>
             </div>
         }
         else
@@ -24,10 +26,10 @@
             <div class="vms-table">
                 <MudTable Items="_pendingUsers" Dense="true" Hover="true" Elevation="0">
                     <HeaderContent>
-                        <MudTh>Username</MudTh>
-                        <MudTh>Display Name</MudTh>
-                        <MudTh>Registered</MudTh>
-                        <MudTh Style="text-align: right;">Actions</MudTh>
+                        <MudTh>@L["approval.colUsername"]</MudTh>
+                        <MudTh>@L["approval.colDisplayName"]</MudTh>
+                        <MudTh>@L["approval.colCreatedAt"]</MudTh>
+                        <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>
@@ -59,7 +61,7 @@
                                 <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small"
                                            OnClick="@(() => RejectUser(context))"
                                            Style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                                    Reject
+                                    @L["approval.btnReject"]
                                 </MudButton>
                             </MudButtonGroup>
                         </MudTd>
@@ -69,22 +71,23 @@
         }
     </MudTabPanel>
 
-    <MudTabPanel Text="All Users">
+    <MudTabPanel Text="@(L["approval.tabAll"])">
         <div class="vms-table">
             <MudTable Items="_allUsers" Dense="true" Hover="true" Elevation="0"
                       Filter="new Func<UserDto, bool>(FilterFunc)">
                 <ToolBarContent>
-                    <MudTextField @bind-Value="_searchString" Placeholder="Search users..."
+                    <MudTextField @bind-Value="_searchString" Placeholder="@(L["approval.searchPlaceholder"])"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
                                   IconSize="Size.Small" Class="mt-0" Immediate="true"
                                   Style="max-width: 300px;" />
                 </ToolBarContent>
                 <HeaderContent>
-                    <MudTh>Username</MudTh>
-                    <MudTh>Display Name</MudTh>
-                    <MudTh>Role</MudTh>
-                    <MudTh>Status</MudTh>
-                    <MudTh Style="text-align: right;">Actions</MudTh>
+                    <MudTh>@L["approval.colUsername"]</MudTh>
+                    <MudTh>@L["approval.colDisplayName"]</MudTh>
+                    <MudTh>@L["approval.colRole"]</MudTh>
+                    <MudTh>@L["approval.colState"]</MudTh>
+                    <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
@@ -103,14 +106,14 @@
                         {
                             <span class="d-flex align-center">
                                 <span class="vms-status-dot online"></span>
-                                <MudText Style="color: var(--vms-success); font-size: 0.8rem;">Active</MudText>
+                                <MudText Style="color: var(--vms-success); font-size: 0.8rem;">@L["approval.stateActive"]</MudText>
                             </span>
                         }
                         else
                         {
                             <span class="d-flex align-center">
                                 <span class="vms-status-dot offline"></span>
-                                <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">Pending</MudText>
+                                <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">@L["approval.statePending"]</MudText>
                             </span>
                         }
                     </MudTd>
@@ -147,32 +150,32 @@
     private async Task ApproveUser(UserDto user, string role)
     {
         await Api.PostAsync("/api/admin/approve", new ApprovalDto { UserId = user.Id, Role = role });
-        Snackbar.Add($"{user.Username} approved as {role}", Severity.Success);
+        Snackbar.Add(L.Format("approval.snackbarApprovedFmt", user.Username, role), Severity.Success);
         await LoadData();
     }
 
     private async Task RejectUser(UserDto user)
     {
-        var confirmed = await Dialog.ShowMessageBox("Confirm",
-            $"Are you sure you want to reject {user.Username}? This will delete their account.",
-            "Yes", "No");
+        var confirmed = await Dialog.ShowMessageBox(L["approval.confirmRejectTitle"],
+            L.Format("approval.confirmRejectFmt", user.Username),
+            L["action.yes"], L["action.no"]);
         if (confirmed != true) return;
 
         await Api.PostAsync<object>($"/api/admin/reject/{user.Id}", new { });
-        Snackbar.Add($"{user.Username} rejected", Severity.Warning);
+        Snackbar.Add(L.Format("approval.snackbarRejectedFmt", user.Username), Severity.Warning);
         await LoadData();
     }
 
     private async Task ResetPassword(UserDto user)
     {
-        var result = await Dialog.ShowMessageBox("Reset Password",
-            $"Reset password for {user.Username} to default (1234)?",
-            "Yes", "No");
+        var result = await Dialog.ShowMessageBox(L["approval.resetPasswordTitle"],
+            L.Format("approval.resetPasswordConfirmFmt", user.Username),
+            L["action.yes"], L["action.no"]);
         if (result != true) return;
 
         await Api.PostAsync("/api/admin/reset-password",
             new { UserId = user.Id, NewPassword = "1234" });
-        Snackbar.Add("Password reset successfully", Severity.Success);
+        Snackbar.Add(L["approval.snackbarResetDone"], Severity.Success);
     }
 
     private bool FilterFunc(UserDto user) =>
