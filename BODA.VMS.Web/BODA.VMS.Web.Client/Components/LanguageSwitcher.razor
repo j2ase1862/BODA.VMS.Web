@@ -1,0 +1,51 @@
+@inject ILocalizer L
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Inherit"
+         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+         Dense="true">
+    <ActivatorContent>
+        <MudIconButton Icon="@Icons.Material.Filled.Language" Color="Color.Inherit"
+                       Title="@($"Language: {L["lang.name"]}")" />
+    </ActivatorContent>
+    <ChildContent>
+        @foreach (var lang in L.AvailableLanguages)
+        {
+            <MudMenuItem OnClick="@(() => Change(lang))">
+                <div class="d-flex align-center" style="gap:8px;">
+                    @if (lang == L.CurrentLanguage)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success" />
+                    }
+                    else
+                    {
+                        <span style="display:inline-block; width:20px;"></span>
+                    }
+                    <span style="font-weight:@(lang == L.CurrentLanguage ? "700" : "400");">
+                        @L[$"lang.{lang}"]
+                    </span>
+                </div>
+            </MudMenuItem>
+        }
+    </ChildContent>
+</MudMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        L.OnLanguageChanged += HandleChanged;
+    }
+
+    private async Task Change(string lang)
+    {
+        if (lang == L.CurrentLanguage) return;
+        await L.SetLanguageAsync(lang);
+        // 현재 페이지를 강제 새로고침 — Blazor의 cascading re-render 한계로 일부 페이지가 갱신되지 않는 문제 회피
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
+    private async void HandleChanged() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => L.OnLanguageChanged -= HandleChanged;
+}

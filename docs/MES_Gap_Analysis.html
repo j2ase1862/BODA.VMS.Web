@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BODA VMS — MES 기능 격차 분석 및 로드맵</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2129;
+    --panel-2: #232b35;
+    --border: #2d3744;
+    --text: #e8eef4;
+    --text-secondary: #95a4b3;
+    --accent: #4fc3f7;
+    --accent-2: #66bb6a;
+    --critical: #ef5350;
+    --high: #ff9800;
+    --medium: #ffca28;
+    --low: #78909c;
+    --done: #4caf50;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Malgun Gothic", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { font-size: 32px; margin: 0 0 8px; letter-spacing: -0.5px; }
+  h1 .badge {
+    display: inline-block; vertical-align: middle;
+    font-size: 13px; padding: 4px 10px; border-radius: 4px;
+    background: var(--done); color: #0f1419; font-weight: 700; margin-left: 12px;
+  }
+  .subtitle { color: var(--text-secondary); font-size: 16px; }
+  .meta { color: var(--text-secondary); font-size: 13px; margin-top: 12px; }
+  h2 {
+    font-size: 24px; margin: 48px 0 16px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  h2 .num {
+    display: inline-block; background: var(--accent); color: #0f1419;
+    width: 32px; height: 32px; line-height: 32px; text-align: center;
+    border-radius: 6px; font-size: 16px; font-weight: 700;
+  }
+  h3 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+  p { margin: 8px 0 12px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+  .summary-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .summary-card .label { font-size: 12px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; }
+  .summary-card .value { font-size: 28px; font-weight: 700; margin: 8px 0 4px; font-family: "Roboto Mono", monospace; }
+  .summary-card.done .value { color: var(--done); }
+  .summary-card.medium .value { color: var(--medium); }
+  .summary-card.pending .value { color: var(--text-secondary); }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; margin: 16px 0;
+  }
+  th { background: var(--panel-2); text-align: left; padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: rgba(79, 195, 247, 0.04); }
+  td.center, th.center { text-align: center; }
+  .pill {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .pill.critical { background: rgba(239, 83, 80, 0.18); color: var(--critical); border: 1px solid rgba(239, 83, 80, 0.4); }
+  .pill.high     { background: rgba(255, 152, 0, 0.18);  color: var(--high);     border: 1px solid rgba(255, 152, 0, 0.4); }
+  .pill.medium   { background: rgba(255, 202, 40, 0.18); color: var(--medium);   border: 1px solid rgba(255, 202, 40, 0.4); }
+  .pill.low      { background: rgba(120, 144, 156, 0.18); color: var(--low);     border: 1px solid rgba(120, 144, 156, 0.4); }
+  .pill.done     { background: rgba(76, 175, 80, 0.18);  color: var(--done);     border: 1px solid rgba(76, 175, 80, 0.4); }
+  .pill.partial  { background: rgba(255, 167, 38, 0.18); color: #ffa726;        border: 1px solid rgba(255, 167, 38, 0.4); }
+  .code {
+    font-family: "Roboto Mono", "Consolas", monospace;
+    background: var(--panel-2); padding: 2px 6px; border-radius: 3px;
+    font-size: 13px; color: var(--accent);
+  }
+  .standards { font-size: 12px; color: var(--text-secondary); }
+  .standards .std { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 3px; background: rgba(149, 164, 179, 0.1); border: 1px solid var(--border); }
+  .roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+  @media (max-width: 900px) { .roadmap { grid-template-columns: 1fr; } }
+  .phase {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px; border-top: 4px solid var(--accent);
+  }
+  .phase.p2 { border-top-color: #ba68c8; }
+  .phase.p3 { border-top-color: #ffa726; }
+  .phase h4 { margin: 0 0 6px; font-size: 18px; }
+  .phase .duration { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+  .phase ul { margin: 8px 0; padding-left: 18px; font-size: 13px; }
+  .phase li { margin: 6px 0; }
+  .phase .status { margin-top: 12px; padding: 6px 10px; border-radius: 4px; font-size: 12px; text-align: center; background: var(--panel-2); }
+  .phase .status.done { background: rgba(76, 175, 80, 0.15); color: var(--done); }
+  .phase .status.partial { background: rgba(255, 167, 38, 0.15); color: #ffa726; }
+  .impl-block {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px; margin: 16px 0;
+    border-left: 4px solid var(--done);
+  }
+  .impl-block .title { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .impl-block .check {
+    background: var(--done); color: white;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .impl-block .files { font-family: "Roboto Mono", monospace; font-size: 12px; color: var(--text-secondary); margin: 8px 0; }
+  .impl-block .files li { margin: 2px 0; }
+  .impl-block .files ul { padding-left: 16px; margin: 6px 0; }
+  .impl-block .notes { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+  .ux-block {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px; margin: 16px 0;
+    border-left: 4px solid #ba68c8;
+  }
+  .ux-block .title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .note-box {
+    background: rgba(79, 195, 247, 0.08); border-left: 4px solid var(--accent);
+    padding: 12px 16px; border-radius: 4px; margin: 16px 0; font-size: 14px;
+  }
+  .note-box .label { font-weight: 700; color: var(--accent); margin-right: 6px; }
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; }
+  .toc { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; margin: 24px 0; }
+  .toc ol { margin: 8px 0; padding-left: 24px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .progress-bar { width: 100%; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--done) 0%, var(--accent) 100%); }
+  .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin: 12px 0; }
+  .feature-pill {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--done); border-radius: 4px;
+    padding: 8px 12px; font-size: 13px;
+  }
+  .feature-pill .path { font-family: "Roboto Mono", monospace; font-size: 11px; color: var(--accent); }
+  .feature-pill .desc { color: var(--text-secondary); font-size: 11px; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>BODA VMS — MES 기능 격차 분석 및 로드맵 <span class="badge">v3.0</span></h1>
+    <div class="subtitle">G3 Operator Logging + G16 예방 보전 + UI/UX 한글화 완료 반영</div>
+    <div class="meta">최초 작성: 2026-05-19 · 최종 갱신: 2026-05-19 (v3.0) · 대상: <span class="code">D:\Project\BODA.VMS.Web</span></div>
+  </header>
+
+  <div class="toc">
+    <strong>목차</strong>
+    <ol>
+      <li><a href="#summary">요약 — 누적 진행 현황</a></li>
+      <li><a href="#current">현재 구현 상태 (페이지/엔드포인트)</a></li>
+      <li><a href="#gap">MES 격차 분석 — 16개 항목 진행도</a></li>
+      <li><a href="#standards">참고 산업 표준</a></li>
+      <li><a href="#roadmap">3단계 로드맵 (업데이트)</a></li>
+      <li><a href="#phase1">Phase 1 구현 결과 (✅)</a></li>
+      <li><a href="#phase2">Phase 2 구현 결과 (✅)</a></li>
+      <li><a href="#phase3">Phase 3 구현 결과 (3-A ✅ · 3-B1 ✅ · 3-B2/3-C 대기)</a></li>
+      <li><a href="#extra">잔여 격차 보강 (G3 Operator · G16 예방 보전) (✅)</a></li>
+      <li><a href="#ux">UI/UX 개선 (한글화 · 메뉴 정리 · 컨트롤 통일) (✅)</a></li>
+      <li><a href="#remaining">남은 작업 (3-B2 + Phase 3-C)</a></li>
+    </ol>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="summary"><span class="num">1</span> 요약 — 누적 진행 현황</h2>
+
+  <p>
+    초기 식별 16개 격차 항목 중 <strong>12개 완료</strong>, 2개 부분 완료, 2개 범위 외(ERP/WMS).
+    Phase 1(추적성) → Phase 2(분석/품질/Andon) → Phase 3-A(거버넌스) → Phase 3-B1(PDF) →
+    잔여 격차 G3(Operator Kiosk)·G16(예방 보전/MTBF)이 모두 완료되었습니다.
+    여기에 더해 <strong>한글화 + 메뉴 정리 + 컨트롤 높이 통일</strong>의 UI/UX 전면 개선이 진행되었습니다.
+  </p>
+
+  <div class="summary-grid">
+    <div class="summary-card done">
+      <div class="label">완료 단계</div>
+      <div class="value">6 / 7</div>
+      <div style="font-size:13px; color:var(--text-secondary);">P1·P2·P3-A·P3-B1·G3·G16</div>
+      <div class="progress-bar"><div class="fill" style="width: 86%;"></div></div>
+    </div>
+    <div class="summary-card done">
+      <div class="label">완료 격차 항목</div>
+      <div class="value">12</div>
+      <div style="font-size:13px; color:var(--text-secondary);">G1~G11 + G16</div>
+    </div>
+    <div class="summary-card medium">
+      <div class="label">부분 완료</div>
+      <div class="value">2</div>
+      <div style="font-size:13px; color:var(--text-secondary);">G12 PDF만, G15 한글만</div>
+    </div>
+    <div class="summary-card pending">
+      <div class="label">대기/범위 외</div>
+      <div class="value">2</div>
+      <div style="font-size:13px; color:var(--text-secondary);">G13·G14 (ERP/WMS)</div>
+    </div>
+  </div>
+
+  <div class="note-box">
+    <span class="label">v3.0 신규:</span>
+    G3 Operator Logging UI(키오스크) 추가 · G16 예방 보전 + MTBF/MTTR 추가 ·
+    전체 페이지/다이얼로그 한글화 · NavMenu 5섹션 접기/펼치기 + LocalStorage 상태 기억 ·
+    컨트롤 높이 통일 (input 40px / button 42px) — 글로벌 CSS 적용.
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="current"><span class="num">2</span> 현재 구현 상태</h2>
+
+  <h3>주요 페이지 (24개) — 모두 한글화 + 컨트롤 높이 통일</h3>
+  <div class="feature-grid">
+    <div class="feature-pill"><span class="path">/</span> 대시보드<div class="desc">전체 KPI, 7일 추세</div></div>
+    <div class="feature-pill"><span class="path">/history</span> 생산 이력<div class="desc">필터·페이징·Excel</div></div>
+    <div class="feature-pill"><span class="path">/clients</span> 비전 클라이언트<div class="desc">라인 관리</div></div>
+    <div class="feature-pill"><span class="path">/inspection-items</span> 검사 항목<div class="desc">레시피·파라미터·USL/LSL</div></div>
+    <div class="feature-pill"><span class="path">/oee</span> <strong>OEE 설비종합효율</strong><div class="desc">A×P×Q, 세계 표준 등급</div></div>
+    <div class="feature-pill"><span class="path">/alarms</span> <strong>알람</strong><div class="desc">ISA-18.2 확인/해제</div></div>
+    <div class="feature-pill"><span class="path">/andon</span> <strong>안돈 보드</strong><div class="desc">풀스크린, SignalR 실시간</div></div>
+    <div class="feature-pill"><span class="path">/workorders</span> <strong>작업 지시</strong><div class="desc">계획→진행→완료→마감</div></div>
+    <div class="feature-pill"><span class="path">/products</span> <strong>제품 마스터</strong><div class="desc">기본 레시피 매핑</div></div>
+    <div class="feature-pill"><span class="path">/operators</span> <strong>작업자 관리</strong><div class="desc">PIN 인증, 세션 이력, 키오스크 URL</div></div>
+    <div class="feature-pill"><span class="path">/kiosk/{n}</span> <strong>키오스크</strong> (Anonymous)<div class="desc">현장 단말 풀스크린</div></div>
+    <div class="feature-pill"><span class="path">/quality-analysis</span> <strong>파레토 분석</strong><div class="desc">Top N + 누적 %</div></div>
+    <div class="feature-pill"><span class="path">/spc</span> <strong>SPC 관리도</strong><div class="desc">Xbar-R, Cp/Cpk/Pp/Ppk</div></div>
+    <div class="feature-pill"><span class="path">/defect-codes</span> <strong>불량 코드</strong><div class="desc">자동완성+미등록 발견</div></div>
+    <div class="feature-pill"><span class="path">/shift-report</span> 교대 리포트<div class="desc">교대조별 생산 집계</div></div>
+    <div class="feature-pill"><span class="path">/reports</span> <strong>PDF 리포트</strong><div class="desc">일/주/월 통합</div></div>
+    <div class="feature-pill"><span class="path">/maintenance</span> <strong>예방 보전</strong><div class="desc">PM 일정·임박·이력 3탭</div></div>
+    <div class="feature-pill"><span class="path">/reliability</span> <strong>설비 신뢰성</strong><div class="desc">MTBF/MTTR/가용성</div></div>
+    <div class="feature-pill"><span class="path">/shifts</span> 교대 마스터 (Admin)<div class="desc">3교대 자동 시드</div></div>
+    <div class="feature-pill"><span class="path">/audit-logs</span> 감사 로그 (Admin)<div class="desc">21 CFR Part 11</div></div>
+    <div class="feature-pill"><span class="path">/admin/approvals</span> 사용자 승인<div class="desc">Pending → Guest/User/Admin</div></div>
+    <div class="feature-pill"><span class="path">/settings</span> 시스템 설정<div class="desc">VisionServer 토글</div></div>
+    <div class="feature-pill"><span class="path">/login</span> 로그인<div class="desc">JWT 8h</div></div>
+    <div class="feature-pill"><span class="path">/register</span> 회원가입<div class="desc">Admin 승인 대기</div></div>
+  </div>
+
+  <h3>API 엔드포인트 그룹 (20개)</h3>
+  <table>
+    <thead><tr><th>그룹</th><th>주요 엔드포인트</th><th>도입</th></tr></thead>
+    <tbody>
+      <tr><td><span class="code">/api/auth</span></td><td>login, register, me</td><td>초기</td></tr>
+      <tr><td><span class="code">/api/admin</span></td><td>users, approve, reject, reset-password</td><td>초기</td></tr>
+      <tr><td><span class="code">/api/clients</span></td><td>CRUD, heartbeat, recipes</td><td>초기</td></tr>
+      <tr><td><span class="code">/api/parameters</span></td><td>CRUD, presets, results, sync</td><td>초기</td></tr>
+      <tr><td><span class="code">/api/history</span></td><td>filter, summary, export Excel</td><td>초기</td></tr>
+      <tr><td><span class="code">/api/products</span></td><td>CRUD</td><td>Phase 1</td></tr>
+      <tr><td><span class="code">/api/workorders</span></td><td>CRUD, status workflow, lots</td><td>Phase 1</td></tr>
+      <tr><td><span class="code">/api/lots</span></td><td>by-number, close</td><td>Phase 1</td></tr>
+      <tr><td><span class="code">/api/defect-codes</span></td><td>CRUD, pareto, candidates, unregistered</td><td>Phase 2-A</td></tr>
+      <tr><td><span class="code">/api/spc</span></td><td>compute (Xbar-R + Cp/Cpk)</td><td>Phase 2-A</td></tr>
+      <tr><td><span class="code">/api/oee</span></td><td>calculate, logs</td><td>Phase 2-A</td></tr>
+      <tr><td><span class="code">/api/alarms</span></td><td>filter, ack, resolve, summary</td><td>Phase 2-A</td></tr>
+      <tr><td><span class="code">/api/andon</span></td><td>snapshot (통합 KPI)</td><td>Phase 2-B</td></tr>
+      <tr><td><span class="code">/api/shifts</span></td><td>CRUD, report</td><td>Phase 3-A</td></tr>
+      <tr><td><span class="code">/api/audit-logs</span></td><td>filter (Admin 전용, 조회만)</td><td>Phase 3-A</td></tr>
+      <tr><td><span class="code">/api/reports</span></td><td>pdf (Daily/Weekly/Monthly)</td><td>Phase 3-B1</td></tr>
+      <tr><td><span class="code">/api/operators</span></td><td>CRUD, sessions</td><td>G3 잔여</td></tr>
+      <tr><td><span class="code">/api/kiosk</span></td><td>login, logout, current, line (Anonymous)</td><td>G3 잔여</td></tr>
+      <tr><td><span class="code">/api/maintenance</span></td><td>schedules CRUD, due, perform, records</td><td>G16</td></tr>
+      <tr><td><span class="code">/api/reliability</span></td><td>calculate (MTBF/MTTR)</td><td>G16</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================ -->
+  <h2 id="gap"><span class="num">3</span> MES 격차 분석 — 항목별 진행도</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="center" style="width: 60px;">ID</th>
+        <th style="width: 22%;">기능 영역</th>
+        <th>설명</th>
+        <th class="center" style="width: 90px;">중요도</th>
+        <th class="center" style="width: 100px;">상태</th>
+        <th style="width: 18%;">표준 근거</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="center"><strong>G1</strong></td><td><strong>Work Order Management</strong></td><td>생산 오더 발행/진행/완료/마감 + 자동 카운터</td><td class="center"><span class="pill critical">Critical</span></td><td class="center"><span class="pill done">✓ P1</span></td><td class="standards"><span class="std">ISA-95</span></td></tr>
+      <tr><td class="center"><strong>G2</strong></td><td><strong>Product Master</strong></td><td>품목코드/사양/기본 Recipe 매핑</td><td class="center"><span class="pill critical">Critical</span></td><td class="center"><span class="pill done">✓ P1</span></td><td class="standards"><span class="std">ISO 9001</span></td></tr>
+      <tr><td class="center"><strong>G3</strong></td><td><strong>Operator Logging</strong></td><td>키오스크 PIN 로그인 + 검사 결과 자동 귀속</td><td class="center"><span class="pill critical">Critical</span></td><td class="center"><span class="pill done">✓ G3 잔여</span></td><td class="standards"><span class="std">IATF 16949</span></td></tr>
+      <tr><td class="center"><strong>G4</strong></td><td><strong>Lot/Serial Traceability</strong></td><td>Lot 자동 채번 + 검사 결과 귀속</td><td class="center"><span class="pill critical">Critical</span></td><td class="center"><span class="pill done">✓ P1</span></td><td class="standards"><span class="std">ISO 9001</span><span class="std">IATF 16949</span></td></tr>
+      <tr><td class="center"><strong>G5</strong></td><td><strong>OEE / 설비 가동률</strong></td><td>EquipmentStatus 시계열 + A×P×Q</td><td class="center"><span class="pill high">High</span></td><td class="center"><span class="pill done">✓ P2-A</span></td><td class="standards"><span class="std">SEMI E10</span><span class="std">ISO 22400</span></td></tr>
+      <tr><td class="center"><strong>G6</strong></td><td><strong>SPC</strong></td><td>Xbar-R + Cp/Cpk/Pp/Ppk + AIAG 계수</td><td class="center"><span class="pill high">High</span></td><td class="center"><span class="pill done">✓ P2-A</span></td><td class="standards"><span class="std">AIAG SPC</span></td></tr>
+      <tr><td class="center"><strong>G7</strong></td><td><strong>Defect Code Master</strong></td><td>마스터 + 파레토 + 자동완성/미등록 발견</td><td class="center"><span class="pill high">High</span></td><td class="center"><span class="pill done">✓ P2-A</span></td><td class="standards"><span class="std">ISO 9001</span></td></tr>
+      <tr><td class="center"><strong>G8</strong></td><td><strong>Alarm History</strong></td><td>NG/Offline 자동 알람 + Ack/Resolve</td><td class="center"><span class="pill high">High</span></td><td class="center"><span class="pill done">✓ P2-A</span></td><td class="standards"><span class="std">ISA-18.2</span></td></tr>
+      <tr><td class="center"><strong>G9</strong></td><td><strong>Shift Management</strong></td><td>3교대 마스터 + 검사 자동 매칭</td><td class="center"><span class="pill medium">Medium</span></td><td class="center"><span class="pill done">✓ P3-A</span></td><td class="standards"><span class="std">ISA-95</span></td></tr>
+      <tr><td class="center"><strong>G10</strong></td><td><strong>Andon Board</strong></td><td>풀스크린 디스플레이 + 실시간 KPI</td><td class="center"><span class="pill medium">Medium</span></td><td class="center"><span class="pill done">✓ P2-B</span></td><td class="standards"><span class="std">Toyota TPS</span></td></tr>
+      <tr><td class="center"><strong>G11</strong></td><td><strong>Audit Trail</strong></td><td>EF 인터셉터로 마스터 변경 자동 기록</td><td class="center"><span class="pill medium">Medium</span></td><td class="center"><span class="pill done">✓ P3-A</span></td><td class="standards"><span class="std">21 CFR Part 11</span><span class="std">EU Annex 11</span></td></tr>
+      <tr><td class="center"><strong>G12</strong></td><td><strong>자동 보고서</strong></td><td>PDF 수동 생성 완료 (B1) · SMTP 자동 발송 미구현 (B2)</td><td class="center"><span class="pill medium">Medium</span></td><td class="center"><span class="pill partial">부분 ✓ P3-B1</span></td><td class="standards"><span class="std">ISO 9001</span></td></tr>
+      <tr><td class="center"><strong>G13</strong></td><td><strong>BOM / MRP 통합</strong></td><td>ERP 영역 (VMS 범위 외)</td><td class="center"><span class="pill low">Low</span></td><td class="center">—</td><td class="standards"><span class="std">ISA-95 L4</span></td></tr>
+      <tr><td class="center"><strong>G14</strong></td><td><strong>자재 입출고</strong></td><td>WMS 영역</td><td class="center"><span class="pill low">Low</span></td><td class="center">—</td><td class="standards"><span class="std">WMS</span></td></tr>
+      <tr><td class="center"><strong>G15</strong></td><td><strong>다국어(i18n)</strong></td><td>한글 직접 적용 완료, 풀 i18n 시스템은 대기</td><td class="center"><span class="pill low">Low</span></td><td class="center"><span class="pill partial">부분 (한글)</span></td><td class="standards">—</td></tr>
+      <tr><td class="center"><strong>G16</strong></td><td><strong>설비 예방 보전(PM)</strong></td><td>PM 일정 + 수행 기록 + MTBF/MTTR</td><td class="center"><span class="pill low">Low</span></td><td class="center"><span class="pill done">✓ G16</span></td><td class="standards"><span class="std">SEMI E10</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================ -->
+  <h2 id="standards"><span class="num">4</span> 참고 산업 표준</h2>
+
+  <table>
+    <thead><tr><th style="width:18%;">표준</th><th>설명</th><th style="width:32%;">활용 영역</th></tr></thead>
+    <tbody>
+      <tr><td><strong>ISA-95</strong> (IEC 62264)</td><td>MES-ERP 정보 교환 국제 표준.</td><td>WorkOrder, Product, Shift</td></tr>
+      <tr><td><strong>ISO 9001:2015</strong></td><td>품질경영. §8.5.2 식별과 추적성.</td><td>Lot 추적, DefectCode, Audit</td></tr>
+      <tr><td><strong>IATF 16949</strong></td><td>자동차 품질경영. 4M 변경점 관리.</td><td>Lot, Operator (G3)</td></tr>
+      <tr><td><strong>21 CFR Part 11</strong> (FDA)</td><td>의료/제약 전자기록. Audit Trail 필수.</td><td>AuditLog (P3-A)</td></tr>
+      <tr><td><strong>EU GMP Annex 11</strong></td><td>유럽 의약품 GMP 컴퓨터화 시스템.</td><td>AuditLog (P3-A)</td></tr>
+      <tr><td><strong>SEMI E10</strong></td><td>반도체 장비 RAM 표준. MTBF/MTTR.</td><td>EquipmentStatusLog, PM (G16)</td></tr>
+      <tr><td><strong>ISO 22400</strong></td><td>제조 운영 KPI. OEE = A × P × Q.</td><td>OEE Service (P2-A)</td></tr>
+      <tr><td><strong>AIAG SPC (2nd Ed.)</strong></td><td>자동차 SPC. 부분군 계수표.</td><td>SPC Service (P2-A)</td></tr>
+      <tr><td><strong>ISA-18.2</strong></td><td>공정 산업 알람 관리.</td><td>AlarmEvent (P2-A)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================ -->
+  <h2 id="roadmap"><span class="num">5</span> 3단계 로드맵 — 업데이트된 진행 상태</h2>
+
+  <div class="roadmap">
+    <div class="phase">
+      <h4>Phase 1 — 추적성 기반</h4>
+      <div class="duration">기간 4-6주 · 우선순위 ★★★</div>
+      <ul>
+        <li>Product 마스터 + CRUD</li>
+        <li>WorkOrder 워크플로</li>
+        <li>Lot 자동 채번</li>
+        <li>InspectionHistory 추적성 4컬럼</li>
+      </ul>
+      <div class="status done">✅ 완료</div>
+    </div>
+
+    <div class="phase p2">
+      <h4>Phase 2 — 분석/품질/Andon</h4>
+      <div class="duration">기간 4-6주 · 우선순위 ★★</div>
+      <ul>
+        <li>2-A: DefectCode + 파레토</li>
+        <li>2-A: SPC Xbar-R + Cp/Cpk</li>
+        <li>2-A: OEE + EquipmentStatus</li>
+        <li>2-A: Alarm History</li>
+        <li>2-B: Andon Board</li>
+      </ul>
+      <div class="status done">✅ 완료</div>
+    </div>
+
+    <div class="phase p3">
+      <h4>Phase 3 — 거버넌스/자동화/확장</h4>
+      <div class="duration">기간 3-4주 · 우선순위 ★</div>
+      <ul>
+        <li>3-A: AuditLog (21 CFR)</li>
+        <li>3-A: Shift 마스터 + 자동 매칭</li>
+        <li>3-B1: PDF 리포트 (QuestPDF)</li>
+        <li>3-B2: SMTP 자동 발송 (대기)</li>
+        <li>3-C: i18n, ERP 연동 (대기)</li>
+      </ul>
+      <div class="status partial">진행중 (3-A · 3-B1 ✓ · 3-B2/3-C 대기)</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 24px;">추가 보강 항목 (잔여 격차)</h3>
+  <div class="roadmap" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="phase" style="border-top-color: var(--done);">
+      <h4>G3 잔여 — Operator Logging UI</h4>
+      <div class="duration">1주</div>
+      <ul>
+        <li>Operator 마스터 + PIN 인증 (BCrypt)</li>
+        <li>OperatorSession 시계열 (라인별 현재 작업자)</li>
+        <li>키오스크 풀스크린 페이지 + 자동 교대</li>
+        <li>검사 결과 수신 시 OperatorId 자동 매칭</li>
+      </ul>
+      <div class="status done">✅ 완료</div>
+    </div>
+
+    <div class="phase" style="border-top-color: var(--done);">
+      <h4>G16 — 설비 예방 보전 + MTBF/MTTR</h4>
+      <div class="duration">1-2주</div>
+      <ul>
+        <li>MaintenanceSchedule + Record</li>
+        <li>3개 탭: 일정/임박/이력</li>
+        <li>MTBF/MTTR 자동 계산 (EquipmentStatusLog 기반)</li>
+        <li>가용성 등급 (≥95% Success / ≥85% Info / ...)</li>
+      </ul>
+      <div class="status done">✅ 완료</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="phase1"><span class="num">6</span> Phase 1 구현 결과</h2>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> 추적성 3종 + InspectionHistory 확장</div>
+    <p>제품/오더/로트 3단계 계층 + 검사 결과 자동 귀속. 모든 후속 분석의 데이터 기반.</p>
+    <div class="files">
+      <strong>Entities:</strong>
+      <ul>
+        <li>Product.cs · WorkOrder.cs · Lot.cs</li>
+        <li>InspectionHistory.cs (WorkOrderId, LotId, OperatorId, SerialNumber 추가)</li>
+      </ul>
+      <strong>Pages:</strong>
+      <ul><li>/products · /workorders (+ LotListDialog)</li></ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="phase2"><span class="num">7</span> Phase 2 구현 결과</h2>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> 2-A: DefectCode + Pareto + SPC + OEE + Alarm</div>
+    <p>4개 핵심 분석 기능 동시 도입. 자동완성/미등록 발견은 운영자 UX 차별화.</p>
+    <div class="files">
+      <strong>Services:</strong> DefectCodeService · SpcService · OeeService · AlarmService · EquipmentStatusService<br>
+      <strong>Entities:</strong> DefectCode · ParameterMeasurement · EquipmentStatusLog · AlarmEvent<br>
+      <strong>Pages:</strong> /defect-codes · /quality-analysis · /spc · /oee · /alarms
+    </div>
+    <div class="notes">
+      Cpk 등급: ≥1.67 Excellent / ≥1.33 Capable / ≥1.00 Marginal · OEE: 85% World-class / 60% 일반 ·
+      Alarm 생명주기: New → Ack → Resolved (ISA-18.2).
+    </div>
+  </div>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> 2-B: Andon Board (풀스크린)</div>
+    <p>현장 디스플레이용 풀스크린 + SignalR 실시간. 단일 API 호출(/api/andon/snapshot)로 N+1 회피.</p>
+    <div class="files">
+      <strong>Page:</strong> /andon (EmptyLayout, 다크 인더스트리얼)<br>
+      <strong>Service:</strong> AndonService (라인 그리드 + Active Alarms + KPI 통합)
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="phase3"><span class="num">8</span> Phase 3 구현 결과</h2>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> 3-A: AuditLog + Shift</div>
+    <p>21 CFR Part 11 준수 + 한국 표준 3교대 자동 시드.</p>
+    <div class="files">
+      <strong>Entities:</strong> AuditLog · Shift · InspectionHistory.ShiftId<br>
+      <strong>Interceptor:</strong> Data/AuditInterceptor.cs (EF SaveChangesInterceptor)<br>
+      <strong>Helper:</strong> CurrentUserService (HttpContext claims)<br>
+      <strong>Pages:</strong> /audit-logs · /shifts · /shift-report
+    </div>
+  </div>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> 3-B1: PDF Reports (QuestPDF)</div>
+    <p>일/주/월 PDF 통합 리포트. 기존 OEE/Pareto/Shift 서비스 재사용으로 데이터 일관성.</p>
+    <div class="files">
+      <strong>Package:</strong> QuestPDF 2026.5.0 (Community license)<br>
+      <strong>Service:</strong> ReportService (4 섹션: KPI / 라인 OEE / Pareto / Shift)<br>
+      <strong>JS Interop:</strong> wwwroot/js/download.js
+    </div>
+    <div class="notes">한글 폰트 fallback: Helvetica → Malgun Gothic → Arial</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="extra"><span class="num">9</span> 잔여 격차 보강</h2>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> G3 잔여: Operator Logging UI + Kiosk</div>
+    <p>VMS 클라이언트 수정 없이 키오스크 단말로 작업자 인증. 검사 결과 수신 시 라인의 현재 작업자에게 자동 귀속.</p>
+    <div class="files">
+      <strong>Entities:</strong> Operator (사번 unique, PinHash=BCrypt) · OperatorSession (라인별 현재 작업자)<br>
+      <strong>Services:</strong> OperatorService · OperatorSessionService<br>
+      <strong>API:</strong>
+      <ul>
+        <li>/api/kiosk/login · logout · current · line (Anonymous)</li>
+        <li>/api/operators CRUD + /sessions 이력 (Authorized)</li>
+      </ul>
+      <strong>Pages:</strong> /operators (Admin) · /kiosk/{ClientIndex} (Anonymous EmptyLayout)
+    </div>
+    <div class="notes">
+      자동 매칭: <span class="code">request.OperatorId ?? ResolveCurrentOperatorIdAsync(clientId)</span>.
+      다른 작업자 로그인 시 기존 세션 EndReason=Auto로 자동 종료 (교대).
+    </div>
+  </div>
+
+  <div class="impl-block">
+    <div class="title"><span class="check">✓</span> G16: 예방 보전 + 설비 신뢰성</div>
+    <p>SEMI E10 RAM 표준 — 계획 정지(PM) 관리 + 신뢰성 통계.</p>
+    <div class="files">
+      <strong>Entities:</strong> MaintenanceSchedule (ClientId nullable=공통) · MaintenanceRecord<br>
+      <strong>Services:</strong> MaintenanceService · ReliabilityService<br>
+      <strong>API:</strong>
+      <ul>
+        <li>/api/maintenance/schedules CRUD + /due + /{id}/perform + /records</li>
+        <li>/api/reliability/calculate (라인별 MTBF/MTTR)</li>
+      </ul>
+      <strong>Pages:</strong> /maintenance (PM 일정/임박/이력 3탭) · /reliability (MTBF/MTTR 카드)
+    </div>
+    <div class="notes">
+      MTBF = Σ(Running 시간) / 고장 횟수 · MTTR = Σ(Down 시간) / 고장 횟수 · 가용성 = MTBF / (MTBF + MTTR).
+      EquipmentStatusLog의 Down 전이를 기간 내에서 카운트.
+      가용성 등급: ≥95% Success / ≥85% Info / ≥70% Warning / &lt;70% Error.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="ux"><span class="num">10</span> UI/UX 개선</h2>
+
+  <div class="ux-block">
+    <div class="title">🌐 전체 한글화 (페이지 24개 + 다이얼로그 12개)</div>
+    <p>풀 i18n 시스템 도입 전 단계로 한글 직접 적용 — 한국 내수 운영 즉시 가능.</p>
+    <ul style="font-size: 13px; color: var(--text-secondary); padding-left: 20px;">
+      <li>전 페이지: PageTitle · h4 헤더 · 테이블 컬럼 · 버튼 · 필터 · Snackbar 메시지 · 다이얼로그</li>
+      <li>일관된 용어집: 등록/수정/삭제/취소/조회/실행 · 합격/불량/가동/대기/정지 · 치명/중대/경미</li>
+      <li>기술 약어 영문 병기: SPC, OEE, MTBF/MTTR, USL/LSL, PIN 등</li>
+      <li>키오스크는 처음부터 한글 위주로 작성</li>
+    </ul>
+  </div>
+
+  <div class="ux-block">
+    <div class="title">📋 NavMenu 정리 — 5섹션 접기/펼치기</div>
+    <p>17개 평면 메뉴를 5개 그룹화 + MudNavGroup 접기/펼치기 + LocalStorage 상태 기억.</p>
+    <ul style="font-size: 13px; color: var(--text-secondary); padding-left: 20px;">
+      <li><strong>현장 모니터링</strong>: 대시보드 · 안돈 보드 · 알람 · 생산 이력</li>
+      <li><strong>생산 관리</strong>: 작업 지시 · 제품 · 작업자</li>
+      <li><strong>품질 관리</strong>: 파레토 · SPC · 불량 코드 · 교대 리포트 · PDF 리포트</li>
+      <li><strong>설비 관리</strong>: 비전 클라이언트 · OEE · 설비 신뢰성 · 예방 보전</li>
+      <li><strong>시스템 관리</strong> (Admin): 검사 항목 · 교대 마스터 · 사용자 승인 · 감사 로그 · 시스템 설정</li>
+      <li>기본 펼침: 모니터링 + 생산 관리 (자주 사용). 나머지는 접힘. LocalStorage <span class="code">vms_navmenu_expanded</span>에 사용자 선택 저장</li>
+    </ul>
+  </div>
+
+  <div class="ux-block">
+    <div class="title">📏 컨트롤 높이 통일 (글로벌 CSS)</div>
+    <p>페이지마다 달랐던 input/button 높이를 글로벌 CSS로 일괄 통일.</p>
+    <table style="font-size: 13px;">
+      <thead><tr><th>대상</th><th>적용 높이</th><th>적용 범위</th></tr></thead>
+      <tbody>
+        <tr><td>MudSelect / DatePicker / TextField / NumericField (Outlined)</td><td>40px</td><td>.vms-panel · .vms-filter-bar · .vms-table .mud-table-toolbar</td></tr>
+        <tr><td>MudButton (Filled/Outlined) — vms-btn</td><td>42px (시각적 균형)</td><td>모든 페이지</td></tr>
+        <tr><td>MudIconButton</td><td>42×42 정사각</td><td>필터/툴바 영역</td></tr>
+        <tr><td>font-size 통일</td><td>0.875rem</td><td>input + button</td></tr>
+        <tr><td>line-height</td><td>1</td><td>버튼 텍스트 정확히 가운데</td></tr>
+      </tbody>
+    </table>
+    <div class="notes">
+      input 40px outer + border 1px × 2 = 시각적 ~42px → button 42px과 정확히 정렬.
+      <span class="code">Dense="true"</span> 사용된 페이지는 <span class="code">Margin="Margin.Dense"</span>로 패턴 통일.
+      다이얼로그 내부 폼은 영향 없음 (별도 컨테이너).
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="remaining"><span class="num">11</span> 남은 작업</h2>
+
+  <table>
+    <thead><tr><th>항목</th><th>설명</th><th>의존성</th><th>예상 작업량</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Phase 3-B2</strong><br>SMTP 자동 발송</td>
+        <td>ReportSubscription 엔티티 · IEmailSender · Hosted Service(cron) · 구독 관리 UI</td>
+        <td>SMTP 서버 / SendGrid API key</td>
+        <td>1-2주</td>
+      </tr>
+      <tr>
+        <td><strong>Phase 3-C.1</strong><br>다국어(i18n) 시스템</td>
+        <td>IStringLocalizer 도입 · 한글 문자열 키화 · 영/중/베트남 리소스 파일</td>
+        <td>번역 리소스</td>
+        <td>2-3주</td>
+      </tr>
+      <tr>
+        <td><strong>Phase 3-C.2</strong><br>ERP 연동</td>
+        <td>B2MML XML 또는 REST 인터페이스 · WorkOrder/Product 양방향 동기화</td>
+        <td>대상 ERP 사양</td>
+        <td>2-4주</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note-box">
+    <span class="label">권장 다음 단계:</span>
+    Phase 3-B2 SMTP 자동 발송. PDF 리포트 인프라는 이미 있으므로 IEmailSender 추상화와 Hosted Service 추가로 가치 큰 자동화 완성 가능.
+    SMTP 서버 정보 없으면 콘솔 로그 fallback 구조만 작성 → 추후 인프라 확보 시 활성화.
+  </div>
+
+  <footer>
+    <p>BODA VMS Web Solution · 자동 생성 문서</p>
+    <p style="font-size: 12px;">
+      v3.0 — Phase 1 → 2 → 3-A → 3-B1 + G3 잔여 + G16 + UI/UX 전면 개선 누적 완료를 반영.
+      후속 변경 시 Phase 매핑과 격차 진행도는 재검토되어야 합니다.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

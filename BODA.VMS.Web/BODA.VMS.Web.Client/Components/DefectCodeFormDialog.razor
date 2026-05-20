@@ -1,0 +1,164 @@
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudAutocomplete T="string" @bind-Value="Model.Code"
+                             Label="코드"
+                             Variant="Variant.Outlined" Class="mb-4" Required="true"
+                             SearchFunc="SearchCodes"
+                             CoerceText="true" CoerceValue="true"
+                             ShowProgressIndicator="true"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Tag"
+                             HelperText="@_codeHelperText"
+                             ResetValueOnEmptyText="false"
+                             MaxItems="50"
+                             Dense="true">
+                <ItemTemplate Context="cand">
+                    @{
+                        var c = _candidatesByCode.GetValueOrDefault(cand);
+                    }
+                    <div class="d-flex align-center" style="gap:8px; width:100%;">
+                        <span class="vms-mono" style="font-weight:700; min-width:60px;">@cand</span>
+                        @if (c is not null)
+                        {
+                            @if (c.Source == "Param")
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info"
+                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">레시피</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">발생이력</MudChip>
+                            }
+                            @if (c.IsRegistered)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default"
+                                         Variant="Variant.Filled" Style="height:18px; font-size:10px;">등록됨</MudChip>
+                            }
+                            <span style="flex-grow:1; color: var(--vms-text-secondary); font-size:13px;">
+                                @(c.SuggestedDescription ?? "(설명 없음)")
+                            </span>
+                            @if (c.OccurrenceCount > 0)
+                            {
+                                <span style="color: var(--mud-palette-error); font-family: 'Roboto Mono', monospace; font-size:12px;">
+                                    @(c.OccurrenceCount)건
+                                </span>
+                            }
+                        }
+                        else
+                        {
+                            <span style="color: var(--mud-palette-success); font-size:13px;">+ 신규 생성</span>
+                        }
+                    </div>
+                </ItemTemplate>
+            </MudAutocomplete>
+
+            <MudTextField @bind-Value="Model.Description" Label="설명"
+                          Variant="Variant.Outlined" Class="mb-4" Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Description" />
+
+            <MudSelect T="string?" @bind-Value="Model.Category" Label="분류"
+                       Variant="Variant.Outlined" Class="mb-4" Clearable="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Category">
+                <MudSelectItem T="string?" Value="@((string?)null)">-- 없음 --</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Pattern")">패턴 매칭</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Blob")">블롭 분석</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Dimension")">치수</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Surface")">표면</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Mechanical")">기계</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Other")">기타</MudSelectItem>
+            </MudSelect>
+
+            <MudSelect T="string" @bind-Value="Model.Severity" Label="심각도"
+                       Variant="Variant.Outlined" Class="mb-4" Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.PriorityHigh">
+                <MudSelectItem T="string" Value="@("Critical")">치명 (Critical)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Major")">중대 (Major)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Minor")">경미 (Minor)</MudSelectItem>
+            </MudSelect>
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? "수정" : "등록")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public DefectCodeDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private List<DefectCodeCandidateDto> _candidates = new();
+    private Dictionary<string, DefectCodeCandidateDto> _candidatesByCode = new(StringComparer.OrdinalIgnoreCase);
+    private string _codeHelperText = "레시피 파라미터 또는 실제 발생한 NG 코드에서 선택, 또는 새 코드 직접 입력";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEdit) return; // 편집 모드에서는 후보 로드 불필요
+
+        try
+        {
+            _candidates = await Api.GetAsync<List<DefectCodeCandidateDto>>(
+                "/api/defect-codes/candidates?recentDays=90") ?? new();
+            _candidatesByCode = _candidates
+                .GroupBy(c => c.Code)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"후보 로드 실패: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    private Task<IEnumerable<string>> SearchCodes(string? query, CancellationToken token)
+    {
+        IEnumerable<string> filtered;
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            filtered = _candidates.Select(c => c.Code);
+        }
+        else
+        {
+            filtered = _candidates
+                .Where(c =>
+                    c.Code.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    (c.SuggestedDescription?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
+                .Select(c => c.Code);
+
+            // 정확히 매칭되는 후보가 없으면 query 자체를 "신규 생성" 옵션으로 제공
+            if (!_candidatesByCode.ContainsKey(query))
+            {
+                filtered = new[] { query }.Concat(filtered);
+            }
+        }
+        return Task.FromResult(filtered);
+    }
+
+    private void Submit()
+    {
+        // 선택한 코드에 추천 description/category가 있고 비어있으면 자동 채움
+        if (!IsEdit && _candidatesByCode.TryGetValue(Model.Code, out var cand))
+        {
+            if (string.IsNullOrWhiteSpace(Model.Description) && !string.IsNullOrWhiteSpace(cand.SuggestedDescription))
+                Model.Description = cand.SuggestedDescription;
+            if (string.IsNullOrWhiteSpace(Model.Category) && !string.IsNullOrWhiteSpace(cand.SuggestedCategory))
+                Model.Category = cand.SuggestedCategory;
+        }
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+    private void Cancel() => MudDialog.Cancel();
+}

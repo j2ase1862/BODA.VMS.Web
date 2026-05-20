@@ -1,22 +1,76 @@
+@inject Blazored.LocalStorage.ILocalStorageService Storage
+@inject ILocalizer L
+@implements IDisposable
+
 <MudNavMenu>
-    <div class="vms-nav-section">Monitoring</div>
-    <MudNavLink Href="/" Match="NavLinkMatch.All"
-                Icon="@Icons.Material.Filled.GridView" OnClick="HandleClick">Dashboard</MudNavLink>
-    <MudNavLink Href="/history"
-                Icon="@Icons.Material.Filled.Assessment" OnClick="HandleClick">Production History</MudNavLink>
-    <MudNavLink Href="/clients"
-                Icon="@Icons.Material.Filled.Router" OnClick="HandleClick">Vision Clients</MudNavLink>
-    <MudNavLink Href="/inspection-items"
-                Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">Inspection Params</MudNavLink>
+    <MudNavGroup Title="@L["menu.monitoring"]" Icon="@Icons.Material.Filled.Visibility"
+                 Expanded="_expanded[MonitoringKey]"
+                 ExpandedChanged="@(v => OnExpandedChanged(MonitoringKey, v))">
+        <MudNavLink Href="/" Match="NavLinkMatch.All"
+                    Icon="@Icons.Material.Filled.GridView" OnClick="HandleClick">@L["menu.dashboard"]</MudNavLink>
+        <MudNavLink Href="/andon" Target="_blank"
+                    Icon="@Icons.Material.Filled.Tv" OnClick="HandleClick">@L["menu.andon"] ↗</MudNavLink>
+        <MudNavLink Href="/alarms"
+                    Icon="@Icons.Material.Filled.NotificationImportant" OnClick="HandleClick">@L["menu.alarms"]</MudNavLink>
+        <MudNavLink Href="/history"
+                    Icon="@Icons.Material.Filled.Assessment" OnClick="HandleClick">@L["menu.history"]</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["menu.production"]" Icon="@Icons.Material.Filled.Factory"
+                 Expanded="_expanded[ProductionKey]"
+                 ExpandedChanged="@(v => OnExpandedChanged(ProductionKey, v))">
+        <MudNavLink Href="/workorders"
+                    Icon="@Icons.Material.Filled.Assignment" OnClick="HandleClick">@L["menu.workorders"]</MudNavLink>
+        <MudNavLink Href="/products"
+                    Icon="@Icons.Material.Filled.Inventory" OnClick="HandleClick">@L["menu.products"]</MudNavLink>
+        <MudNavLink Href="/operators"
+                    Icon="@Icons.Material.Filled.Badge" OnClick="HandleClick">@L["menu.operators"]</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["menu.quality"]" Icon="@Icons.Material.Filled.VerifiedUser"
+                 Expanded="_expanded[QualityKey]"
+                 ExpandedChanged="@(v => OnExpandedChanged(QualityKey, v))">
+        <MudNavLink Href="/quality-analysis"
+                    Icon="@Icons.Material.Filled.Analytics" OnClick="HandleClick">@L["menu.paretoAnalysis"]</MudNavLink>
+        <MudNavLink Href="/spc"
+                    Icon="@Icons.Material.Filled.ShowChart" OnClick="HandleClick">@L["menu.spc"]</MudNavLink>
+        <MudNavLink Href="/defect-codes"
+                    Icon="@Icons.Material.Filled.BugReport" OnClick="HandleClick">@L["menu.defectCodes"]</MudNavLink>
+        <MudNavLink Href="/shift-report"
+                    Icon="@Icons.Material.Filled.Schedule" OnClick="HandleClick">@L["menu.shiftReport"]</MudNavLink>
+        <MudNavLink Href="/reports"
+                    Icon="@Icons.Material.Filled.PictureAsPdf" OnClick="HandleClick">@L["menu.pdfReports"]</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["menu.equipment"]" Icon="@Icons.Material.Filled.PrecisionManufacturing"
+                 Expanded="_expanded[EquipmentKey]"
+                 ExpandedChanged="@(v => OnExpandedChanged(EquipmentKey, v))">
+        <MudNavLink Href="/clients"
+                    Icon="@Icons.Material.Filled.Router" OnClick="HandleClick">@L["menu.clients"]</MudNavLink>
+        <MudNavLink Href="/oee"
+                    Icon="@Icons.Material.Filled.Speed" OnClick="HandleClick">@L["menu.oee"]</MudNavLink>
+        <MudNavLink Href="/reliability"
+                    Icon="@Icons.Material.Filled.Insights" OnClick="HandleClick">@L["menu.reliability"]</MudNavLink>
+        <MudNavLink Href="/maintenance"
+                    Icon="@Icons.Material.Filled.Build" OnClick="HandleClick">@L["menu.maintenance"]</MudNavLink>
+    </MudNavGroup>
 
     <AuthorizeView Roles="Admin">
         <Authorized>
-            <MudDivider Class="vms-divider" />
-            <div class="vms-nav-section">Administration</div>
-            <MudNavLink Href="/admin/approvals"
-                        Icon="@Icons.Material.Filled.VerifiedUser" OnClick="HandleClick">User Approvals</MudNavLink>
-            <MudNavLink Href="/settings"
-                        Icon="@Icons.Material.Filled.Tune" OnClick="HandleClick">Settings</MudNavLink>
+            <MudNavGroup Title="@L["menu.system"]" Icon="@Icons.Material.Filled.Settings"
+                         Expanded="_expanded[AdminKey]"
+                         ExpandedChanged="@(v => OnExpandedChanged(AdminKey, v))">
+                <MudNavLink Href="/inspection-items"
+                            Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">@L["menu.inspectionItems"]</MudNavLink>
+                <MudNavLink Href="/shifts"
+                            Icon="@Icons.Material.Filled.WatchLater" OnClick="HandleClick">@L["menu.shifts"]</MudNavLink>
+                <MudNavLink Href="/admin/approvals"
+                            Icon="@Icons.Material.Filled.VerifiedUser" OnClick="HandleClick">@L["menu.approvals"]</MudNavLink>
+                <MudNavLink Href="/audit-logs"
+                            Icon="@Icons.Material.Filled.History" OnClick="HandleClick">@L["menu.auditLogs"]</MudNavLink>
+                <MudNavLink Href="/settings"
+                            Icon="@Icons.Material.Filled.Tune" OnClick="HandleClick">@L["menu.settings"]</MudNavLink>
+            </MudNavGroup>
         </Authorized>
     </AuthorizeView>
 </MudNavMenu>
@@ -25,5 +79,53 @@
     [Parameter]
     public Action? OnNavClick { get; set; }
 
+    private const string MonitoringKey = "monitoring";
+    private const string ProductionKey = "production";
+    private const string QualityKey = "quality";
+    private const string EquipmentKey = "equipment";
+    private const string AdminKey = "admin";
+
+    private Dictionary<string, bool> _expanded = new()
+    {
+        [MonitoringKey] = true,
+        [ProductionKey] = true,
+        [QualityKey] = false,
+        [EquipmentKey] = false,
+        [AdminKey] = false
+    };
+
+    private const string StorageKey = "vms_navmenu_expanded";
+
+    protected override void OnInitialized()
+    {
+        L.OnLanguageChanged += HandleLangChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var saved = await Storage.GetItemAsync<Dictionary<string, bool>>(StorageKey);
+            if (saved is not null && saved.Count > 0)
+            {
+                foreach (var (k, v) in saved)
+                    if (_expanded.ContainsKey(k)) _expanded[k] = v;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
+    private async Task OnExpandedChanged(string key, bool expanded)
+    {
+        _expanded[key] = expanded;
+        try { await Storage.SetItemAsync(StorageKey, _expanded); } catch { }
+    }
+
+    private async void HandleLangChanged() => await InvokeAsync(StateHasChanged);
+
     private void HandleClick() => OnNavClick?.Invoke();
+
+    public void Dispose() => L.OnLanguageChanged -= HandleLangChanged;
 }

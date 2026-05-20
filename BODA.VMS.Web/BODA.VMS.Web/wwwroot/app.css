@@ -392,7 +392,188 @@ body {
     font-weight: 600 !important;
     letter-spacing: 0.5px !important;
     text-transform: uppercase !important;
-    font-size: 0.8rem !important;
+    font-size: 0.875rem !important;
+    min-height: 42px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    line-height: 1 !important;
+}
+
+/* IconButton에는 height/width 동시에 (정사각형 유지) */
+.vms-btn.mud-icon-button {
+    min-width: 42px !important;
+    min-height: 42px !important;
+}
+
+/* ============================================================
+   필터바/툴바 영역 입력 컴포넌트 높이 통일 (40px)
+
+   vms-panel과 vms-filter-bar 내부의 모든 outlined input/button을
+   40px로 강제합니다. MudSelect / MudDatePicker / MudDateRangePicker /
+   MudTextField / MudNumericField / MudButton 모두 포함.
+
+   다이얼로그 내부는 영향 받지 않습니다 (.mud-dialog 컨테이너 별개).
+   ============================================================ */
+
+/* 1) Input 컨테이너 — outlined 변형 */
+.vms-panel .mud-input.mud-input-outlined,
+.vms-filter-bar .mud-input.mud-input-outlined,
+.vms-table .mud-table-toolbar .mud-input.mud-input-outlined {
+    height: 40px !important;
+    min-height: 40px !important;
+}
+
+/* 2) 실제 input/select 슬롯 — 텍스트 vertical center */
+.vms-panel .mud-input.mud-input-outlined > input.mud-input-slot,
+.vms-panel .mud-input.mud-input-outlined > .mud-input-slot,
+.vms-panel .mud-select .mud-input-control .mud-input.mud-input-outlined,
+.vms-filter-bar .mud-input.mud-input-outlined > input.mud-input-slot,
+.vms-filter-bar .mud-input.mud-input-outlined > .mud-input-slot,
+.vms-table .mud-table-toolbar .mud-input.mud-input-outlined > input.mud-input-slot,
+.vms-table .mud-table-toolbar .mud-input.mud-input-outlined > .mud-input-slot {
+    height: 40px !important;
+    min-height: 40px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    line-height: 1.2 !important;
+}
+
+/* 2-b) MudSelect의 선택값 표시 영역 — 별도 vertical center */
+.vms-panel .mud-select .mud-select-input,
+.vms-filter-bar .mud-select .mud-select-input,
+.vms-table .mud-table-toolbar .mud-select .mud-select-input {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 1.2 !important;
+}
+
+/* 3) outlined border 정렬 */
+.vms-panel .mud-input-outlined-border,
+.vms-filter-bar .mud-input-outlined-border,
+.vms-table .mud-table-toolbar .mud-input-outlined-border {
+    top: 0 !important;
+    height: 100% !important;
+}
+
+/* 4) Margin (Dense/Normal 무관하게 동일) — 컨트롤 자체 마진 제거 */
+.vms-panel .mud-input-control,
+.vms-filter-bar .mud-input-control,
+.vms-table .mud-table-toolbar .mud-input-control {
+    margin-top: 0 !important;
+}
+
+/* 5) 라벨 위치 (input이 비어있을 때) */
+.vms-panel .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label,
+.vms-filter-bar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label,
+.vms-table .mud-table-toolbar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label {
+    top: 10px !important;
+}
+
+/* 6) 라벨 위치 (값 입력되어 위로 올라간 상태) */
+.vms-panel .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label.mud-input-label-inputcontrol[data-shrink="true"],
+.vms-filter-bar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label.mud-input-label-inputcontrol[data-shrink="true"],
+.vms-table .mud-table-toolbar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label.mud-input-label-inputcontrol[data-shrink="true"] {
+    top: 0 !important;
+}
+
+/* 7) Filled/Outlined MudButton — input(40px) + border(1px×2) = 시각적 균형 위해 42px */
+.vms-panel .mud-button-filled,
+.vms-panel .mud-button-outlined,
+.vms-filter-bar .mud-button-filled,
+.vms-filter-bar .mud-button-outlined,
+.vms-table .mud-table-toolbar .mud-button-filled,
+.vms-table .mud-table-toolbar .mud-button-outlined {
+    min-height: 42px !important;
+    height: 42px !important;
+    font-size: 0.875rem !important;
+    line-height: 1 !important;
+}
+
+/* 8) IconButton (정사각형 유지) */
+.vms-panel .mud-icon-button:not(.mud-button-text),
+.vms-filter-bar .mud-icon-button:not(.mud-button-text),
+.vms-table .mud-table-toolbar .mud-icon-button:not(.mud-button-text) {
+    height: 42px !important;
+    width: 42px !important;
+}
+
+/* 9) Datepicker 내부 input adornment (캘린더 아이콘) 정렬 */
+.vms-panel .mud-input-adornment,
+.vms-filter-bar .mud-input-adornment,
+.vms-table .mud-table-toolbar .mud-input-adornment {
+    height: 40px !important;
+}
+
+/* ---- MudTabs 가시성 개선 (라이트/다크 공통) ---- */
+/* 탭바: 하단 보더만 표시, 배경 없음 */
+.vms-tabs .mud-tabs-toolbar,
+.vms-tabs .mud-tabs-tabbar {
+    background: transparent !important;
+    border-bottom: 1px solid var(--mud-palette-lines-default, rgba(127,127,127,0.2)) !important;
+    box-shadow: none !important;
+}
+
+/* 탭바 슬라이더(밑줄) — 활성 표시 */
+.vms-tabs .mud-tab-slider {
+    height: 3px !important;
+    background-color: var(--vms-primary, #FF6724) !important;
+}
+
+/* 탭바와 탭 자체에 overflow visible — Badge가 잘리지 않도록 */
+.vms-tabs .mud-tabs-tabbar-inner,
+.vms-tabs .mud-tab-panels {
+    overflow: visible !important;
+}
+
+/* 비활성 탭 — 기본 텍스트 색의 65% 명도, Badge 공간을 위한 오른쪽 여유 */
+.vms-tabs .mud-tab {
+    color: var(--mud-palette-text-primary, currentColor) !important;
+    opacity: 0.65;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0.3px;
+    min-width: 140px;
+    padding: 10px 32px 10px 20px !important; /* 오른쪽 패딩 늘려 Badge 공간 확보 */
+    transition: opacity 0.15s, background 0.15s;
+    overflow: visible !important;
+}
+
+.vms-tabs .mud-tab:hover {
+    opacity: 0.9;
+    background: rgba(255, 103, 36, 0.08) !important;
+}
+
+/* 활성 탭 — 풀 명도 + 오렌지 + 굵게 */
+.vms-tabs .mud-tab.mud-tab-active {
+    opacity: 1;
+    font-weight: 700 !important;
+    color: var(--vms-primary, #FF6724) !important;
+    background: transparent !important;
+}
+
+/* 탭 내부 Badge — 텍스트 오른쪽에 자연스럽게 위치 */
+.vms-tabs .mud-tab .mud-badge-root {
+    position: static !important;
+    margin-left: 8px;
+}
+
+.vms-tabs .mud-tab .mud-badge {
+    position: static !important;
+    transform: none !important;
+    margin: 0 0 0 6px !important;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 10px;
+    line-height: 20px;
 }
 
 /* ---- MudBlazor Overrides ---- */

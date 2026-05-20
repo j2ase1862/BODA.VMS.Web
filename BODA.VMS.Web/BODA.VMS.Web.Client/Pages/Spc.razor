@@ -1,0 +1,326 @@
+@page "/spc"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject ILocalizer L
+
+<PageTitle>@L["page.spc"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.spc"]</MudText>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" Value="_clientId" ValueChanged="OnClientChanged"
+                       Label="@(L["common.line"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") — @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" Value="_recipeId" ValueChanged="OnRecipeChanged"
+                       Label="@(L["common.recipe"])" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Disabled="@(!_clientId.HasValue)"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.MenuBook">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["spc.selectRecipe"]</MudSelectItem>
+                @foreach (var r in _recipes)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)r.Id)">@r.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" @bind-Value="_paramCode"
+                       Label="@(L["spc.parameter"])"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Disabled="@(!_recipeId.HasValue)"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Tag">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["spc.selectParam"]</MudSelectItem>
+                @foreach (var p in _params)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)p.ParamCode)">
+                        @p.ParamCode — @p.Description @(p.UpperLimit.HasValue || p.LowerLimit.HasValue ? "✓" : "")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="1">
+            <MudNumericField T="int" @bind-Value="_subgroupSize" Label="@(L["spc.subgroupSize"])"
+                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Min="2" Max="10" />
+        </MudItem>
+        <MudItem xs="6" sm="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.ShowChart"
+                       OnClick="Compute" Disabled="@(!_paramCode.HasValue)" Class="vms-btn">
+                @L["action.calculate"]
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+@if (_result is not null && _result.SubgroupCount > 0)
+{
+    <div class="summary-grid mb-3" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+        <div class="vms-panel pa-3">
+            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.measurements"]</div>
+            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                @_result.TotalMeasurements.ToString("N0")
+            </div>
+            <div style="font-size:11px; color: var(--vms-text-secondary);">
+                @L.Format("spc.subgroupsLineFmt", _result.SubgroupCount, _result.SubgroupSize)
+            </div>
+        </div>
+        <div class="vms-panel pa-3">
+            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.grandMean"]</div>
+            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                @_result.GrandMean.ToString("F4") <span style="font-size:11px;">@_result.Unit</span>
+            </div>
+            @if (_result.TargetValue.HasValue)
+            {
+                <div style="font-size:11px; color: var(--vms-text-secondary);">
+                    @L.Format("spc.targetValueFmt", _result.TargetValue.Value.ToString("F4"))
+                </div>
+            }
+        </div>
+        <div class="vms-panel pa-3">
+            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.estimatedSigma"]</div>
+            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                @_result.EstimatedSigma.ToString("F4")
+            </div>
+            <div style="font-size:11px; color: var(--vms-text-secondary);">@L["spc.sigmaSource"]</div>
+        </div>
+        <div class="vms-panel pa-3" style="border-left: 3px solid @(GetCpkColor(_result.Cpk));">
+            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.cpCpk"]</div>
+            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                @(_result.Cp?.ToString("F2") ?? "—") / @(_result.Cpk?.ToString("F2") ?? "—")
+            </div>
+            <div style="font-size:11px; color: var(--vms-text-secondary);">
+                @GetCpkVerdict(_result.Cpk, L)
+            </div>
+        </div>
+        <div class="vms-panel pa-3">
+            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.ppPpk"]</div>
+            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                @(_result.Pp?.ToString("F2") ?? "—") / @(_result.Ppk?.ToString("F2") ?? "—")
+            </div>
+            <div style="font-size:11px; color: var(--vms-text-secondary);">@L["spc.ppSource"]</div>
+        </div>
+    </div>
+
+    @if (!_result.LowerLimit.HasValue || !_result.UpperLimit.HasValue)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Warning" Class="mb-3" Dense="true">
+            @L["spc.uslLslMissing"]
+            <br /><strong>@L["spc.uslLslAction"]</strong>
+        </MudAlert>
+    }
+
+    <div class="vms-panel pa-3 mb-3">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">
+            @L.Format("spc.xbarChartFmt", _result.UclXbar.ToString("F4"), _result.LclXbar.ToString("F4"))
+        </MudText>
+        <MudChart ChartType="ChartType.Line"
+                  ChartSeries="@_xbarSeries"
+                  XAxisLabels="@_xLabels"
+                  Width="100%" Height="280px"
+                  ChartOptions="@_xbarOptions" />
+    </div>
+
+    <div class="vms-panel pa-3 mb-3">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">
+            @L.Format("spc.rChartFmt", _result.UclR.ToString("F4"), _result.LclR.ToString("F4"))
+        </MudText>
+        <MudChart ChartType="ChartType.Line"
+                  ChartSeries="@_rSeries"
+                  XAxisLabels="@_xLabels"
+                  Width="100%" Height="220px"
+                  ChartOptions="@_rOptions" />
+    </div>
+
+    <div class="vms-table">
+        <MudTable Items="_result.Subgroups" Dense="true" Hover="true" Elevation="0">
+            <ToolBarContent>
+                <MudText Class="vms-panel-header">@L["spc.subgroupDetails"]</MudText>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh Style="width:60px;">@L["spc.colIndex"]</MudTh>
+                <MudTh>@L["spc.colStartTime"]</MudTh>
+                <MudTh Style="text-align:right;">X̄</MudTh>
+                <MudTh Style="text-align:right;">R</MudTh>
+                <MudTh>@L["spc.colOutOfControl"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Index</strong></MudTd>
+                <MudTd><span class="vms-mono">@context.StartTime.ToLocalTime().ToString("MM-dd HH:mm:ss")</span></MudTd>
+                <MudTd Style="text-align:right;"><span class="vms-mono">@context.Mean.ToString("F4")</span></MudTd>
+                <MudTd Style="text-align:right;"><span class="vms-mono">@context.Range.ToString("F4")</span></MudTd>
+                <MudTd>
+                    @{ var ooc = IsOutOfControl(context); }
+                    @if (ooc != null)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">
+                            @ooc
+                        </MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+}
+else if (_result is not null)
+{
+    <MudAlert Severity="MudBlazor.Severity.Info">
+        @L.Format("spc.insufficientFmt", _subgroupSize, _result.TotalMeasurements)
+    </MudAlert>
+}
+else
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large"
+                 Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+        <MudText Style="color: var(--vms-text-secondary);">
+            @L["spc.promptCompute"]
+        </MudText>
+        <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
+            @L["spc.uslLslHint"]
+        </MudText>
+    </div>
+}
+
+@code {
+    private int? _clientId;
+    private int? _recipeId;
+    private int? _paramCode;
+    private int _subgroupSize = 5;
+
+    private List<ClientDto> _clients = new();
+    private List<RecipeDto> _recipes = new();
+    private List<RecipeParameterDto> _params = new();
+    private SpcResultDto? _result;
+
+    private List<ChartSeries> _xbarSeries = new();
+    private List<ChartSeries> _rSeries = new();
+    private string[] _xLabels = Array.Empty<string>();
+    private ChartOptions _xbarOptions = new() { YAxisFormat = "F4", InterpolationOption = InterpolationOption.Straight };
+    private ChartOptions _rOptions = new() { YAxisFormat = "F4", InterpolationOption = InterpolationOption.Straight };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+    }
+
+    private async Task OnClientChanged(int? id)
+    {
+        _clientId = id;
+        _recipeId = null; _paramCode = null;
+        _params = new();
+        if (id.HasValue)
+            _recipes = await Api.GetAsync<List<RecipeDto>>($"/api/clients/{id}/recipes") ?? new();
+        else
+            _recipes = new();
+    }
+
+    private async Task OnRecipeChanged(int? id)
+    {
+        _recipeId = id;
+        _paramCode = null;
+        if (id.HasValue)
+            _params = await Api.GetAsync<List<RecipeParameterDto>>($"/api/parameters/recipe/{id}") ?? new();
+        else
+            _params = new();
+    }
+
+    private async Task Compute()
+    {
+        if (!_recipeId.HasValue || !_paramCode.HasValue) return;
+
+        var req = new SpcRequestDto
+        {
+            RecipeId = _recipeId.Value,
+            ParamCode = _paramCode.Value,
+            ClientId = _clientId,
+            SubgroupSize = _subgroupSize,
+            MaxSubgroups = 25
+        };
+        try
+        {
+            _result = await Api.PostAsync<SpcRequestDto, SpcResultDto>("/api/spc/compute", req);
+            BuildCharts();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private void BuildCharts()
+    {
+        if (_result is null || _result.Subgroups.Count == 0)
+        {
+            _xbarSeries = new(); _rSeries = new(); _xLabels = Array.Empty<string>();
+            return;
+        }
+
+        var subs = _result.Subgroups;
+        var count = subs.Count;
+        _xLabels = subs.Select(s => s.Index.ToString()).ToArray();
+
+        var nameXbar = L["spc.seriesXbar"];
+        var nameR = L["spc.seriesR"];
+        var nameUcl = L["spc.seriesUcl"];
+        var nameLcl = L["spc.seriesLcl"];
+        var nameCenter = L["spc.seriesCenter"];
+
+        _xbarSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = nameXbar, Data = subs.Select(s => s.Mean).ToArray() },
+            new ChartSeries { Name = nameUcl, Data = Enumerable.Repeat(_result.UclXbar, count).ToArray() },
+            new ChartSeries { Name = nameLcl, Data = Enumerable.Repeat(_result.LclXbar, count).ToArray() },
+            new ChartSeries { Name = nameCenter, Data = Enumerable.Repeat(_result.GrandMean, count).ToArray() }
+        };
+
+        _rSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = nameR, Data = subs.Select(s => s.Range).ToArray() },
+            new ChartSeries { Name = nameUcl, Data = Enumerable.Repeat(_result.UclR, count).ToArray() },
+            new ChartSeries { Name = nameLcl, Data = Enumerable.Repeat(_result.LclR, count).ToArray() },
+            new ChartSeries { Name = nameCenter, Data = Enumerable.Repeat(_result.MeanOfRanges, count).ToArray() }
+        };
+    }
+
+    private string? IsOutOfControl(SpcSubgroup s)
+    {
+        if (_result is null) return null;
+        if (s.Mean > _result.UclXbar) return "X̄ > UCL";
+        if (s.Mean < _result.LclXbar) return "X̄ < LCL";
+        if (s.Range > _result.UclR) return "R > UCL";
+        if (s.Range < _result.LclR && _result.LclR > 0) return "R < LCL";
+        return null;
+    }
+
+    private static string GetCpkColor(double? cpk)
+    {
+        if (cpk is null) return "var(--mud-palette-default)";
+        if (cpk >= 1.67) return "var(--mud-palette-success)";  // 6σ급
+        if (cpk >= 1.33) return "var(--mud-palette-info)";     // 산업 표준 (AIAG)
+        if (cpk >= 1.00) return "var(--mud-palette-warning)";  // 최소 허용
+        return "var(--mud-palette-error)";                     // 부적합
+    }
+
+    private static string GetCpkVerdict(double? cpk, ILocalizer L)
+    {
+        if (cpk is null) return L["spc.verdictUslLslMissing"];
+        if (cpk >= 1.67) return L["spc.verdictExcellent"];
+        if (cpk >= 1.33) return L["spc.verdictGood"];
+        if (cpk >= 1.00) return L["spc.verdictNeedsAction"];
+        return L["spc.verdictNotMet"];
+    }
+}

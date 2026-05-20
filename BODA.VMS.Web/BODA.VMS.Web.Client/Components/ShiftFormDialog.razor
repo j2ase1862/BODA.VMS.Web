@@ -1,0 +1,61 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.Name" Label="교대 이름"
+                          Variant="Variant.Outlined" Class="mb-4" Required="true"
+                          Placeholder="예: 1조 (주간)"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Label" />
+
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="6">
+                    <MudNumericField T="int" @bind-Value="Model.StartHour" Label="시작 시간"
+                                     Variant="Variant.Outlined" Min="0" Max="23"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.PlayArrow"
+                                     HelperText="0-23시 (정수)" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField T="int" @bind-Value="Model.EndHour" Label="종료 시간"
+                                     Variant="Variant.Outlined" Min="0" Max="23"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Stop"
+                                     HelperText="종료&lt;시작이면 야간 교대" />
+                </MudItem>
+            </MudGrid>
+
+            <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Variant="Variant.Text" Class="mb-3">
+                <strong>@PreviewRange</strong> · 근무 @PreviewDuration 시간
+            </MudAlert>
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? "수정" : "등록")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public ShiftDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private string PreviewRange =>
+        $"{Model.StartHour:D2}:00 - {Model.EndHour:D2}:00" +
+        (Model.StartHour > Model.EndHour ? " (야간 교대)" : "");
+
+    private int PreviewDuration => Model.StartHour < Model.EndHour
+        ? Model.EndHour - Model.StartHour
+        : 24 - Model.StartHour + Model.EndHour;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}

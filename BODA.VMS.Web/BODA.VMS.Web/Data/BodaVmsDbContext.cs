@@ -14,6 +14,19 @@ public class BodaVmsDbContext : DbContext
     public DbSet<InspectionTool> InspectionTools => Set<InspectionTool>();
     public DbSet<InspectionHistory> InspectionHistories => Set<InspectionHistory>();
     public DbSet<RecipeParameter> RecipeParameters => Set<RecipeParameter>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
+    public DbSet<Lot> Lots => Set<Lot>();
+    public DbSet<DefectCode> DefectCodes => Set<DefectCode>();
+    public DbSet<ParameterMeasurement> ParameterMeasurements => Set<ParameterMeasurement>();
+    public DbSet<EquipmentStatusLog> EquipmentStatusLogs => Set<EquipmentStatusLog>();
+    public DbSet<AlarmEvent> AlarmEvents => Set<AlarmEvent>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<Operator> Operators => Set<Operator>();
+    public DbSet<OperatorSession> OperatorSessions => Set<OperatorSession>();
+    public DbSet<MaintenanceSchedule> MaintenanceSchedules => Set<MaintenanceSchedule>();
+    public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,5 +59,93 @@ public class BodaVmsDbContext : DbContext
         modelBuilder.Entity<RecipeParameter>()
             .HasIndex(p => new { p.RecipeId, p.ParamCode })
             .IsUnique();
+
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<WorkOrder>()
+            .HasIndex(w => w.OrderNo)
+            .IsUnique();
+
+        modelBuilder.Entity<WorkOrder>()
+            .HasIndex(w => new { w.Status, w.PlannedStartAt });
+
+        modelBuilder.Entity<Lot>()
+            .HasIndex(l => l.LotNumber)
+            .IsUnique();
+
+        modelBuilder.Entity<Lot>()
+            .HasIndex(l => new { l.WorkOrderId, l.Sequence })
+            .IsUnique();
+
+        modelBuilder.Entity<InspectionHistory>()
+            .HasIndex(h => h.WorkOrderId);
+
+        modelBuilder.Entity<InspectionHistory>()
+            .HasIndex(h => h.LotId);
+
+        modelBuilder.Entity<InspectionHistory>()
+            .HasIndex(h => h.SerialNumber);
+
+        modelBuilder.Entity<DefectCode>()
+            .HasIndex(d => d.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<ParameterMeasurement>()
+            .HasIndex(m => new { m.RecipeId, m.ParamCode, m.InspectedAt });
+
+        modelBuilder.Entity<ParameterMeasurement>()
+            .HasIndex(m => m.HistoryId);
+
+        modelBuilder.Entity<ParameterMeasurement>()
+            .HasIndex(m => m.WorkOrderId);
+
+        modelBuilder.Entity<EquipmentStatusLog>()
+            .HasIndex(e => new { e.ClientId, e.StartedAt });
+
+        modelBuilder.Entity<EquipmentStatusLog>()
+            .HasIndex(e => new { e.ClientId, e.EndedAt });
+
+        modelBuilder.Entity<AlarmEvent>()
+            .HasIndex(a => a.OccurredAt);
+
+        modelBuilder.Entity<AlarmEvent>()
+            .HasIndex(a => new { a.ClientId, a.OccurredAt });
+
+        modelBuilder.Entity<AlarmEvent>()
+            .HasIndex(a => new { a.AcknowledgedAt, a.ResolvedAt });
+
+        modelBuilder.Entity<Shift>()
+            .HasIndex(s => s.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<InspectionHistory>()
+            .HasIndex(h => h.ShiftId);
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(a => a.Timestamp);
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(a => new { a.EntityName, a.EntityId });
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(a => a.UserId);
+
+        modelBuilder.Entity<Operator>()
+            .HasIndex(o => o.EmployeeNumber)
+            .IsUnique();
+
+        modelBuilder.Entity<OperatorSession>()
+            .HasIndex(s => new { s.ClientId, s.EndedAt });
+
+        modelBuilder.Entity<OperatorSession>()
+            .HasIndex(s => new { s.OperatorId, s.StartedAt });
+
+        modelBuilder.Entity<MaintenanceSchedule>()
+            .HasIndex(m => new { m.IsActive, m.NextDueAt });
+
+        modelBuilder.Entity<MaintenanceRecord>()
+            .HasIndex(r => new { r.ScheduleId, r.PerformedAt });
     }
 }

@@ -1,0 +1,151 @@
+@page "/shifts"
+@attribute [Authorize(Roles = "Admin")]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.shifts"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.shifts"]</MudText>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
+        <ToolBarContent>
+            <MudText Class="vms-panel-header">@L["shift.header"]</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
+                @L.Format("shift.totalCountFmt", _items.Count)
+            </MudText>
+            <MudSpacer />
+            <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                       Variant="Variant.Filled" Size="Size.Small"
+                       OnClick="OpenCreateDialog" Class="vms-btn">@L["shift.btnCreate"]</MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>@L["shift.colName"]</MudTh>
+            <MudTh>@L["common.time"]</MudTh>
+            <MudTh Style="text-align:right;">@L["common.duration"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align:right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.Name</strong></MudTd>
+            <MudTd>
+                <span class="vms-mono">@context.TimeRange</span>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <span class="vms-mono">@context.DurationHours h</span>
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right; white-space:nowrap;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                               Color="Color.Error"
+                               OnClick="@(() => DeleteItem(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["shift.noShifts"]</div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<ShiftDto> _items = new();
+    private bool _loading;
+    private bool _showInactive;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _items = await Api.GetAsync<List<ShiftDto>>(
+            $"/api/shifts?includeInactive={_showInactive}") ?? new();
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<ShiftFormDialog>
+        {
+            { x => x.Model, new ShiftDto { StartHour = 8, EndHour = 16, IsActive = true } },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<ShiftFormDialog>(L["shift.createTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (ShiftDto)result.Data!;
+                await Api.PostAsync<ShiftDto, ShiftDto>("/api/shifts", dto);
+                Snackbar.Add(L.Format("shift.createdFmt", dto.Name), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(ShiftDto src)
+    {
+        var copy = new ShiftDto
+        {
+            Id = src.Id, Name = src.Name,
+            StartHour = src.StartHour, EndHour = src.EndHour, IsActive = src.IsActive
+        };
+        var parameters = new DialogParameters<ShiftFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<ShiftFormDialog>(L.Format("shift.editTitleFmt", src.Name), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (ShiftDto)result.Data!;
+                await Api.PutAsync<ShiftDto, ShiftDto>($"/api/shifts/{src.Id}", dto);
+                Snackbar.Add(L.Format("shift.updatedFmt", dto.Name), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(ShiftDto s)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("shift.confirmDeleteFmt", s.Name),
+            L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+        try
+        {
+            await Api.DeleteAsync($"/api/shifts/{s.Id}");
+            Snackbar.Add(L.Format("shift.deletedFmt", s.Name), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+}

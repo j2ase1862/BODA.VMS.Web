@@ -1,0 +1,156 @@
+@page "/audit-logs"
+@attribute [Authorize(Roles = "Admin")]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject ILocalizer L
+
+<PageTitle>@L["page.auditLogs"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.auditLogs"]</MudText>
+
+<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    @L["audit.alertInfo"]
+</MudAlert>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="string?" @bind-Value="_entityName" Label="@(L["audit.filterEntity"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var n in _entities)
+                {
+                    <MudSelectItem T="string?" Value="@((string?)n)">@n</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="string?" @bind-Value="_action" Label="@(L["audit.filterAction"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Create")">@L["audit.actionCreate"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Update")">@L["audit.actionUpdate"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Delete")">@L["audit.actionDelete"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       OnClick="Load" Class="vms-btn">@L["action.search"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>@L["audit.colTimestamp"]</MudTh>
+            <MudTh>@L["audit.colUser"]</MudTh>
+            <MudTh>@L["audit.colAction"]</MudTh>
+            <MudTh>@L["audit.colEntity"]</MudTh>
+            <MudTh>@L["audit.colEntityId"]</MudTh>
+            <MudTh>@L["audit.colChanges"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span class="vms-mono" style="font-size:12px;">
+                    @context.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                </span>
+            </MudTd>
+            <MudTd>
+                @if (context.UserId.HasValue)
+                {
+                    <div style="font-size:13px;">
+                        <strong>@context.UserName</strong>
+                        <div style="font-size:10px; color: var(--vms-text-secondary);">
+                            id=@context.UserId @(context.IpAddress is null ? "" : $"· {context.IpAddress}")
+                        </div>
+                    </div>
+                }
+                else { <span style="color: var(--vms-text-secondary);">@L["audit.system"]</span> }
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                         Color="@ActionColor(context.Action)">
+                    @ActionLabel(context.Action, L)
+                </MudChip>
+            </MudTd>
+            <MudTd><strong>@context.EntityName</strong></MudTd>
+            <MudTd><span class="vms-mono">@context.EntityId</span></MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Changes))
+                {
+                    <pre style="font-size:11px; max-width: 500px; max-height: 100px; overflow:auto; background: var(--vms-panel-2); padding: 4px 6px; border-radius: 3px; margin: 0;">@context.Changes</pre>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["audit.noData"]</div>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<AuditLogDto> _items = new();
+    private List<string> _entities = new();
+    private bool _loading;
+    private string? _entityName;
+    private string? _action;
+    private DateTime? _startDate = DateTime.Today.AddDays(-7);
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _entities = await Api.GetAsync<List<string>>("/api/audit-logs/entity-names") ?? new(); } catch { }
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        var q = new List<string> { "pageSize=100" };
+        if (!string.IsNullOrEmpty(_entityName)) q.Add($"entityName={_entityName}");
+        if (!string.IsNullOrEmpty(_action)) q.Add($"action={_action}");
+        if (_startDate.HasValue) q.Add($"startDate={_startDate.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_endDate.HasValue) q.Add($"endDate={_endDate.Value:yyyy-MM-ddTHH:mm:ss}");
+        var url = "/api/audit-logs?" + string.Join("&", q);
+
+        try
+        {
+            var page = await Api.GetAsync<PagedResult<AuditLogDto>>(url);
+            _items = page?.Items ?? new();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private static string ActionLabel(string a, ILocalizer L) => a switch
+    {
+        "Create" => L["audit.actionCreate"],
+        "Update" => L["audit.actionUpdate"],
+        "Delete" => L["audit.actionDelete"],
+        _ => a
+    };
+
+    private static Color ActionColor(string a) => a switch
+    {
+        "Create" => Color.Success,
+        "Update" => Color.Info,
+        "Delete" => Color.Error,
+        _ => Color.Default
+    };
+}

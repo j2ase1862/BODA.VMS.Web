@@ -2,19 +2,21 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
+@inject ILocalizer L
 
-<PageTitle>Recipe Parameters - BODA VMS</PageTitle>
+<PageTitle>@L["page.inspectionItems"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">Recipe Parameters</MudText>
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.inspectionItems"]</MudText>
 
 <div class="vms-panel pa-4 mb-4">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="5">
-            <MudSelect T="int?" Label="Select Client" Variant="Variant.Outlined"
+            <MudSelect T="int?" Label="@(L["inspection.selectLine"])" Variant="Variant.Outlined"
                        Value="_selectedClientId" ValueChanged="OnClientChanged"
                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
-                       Dense="true">
-                <MudSelectItem T="int?" Value="@((int?)null)">-- Select a client --</MudSelectItem>
+                       Margin="Margin.Dense"
+                       ToStringFunc="@(id => id is null ? "" : _clients.FirstOrDefault(c => c.Id == id) is { } x ? $"#{x.ClientIndex:D2} — {x.Name}" : "")">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["inspection.lineSelectPlaceholder"]</MudSelectItem>
                 @foreach (var client in _clients)
                 {
                     <MudSelectItem T="int?" Value="@((int?)client.Id)">
@@ -24,12 +26,13 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="10" sm="5">
-            <MudSelect T="int?" Label="Select Recipe" Variant="Variant.Outlined"
+            <MudSelect T="int?" Label="@(L["inspection.selectRecipe"])" Variant="Variant.Outlined"
                        Value="_selectedRecipeId" ValueChanged="OnRecipeChanged"
                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.MenuBook"
-                       Dense="true"
-                       Disabled="@(!_selectedClientId.HasValue)">
-                <MudSelectItem T="int?" Value="@((int?)null)">-- Select a recipe --</MudSelectItem>
+                       Margin="Margin.Dense"
+                       Disabled="@(!_selectedClientId.HasValue)"
+                       ToStringFunc="@(id => id is null ? "" : _recipes.FirstOrDefault(r => r.Id == id)?.Name ?? "")">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["inspection.recipeSelectPlaceholder"]</MudSelectItem>
                 @foreach (var recipe in _recipes)
                 {
                     <MudSelectItem T="int?" Value="@((int?)recipe.Id)">
@@ -45,7 +48,7 @@
                                    Size="Size.Medium"
                                    OnClick="OpenCreateRecipeDialog"
                                    Disabled="@(!_selectedClientId.HasValue)"
-                                   Title="Create New Recipe" />
+                                   Title="@(L["inspection.tooltipNewRecipe"])" />
                 </Authorized>
             </AuthorizeView>
         </MudItem>
@@ -57,9 +60,9 @@
     <div class="vms-panel pa-8 d-flex flex-column align-center">
         <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large"
                  Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-3" />
-        <MudText Typo="Typo.h6" Style="color: var(--vms-text-secondary);">No recipes registered</MudText>
+        <MudText Typo="Typo.h6" Style="color: var(--vms-text-secondary);">@L["inspection.noRecipes"]</MudText>
         <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); opacity: 0.7;" Class="mb-4">
-            This client has no recipes. Create one to start defining inspection parameters.
+            @L["inspection.noRecipesHint"]
         </MudText>
         <AuthorizeView Roles="Admin,User">
             <Authorized>
@@ -67,7 +70,7 @@
                            StartIcon="@Icons.Material.Filled.Add"
                            OnClick="OpenCreateRecipeDialog"
                            Class="vms-btn">
-                    Create First Recipe
+                    @L["inspection.btnCreateRecipe"]
                 </MudButton>
             </Authorized>
         </AuthorizeView>
@@ -85,7 +88,7 @@
                         @(_recipes.FirstOrDefault(r => r.Id == _selectedRecipeId)?.Name ?? "")
                     </MudText>
                     <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                        @_params.Count codes
+                        @L.Format("inspection.totalCodesFmt", _params.Count)
                     </MudText>
                     <MudSpacer />
                     <AuthorizeView Roles="Admin">
@@ -93,7 +96,7 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
                                            Color="Color.Error"
                                            OnClick="DeleteSelectedRecipe"
-                                           Title="Delete this recipe" />
+                                           Title="@(L["inspection.tooltipDeleteRecipe"])" />
                         </Authorized>
                     </AuthorizeView>
                     <AuthorizeView Roles="Admin,User">
@@ -101,7 +104,7 @@
                             <MudMenu Icon="@Icons.Material.Filled.PlaylistAdd"
                                      Variant="Variant.Outlined" Size="Size.Small"
                                      Dense="true" AnchorOrigin="Origin.BottomRight"
-                                     Title="Add Preset Group">
+                                     Title="@(L["inspection.tooltipPresetMenu"])">
                                 @foreach (var group in ParameterPresetGroup.PresetGroups)
                                 {
                                     <MudMenuItem OnClick="@(() => AddPresetGroup(group))">
@@ -115,23 +118,23 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
                                            Variant="Variant.Filled" Size="Size.Small"
                                            OnClick="OpenCreateDialog"
-                                           Title="Add Parameter" />
+                                           Title="@(L["inspection.tooltipAddParam"])" />
                         </Authorized>
                     </AuthorizeView>
                 </div>
             </ToolBarContent>
             <HeaderContent>
-                <MudTh>Code</MudTh>
-                <MudTh>Description</MudTh>
-                <MudTh Style="text-align: right;">Value</MudTh>
-                <MudTh>Status</MudTh>
-                <MudTh Style="text-align: right;">Actions</MudTh>
+                <MudTh>@L["inspection.colCode"]</MudTh>
+                <MudTh>@L["inspection.colDescription"]</MudTh>
+                <MudTh Style="text-align: right;">@L["inspection.colValue"]</MudTh>
+                <MudTh>@L["common.status"]</MudTh>
+                <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
             </HeaderContent>
             <GroupHeaderTemplate>
                 <MudTd colspan="5" Style="padding: 8px 16px;">
                     <span style="font-weight: 600; color: var(--vms-text-primary);">@context.Key</span>
                     <span style="color: var(--vms-text-secondary); margin-left: 8px; font-size: 0.8rem;">
-                        (@context.Items.Count() parameters)
+                        @L.Format("inspection.categoryCountFmt", context.Items.Count())
                     </span>
                 </MudTd>
             </GroupHeaderTemplate>
@@ -154,11 +157,11 @@
                 <MudTd>
                     @if (context.IsActive)
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Active</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
                     }
                     else
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Inactive</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
                     }
                 </MudTd>
                 <MudTd Style="text-align: right; white-space: nowrap;">
@@ -182,9 +185,9 @@
                 <div class="pa-8 d-flex flex-column align-center">
                     <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large"
                              Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                    <MudText Style="color: var(--vms-text-secondary);">No parameters configured for this recipe</MudText>
+                    <MudText Style="color: var(--vms-text-secondary);">@L["inspection.noParams"]</MudText>
                     <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); opacity: 0.6;" Class="mt-1">
-                        Use "Add Preset Group" to quickly add Pattern/Blob/Dimension parameter sets
+                        @L["inspection.noParamsHint"]
                     </MudText>
                 </div>
             </NoRecordsContent>
@@ -282,12 +285,12 @@
         {
             await Api.PostAsync<List<RecipeParameterDto>, List<RecipeParameterDto>>(
                 "/api/parameters/batch", dtos);
-            Snackbar.Add($"{group.GroupName}: {dtos.Count} parameters added (Code {dtos.First().ParamCode}~{dtos.Last().ParamCode})", Severity.Success);
+            Snackbar.Add(L.Format("inspection.presetAddedFmt", group.GroupName, dtos.Count, dtos.First().ParamCode, dtos.Last().ParamCode), Severity.Success);
             await LoadParams();
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
     }
 
@@ -313,7 +316,7 @@
             { x => x.IsEdit, false },
             { x => x.ExistingCodes, GetExistingCodes() }
         };
-        var dialog = await Dialog.ShowAsync<InspectionItemFormDialog>("Add Parameter", parameters);
+        var dialog = await Dialog.ShowAsync<InspectionItemFormDialog>(L["inspection.addParamTitle"], parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
@@ -321,12 +324,12 @@
             {
                 var dto = (RecipeParameterDto)result.Data!;
                 await Api.PostAsync<RecipeParameterDto, RecipeParameterDto>("/api/parameters", dto);
-                Snackbar.Add($"Code {dto.ParamCode} added", Severity.Success);
+                Snackbar.Add(L.Format("inspection.paramAddedFmt", dto.ParamCode), Severity.Success);
                 await LoadParams();
             }
             catch (HttpRequestException ex)
             {
-                Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
             }
         }
     }
@@ -350,7 +353,7 @@
             { x => x.IsEdit, true },
             { x => x.ExistingCodes, GetExistingCodes(param.ParamCode) }
         };
-        var dialog = await Dialog.ShowAsync<InspectionItemFormDialog>($"Edit Code {param.ParamCode}", parameters);
+        var dialog = await Dialog.ShowAsync<InspectionItemFormDialog>(L.Format("inspection.editParamTitleFmt", param.ParamCode), parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
@@ -359,32 +362,32 @@
                 var dto = (RecipeParameterDto)result.Data!;
                 await Api.PutAsync<RecipeParameterDto, RecipeParameterDto>(
                     $"/api/parameters/{param.Id}", dto);
-                Snackbar.Add($"Code {dto.ParamCode} updated", Severity.Success);
+                Snackbar.Add(L.Format("inspection.paramUpdatedFmt", dto.ParamCode), Severity.Success);
                 await LoadParams();
             }
             catch (HttpRequestException ex)
             {
-                Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
             }
         }
     }
 
     private async Task DeleteParam(RecipeParameterDto param)
     {
-        var confirmed = await Dialog.ShowMessageBox("Confirm Delete",
-            $"Delete parameter Code {param.ParamCode} — '{param.Description}'?",
-            "Delete", "Cancel");
+        var confirmed = await Dialog.ShowMessageBox(L["inspection.confirmDeleteParamTitle"],
+            L.Format("inspection.confirmDeleteParamFmt", param.ParamCode, param.Description),
+            L["action.delete"], L["action.cancel"]);
         if (confirmed != true) return;
 
         try
         {
             await Api.DeleteAsync($"/api/parameters/{param.Id}");
-            Snackbar.Add($"Code {param.ParamCode} deleted", Severity.Warning);
+            Snackbar.Add(L.Format("inspection.paramDeletedFmt", param.ParamCode), Severity.Warning);
             await LoadParams();
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
     }
 
@@ -392,7 +395,7 @@
     {
         if (!_selectedClientId.HasValue) return;
 
-        var dialog = await Dialog.ShowAsync<RecipeFormDialog>("Create New Recipe");
+        var dialog = await Dialog.ShowAsync<RecipeFormDialog>(L["inspection.newRecipeTitle"]);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {
@@ -401,9 +404,8 @@
                 var dto = (RecipeDto)result.Data!;
                 var created = await Api.PostAsync<RecipeDto, RecipeDto>(
                     $"/api/clients/{_selectedClientId.Value}/recipes", dto);
-                Snackbar.Add($"Recipe '{created?.Name}' created (ID={created?.Id})", Severity.Success);
+                Snackbar.Add(L.Format("inspection.recipeCreatedFmt", created?.Name ?? ""), Severity.Success);
 
-                // 레시피 목록 갱신 후 새 레시피 자동 선택
                 _recipes = await Api.GetAsync<List<RecipeDto>>(
                     $"/api/clients/{_selectedClientId.Value}/recipes") ?? new();
                 if (created != null)
@@ -411,7 +413,7 @@
             }
             catch (HttpRequestException ex)
             {
-                Snackbar.Add($"Failed to create recipe: {ex.Message}", Severity.Error);
+                Snackbar.Add(L.Format("inspection.recipeCreateFailedFmt", ex.Message), Severity.Error);
             }
         }
     }
@@ -421,15 +423,15 @@
         if (!_selectedRecipeId.HasValue) return;
 
         var recipe = _recipes.FirstOrDefault(r => r.Id == _selectedRecipeId);
-        var confirmed = await Dialog.ShowMessageBox("Confirm Delete",
-            $"Delete recipe '{recipe?.Name}' (ID={_selectedRecipeId}) and all its parameters?\nThis action cannot be undone.",
-            "Delete", "Cancel");
+        var confirmed = await Dialog.ShowMessageBox(L["inspection.confirmDeleteRecipeTitle"],
+            L.Format("inspection.confirmDeleteRecipeFmt", recipe?.Name ?? ""),
+            L["action.delete"], L["action.cancel"]);
         if (confirmed != true) return;
 
         try
         {
             await Api.DeleteAsync($"/api/clients/recipes/{_selectedRecipeId.Value}");
-            Snackbar.Add($"Recipe '{recipe?.Name}' deleted", Severity.Warning);
+            Snackbar.Add(L.Format("inspection.recipeDeletedFmt", recipe?.Name ?? ""), Severity.Warning);
             _selectedRecipeId = null;
             _params = new();
             _recipes = await Api.GetAsync<List<RecipeDto>>(
@@ -437,7 +439,7 @@
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
     }
 

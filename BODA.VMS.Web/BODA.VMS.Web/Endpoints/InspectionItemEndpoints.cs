@@ -44,6 +44,9 @@ public static class InspectionItemEndpoints
         app.MapPost("/api/parameters/results", async (
             ParameterResultUploadRequest request,
             BodaVmsDbContext db,
+            IAlarmService alarmSvc,
+            IShiftService shiftSvc,
+            IOperatorSessionService operatorSessionSvc,
             ILogger<Program> logger) =>
         {
             var client = await db.Clients
@@ -69,6 +72,13 @@ public static class InspectionItemEndpoints
                 .Where(r => r.Judgment == "NG")
                 .Select(r => r.ParamCode.ToString());
 
+            var inspectedAt = request.Results.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            var shiftId = await shiftSvc.ResolveShiftIdAsync(inspectedAt);
+
+            // OperatorId 자동 매칭: 명시적 전달 우선, 없으면 라인의 현재 키오스크 세션에서 조회
+            var operatorId = request.OperatorId
+                ?? await operatorSessionSvc.ResolveCurrentOperatorIdAsync(client.Id);
+
             var history = new Data.Entities.InspectionHistory
             {
                 ClientId = client.Id,
@@ -76,11 +86,73 @@ public static class InspectionItemEndpoints
                 IsPass = isPass,
                 NgCode = ngCodes.Any() ? string.Join(",", ngCodes) : null,
                 ToolResults = JsonSerializer.Serialize(toolResults),
-                InspectedAt = request.Results.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow
+                InspectedAt = inspectedAt,
+                WorkOrderId = request.WorkOrderId,
+                LotId = request.LotId,
+                OperatorId = operatorId,
+                SerialNumber = request.SerialNumber,
+                ShiftId = shiftId
             };
 
             db.InspectionHistories.Add(history);
+            await db.SaveChangesAsync(); // history.Id 확보 (다음 측정값 저장에 필요)
+
+            // === ParameterMeasurement 정규화 저장 (Phase 2 SPC) ===
+            var measurements = request.Results.Select(r => new Data.Entities.ParameterMeasurement
+            {
+                HistoryId = history.Id,
+                RecipeId = request.RecipeId,
+                ParamCode = r.ParamCode,
+                MeasuredValue = r.MeasuredValue,
+                Judgment = r.Judgment,
+                InspectedAt = history.InspectedAt,
+                ClientId = client.Id,
+                WorkOrderId = request.WorkOrderId,
+                LotId = request.LotId
+            }).ToList();
+            db.ParameterMeasurements.AddRange(measurements);
+
+            // === 추적성 카운터 자동 갱신 (Phase 1) ===
+            if (request.LotId.HasValue)
+            {
+                var lot = await db.Lots.FindAsync(request.LotId.Value);
+                if (lot is not null && lot.Status == Data.Entities.LotStatus.Open)
+                {
+                    lot.Quantity++;
+                    if (isPass) lot.PassCount++; else lot.NgCount++;
+                }
+            }
+
+            if (request.WorkOrderId.HasValue)
+            {
+                var wo = await db.WorkOrders.FindAsync(request.WorkOrderId.Value);
+                if (wo is not null && wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                {
+                    wo.ProducedQuantity++;
+                    if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
+                    wo.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
             await db.SaveChangesAsync();
+
+            // === NG 발생 시 알람 생성 (Phase 2 Alarm) ===
+            if (!isPass)
+            {
+                var ngCodeStr = history.NgCode ?? "?";
+                await alarmSvc.CreateAsync(new Data.Entities.AlarmEvent
+                {
+                    ClientId = client.Id,
+                    AlarmType = Data.Entities.AlarmEventType.NG,
+                    Severity = Data.Entities.AlarmSeverity.Major,
+                    Title = $"NG @ {client.Name} — Recipe {recipe?.Name ?? request.RecipeId.ToString()}",
+                    Message = $"NG codes: {ngCodeStr}" +
+                              (request.LotId.HasValue ? $" / LotId={request.LotId}" : "") +
+                              (request.SerialNumber is not null ? $" / SN={request.SerialNumber}" : ""),
+                    OccurredAt = history.InspectedAt,
+                    RelatedHistoryId = history.Id
+                });
+            }
 
             return Results.Ok(new { historyId = history.Id, isPass });
         }).AllowAnonymous();

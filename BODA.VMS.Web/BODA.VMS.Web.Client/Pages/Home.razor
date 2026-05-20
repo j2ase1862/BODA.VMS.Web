@@ -1,17 +1,18 @@
 @page "/"
 @inject ApiClient Api
 @inject SignalRService SignalR
+@inject ILocalizer L
 @implements IDisposable
 
-<PageTitle>Dashboard - BODA VMS</PageTitle>
+<PageTitle>@L["page.dashboard"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">Dashboard</MudText>
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.dashboard"]</MudText>
 
 <MudGrid Spacing="3">
     <MudItem xs="12" sm="6" md="3">
         <MudPaper Class="vms-stat-card accent-orange pa-4">
             <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">Total Clients</MudText>
+                <MudText Class="vms-stat-label">@L["home.totalClients"]</MudText>
                 <div class="vms-stat-icon orange">
                     <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Small"
                              Style="color: var(--vms-primary);" />
@@ -19,40 +20,40 @@
             </div>
             <MudText Class="vms-stat-value">@_totalClients</MudText>
             <MudText Class="vms-stat-sub mt-1">
-                <span class="vms-status-dot online"></span> @_aliveClients online
+                <span class="vms-status-dot online"></span> @L.Format("home.onlineFmt", _aliveClients)
             </MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
         <MudPaper Class="vms-stat-card accent-blue pa-4">
             <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">Today's Production</MudText>
+                <MudText Class="vms-stat-label">@L["home.todayProd"]</MudText>
                 <div class="vms-stat-icon blue">
                     <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small"
                              Style="color: var(--vms-secondary);" />
                 </div>
             </div>
             <MudText Class="vms-stat-value">@_todayTotal</MudText>
-            <MudText Class="vms-stat-sub mt-1">units inspected</MudText>
+            <MudText Class="vms-stat-sub mt-1">@L["home.unitsInspected"]</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
         <MudPaper Class="vms-stat-card accent-green pa-4">
             <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">Today's Pass</MudText>
+                <MudText Class="vms-stat-label">@L["home.todayPass"]</MudText>
                 <div class="vms-stat-icon green">
                     <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"
                              Style="color: var(--vms-success-light);" />
                 </div>
             </div>
             <MudText Class="vms-stat-value" Style="color: var(--vms-success);">@_todayPass</MudText>
-            <MudText Class="vms-stat-sub mt-1">passed inspection</MudText>
+            <MudText Class="vms-stat-sub mt-1">@L["home.passedInsp"]</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
         <MudPaper Class="vms-stat-card accent-red pa-4">
             <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">NG Rate</MudText>
+                <MudText Class="vms-stat-label">@L["home.ngRate"]</MudText>
                 <div class="vms-stat-icon red">
                     <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small"
                              Style="color: var(--vms-error-light);" />
@@ -62,7 +63,7 @@
                      Style="@($"color: {(_ngRate > 5 ? "var(--vms-error)" : "var(--vms-success)")};")">
                 @_ngRate.ToString("F1")%
             </MudText>
-            <MudText Class="vms-stat-sub mt-1">defect rate</MudText>
+            <MudText Class="vms-stat-sub mt-1">@L["home.defectRate"]</MudText>
         </MudPaper>
     </MudItem>
 </MudGrid>
@@ -70,7 +71,7 @@
 @if (_dailySummary.Count > 0)
 {
     <MudPaper Class="vms-panel pa-5 mt-4">
-        <MudText Class="vms-panel-header mb-3">7-Day Production Trend</MudText>
+        <MudText Class="vms-panel-header mb-3">@L["home.trend7days"]</MudText>
         <MudChart ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels"
                   Width="100%" Height="300px"
                   ChartOptions="@(new ChartOptions { LineStrokeWidth = 2 })" />
@@ -120,9 +121,9 @@
                 _labels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
                 _series = new List<ChartSeries>
                 {
-                    new() { Name = "Total", Data = summary.Select(s => (double)s.TotalCount).ToArray() },
-                    new() { Name = "Pass", Data = summary.Select(s => (double)s.PassCount).ToArray() },
-                    new() { Name = "NG", Data = summary.Select(s => (double)s.NgCount).ToArray() }
+                    new() { Name = L["chart.total"], Data = summary.Select(s => (double)s.TotalCount).ToArray() },
+                    new() { Name = L["chart.pass"], Data = summary.Select(s => (double)s.PassCount).ToArray() },
+                    new() { Name = L["chart.ng"], Data = summary.Select(s => (double)s.NgCount).ToArray() }
                 };
             }
         }

@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ILocalizer L
+@implements IDisposable
 
 
 <MudLayout>
@@ -19,6 +21,8 @@
                        Color="Color.Inherit" OnClick="@HandleToggleDarkMode"
                        Size="Size.Small" />
 
+        <LanguageSwitcher />
+
         <AuthorizeView>
             <Authorized>
                 <NotificationBell />
@@ -32,7 +36,7 @@
                     </MudMenuItem>
                     <MudDivider Class="my-1" />
                     <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="Logout">
-                        Logout
+                        @L["action.close"]@(L.CurrentLanguage == "ko" ? " (로그아웃)" : " / Logout")
                     </MudMenuItem>
                 </MudMenu>
             </Authorized>
@@ -40,7 +44,7 @@
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Login"
                            Href="/login" Class="vms-btn">
-                    Sign In
+                    @L["login.signIn"]
                 </MudButton>
             </NotAuthorized>
         </AuthorizeView>
@@ -59,6 +63,15 @@
 
 @code {
     private bool _drawerOpen = true;
+
+    protected override void OnInitialized()
+    {
+        L.OnLanguageChanged += HandleLangChanged;
+    }
+
+    private async void HandleLangChanged() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => L.OnLanguageChanged -= HandleLangChanged;
 
     [CascadingParameter(Name = "IsDarkMode")]
     private bool _isDarkMode { get; set; }

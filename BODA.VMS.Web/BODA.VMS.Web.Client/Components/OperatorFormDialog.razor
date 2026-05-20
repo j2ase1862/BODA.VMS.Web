@@ -1,0 +1,50 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.EmployeeNumber" Label="사번"
+                          Variant="Variant.Outlined" Class="mb-4" Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Badge"
+                          HelperText="고유 사번" />
+
+            <MudTextField @bind-Value="Model.Name" Label="이름"
+                          Variant="Variant.Outlined" Class="mb-4" Required="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person" />
+
+            <MudTextField @bind-Value="Model.Department" Label="부서"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Business" />
+
+            <MudTextField @bind-Value="Model.Pin" Label="@(IsEdit ? "새 PIN (비워두면 기존 유지)" : "PIN")"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          InputType="InputType.Password"
+                          Required="@(!IsEdit)"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Pin"
+                          HelperText="최소 4자리. 숫자 권장 (키오스크 입력 편의)" />
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? "수정" : "등록")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public OperatorUpsertDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,159 @@
+@page "/reports"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject ILocalizer L
+
+<PageTitle>@L["page.reports"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.reports"]</MudText>
+
+<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    @L["reports.alertInfo"]
+</MudAlert>
+
+<div class="vms-panel pa-4 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="ReportType" @bind-Value="_type" Label="@(L["reports.reportType"])"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Article">
+                <MudSelectItem T="ReportType" Value="ReportType.Daily">@L["reports.typeDaily"]</MudSelectItem>
+                <MudSelectItem T="ReportType" Value="ReportType.Weekly">@L["reports.typeWeekly"]</MudSelectItem>
+                <MudSelectItem T="ReportType" Value="ReportType.Monthly">@L["reports.typeMonthly"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_refDate" Label="@RefDateLabel()"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       OnClick="Download"
+                       Disabled="@_busy"
+                       Class="vms-btn">
+                @if (_busy)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                @L["reports.btnGenerate"]
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+<div class="vms-panel pa-4">
+    <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 700;">
+        @L["reports.scopeTitle"]
+    </MudText>
+    <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
+        @((MarkupString)L.Format("reports.selectedPeriodFmt", $"<strong>{PreviewPeriod()}</strong>"))
+    </MudText>
+
+    <MudDivider Class="my-3" />
+
+    <MudText Typo="Typo.subtitle2" Class="mb-1">@L["reports.includesTitle"]</MudText>
+    <ul style="font-size:13px; color: var(--vms-text-secondary); padding-left: 20px;">
+        <li>@L["reports.includeKpi"]</li>
+        <li>@L["reports.includeOee"]</li>
+        <li>@L["reports.includePareto"]</li>
+        <li>@L["reports.includeShift"]</li>
+    </ul>
+</div>
+
+@code {
+    private ReportType _type = ReportType.Daily;
+    private DateTime? _refDate = DateTime.Today;
+    private int? _clientId;
+    private bool _busy;
+    private List<ClientDto> _clients = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+    }
+
+    private string RefDateLabel() => _type switch
+    {
+        ReportType.Daily => L["reports.refDateDaily"],
+        ReportType.Weekly => L["reports.refDateWeekly"],
+        ReportType.Monthly => L["reports.refDateMonthly"],
+        _ => L["reports.refDateDaily"]
+    };
+
+    private string PreviewPeriod()
+    {
+        if (!_refDate.HasValue) return "—";
+        var d = _refDate.Value.Date;
+        switch (_type)
+        {
+            case ReportType.Daily:
+                return $"{d:yyyy-MM-dd} (00:00 ~ 23:59)";
+            case ReportType.Weekly:
+                {
+                    var offset = ((int)d.DayOfWeek + 6) % 7;
+                    var s = d.AddDays(-offset);
+                    return $"{s:yyyy-MM-dd (ddd)} ~ {s.AddDays(6):yyyy-MM-dd (ddd)}";
+                }
+            case ReportType.Monthly:
+                {
+                    var s = new DateTime(d.Year, d.Month, 1);
+                    return $"{s:yyyy-MM-dd} ~ {s.AddMonths(1).AddDays(-1):yyyy-MM-dd}";
+                }
+            default:
+                return "—";
+        }
+    }
+
+    private async Task Download()
+    {
+        if (!_refDate.HasValue)
+        {
+            Snackbar.Add(L["snackbar.selectDate"], Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var req = new ReportRequestDto
+            {
+                Type = _type,
+                ReferenceDate = _refDate.Value,
+                ClientId = _clientId
+            };
+            var (bytes, fileName) = await Api.PostForFileAsync(
+                "/api/reports/pdf", req, $"report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+
+            var base64 = Convert.ToBase64String(bytes);
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf", base64);
+
+            Snackbar.Add(L.Format("reports.downloadCompleteFmt", fileName), Severity.Success);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

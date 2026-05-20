@@ -39,6 +39,8 @@ public class RecipeParameterService : IRecipeParameterService
             Description = dto.Description,
             Category = dto.Category,
             Unit = dto.Unit,
+            LowerLimit = dto.LowerLimit,
+            UpperLimit = dto.UpperLimit,
             IsActive = dto.IsActive,
             CreatedAt = DateTime.UtcNow
         };
@@ -58,6 +60,8 @@ public class RecipeParameterService : IRecipeParameterService
             Description = dto.Description,
             Category = dto.Category,
             Unit = dto.Unit,
+            LowerLimit = dto.LowerLimit,
+            UpperLimit = dto.UpperLimit,
             IsActive = dto.IsActive,
             CreatedAt = DateTime.UtcNow
         }).ToList();
@@ -77,6 +81,8 @@ public class RecipeParameterService : IRecipeParameterService
         entity.Description = dto.Description;
         entity.Category = dto.Category;
         entity.Unit = dto.Unit;
+        entity.LowerLimit = dto.LowerLimit;
+        entity.UpperLimit = dto.UpperLimit;
         entity.IsActive = dto.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
 
@@ -113,6 +119,8 @@ public class RecipeParameterService : IRecipeParameterService
             Description = entity.Description,
             Category = entity.Category,
             Unit = entity.Unit,
+            LowerLimit = entity.LowerLimit,
+            UpperLimit = entity.UpperLimit,
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt

@@ -1,0 +1,350 @@
+@page "/operators"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject NavigationManager Nav
+@inject ILocalizer L
+
+<PageTitle>@L["page.operators"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.operators"]</MudText>
+
+<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    @L["operator.alertInfo"]
+</MudAlert>
+
+<MudTabs Elevation="0" Rounded="true" PanelClass="pa-0 mt-3" Outlined="true">
+    <MudTabPanel Text="@(L["operator.tabMaster"])" Icon="@Icons.Material.Filled.Person">
+        <div class="vms-table">
+            <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
+                      Filter="new Func<OperatorDto, bool>(FilterFunc)">
+                <ToolBarContent>
+                    <MudText Class="vms-panel-header">@L["operator.header"]</MudText>
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
+                        @L.Format("operator.totalCountFmt", _items.Count)
+                    </MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_search" Placeholder="@(L["defect.searchPlaceholder"])"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
+                                  Style="max-width: 240px;" />
+                    <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
+                    <AuthorizeView Roles="Admin,User">
+                        <Authorized>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                                       Variant="Variant.Filled" Size="Size.Small"
+                                       OnClick="OpenCreateDialog" Class="vms-btn">@L["operator.btnCreate"]</MudButton>
+                        </Authorized>
+                    </AuthorizeView>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>@L["operator.colEmployeeNumber"]</MudTh>
+                    <MudTh>@L["common.name"]</MudTh>
+                    <MudTh>@L["operator.colDepartment"]</MudTh>
+                    <MudTh>@L["common.status"]</MudTh>
+                    <MudTh Style="text-align:right;">@L["common.actions"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><span class="vms-mono" style="font-weight:700;">@context.EmployeeNumber</span></MudTd>
+                    <MudTd><strong>@context.Name</strong></MudTd>
+                    <MudTd>
+                        @if (!string.IsNullOrEmpty(context.Department))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Department</MudChip>
+                        }
+                        else { <span style="color: var(--vms-text-secondary);">—</span> }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.IsActive)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right; white-space:nowrap;">
+                        <AuthorizeView Roles="Admin,User">
+                            <Authorized Context="auth1">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               OnClick="@(() => OpenEditDialog(context))" />
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized Context="auth2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteItem(context))" />
+                            </Authorized>
+                        </AuthorizeView>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["operator.noOperators"]</div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@(L["operator.tabSessions"])" Icon="@Icons.Material.Filled.History">
+        <div class="vms-panel pa-3 mb-3">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="int?" @bind-Value="_filterClientId" Label="@(L["common.line"])" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                        @foreach (var c in _clients)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                                #@c.ClientIndex.ToString("D2") @c.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_filterStart" Label="@(L["common.startDate"])"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_filterEnd" Label="@(L["common.endDate"])"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="LoadSessions" Class="vms-btn">@L["action.search"]</MudButton>
+                </MudItem>
+            </MudGrid>
+        </div>
+
+        <div class="vms-table">
+            <MudTable Items="_sessions" Dense="true" Hover="true" Loading="_loadingSessions" Elevation="0">
+                <HeaderContent>
+                    <MudTh>@L["common.operator"]</MudTh>
+                    <MudTh>@L["operator.colEmployeeNumber"]</MudTh>
+                    <MudTh>@L["common.line"]</MudTh>
+                    <MudTh>@L["operator.colStartedAt"]</MudTh>
+                    <MudTh>@L["operator.colEndedAt"]</MudTh>
+                    <MudTh Style="text-align:right;">@L["operator.colDuration"]</MudTh>
+                    <MudTh>@L["operator.colEndReason"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><strong>@context.OperatorName</strong></MudTd>
+                    <MudTd><span class="vms-mono">@context.EmployeeNumber</span></MudTd>
+                    <MudTd>#@context.ClientIndex.ToString("D2") @context.ClientName</MudTd>
+                    <MudTd><span class="vms-mono" style="font-size:12px;">@context.StartedAt.ToLocalTime().ToString("MM-dd HH:mm:ss")</span></MudTd>
+                    <MudTd>
+                        @if (context.EndedAt.HasValue)
+                        {
+                            <span class="vms-mono" style="font-size:12px;">@context.EndedAt.Value.ToLocalTime().ToString("MM-dd HH:mm:ss")</span>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@L["operator.currentlyWorking"]</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right;">
+                        <span class="vms-mono">@FormatMinutes(context.DurationMinutes)</span>
+                    </MudTd>
+                    <MudTd>
+                        @if (!string.IsNullOrEmpty(context.EndReason))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@ReasonColor(context.EndReason)">@ReasonLabel(context.EndReason, L)</MudChip>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["operator.noSessions"]</div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+    </MudTabPanel>
+
+    <MudTabPanel Text="@(L["operator.tabKiosk"])" Icon="@Icons.Material.Filled.Tv">
+        <div class="vms-panel pa-4">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["operator.kioskTitle"]</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);" Class="mb-3">
+                @L["operator.kioskInstruction"]
+            </MudText>
+            @if (_clients.Count == 0)
+            {
+                <MudText Style="color: var(--vms-text-secondary);">@L["operator.kioskNoLines"]</MudText>
+            }
+            else
+            {
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:10px;">
+                    @foreach (var c in _clients)
+                    {
+                        <div class="vms-panel pa-3" style="background: rgba(79,195,247,0.06);">
+                            <div style="font-family: 'Roboto Mono', monospace; font-weight:700; font-size:18px; color: var(--mud-palette-warning);">
+                                #@c.ClientIndex.ToString("D2")
+                            </div>
+                            <div style="font-weight:600; margin: 2px 0;">@c.Name</div>
+                            <div style="font-family: 'Roboto Mono', monospace; font-size:11px; color: var(--mud-palette-primary); word-break: break-all;">
+                                @KioskUrl(c.ClientIndex)
+                            </div>
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.OpenInNew"
+                                       OnClick="@(() => Nav.NavigateTo(KioskUrl(c.ClientIndex), forceLoad: false))"
+                                       Class="mt-1">
+                                @L["operator.btnOpen"]
+                            </MudButton>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<OperatorDto> _items = new();
+    private List<OperatorSessionDto> _sessions = new();
+    private List<ClientDto> _clients = new();
+    private bool _loading;
+    private bool _loadingSessions;
+    private bool _showInactive;
+    private string _search = "";
+    private int? _filterClientId;
+    private DateTime? _filterStart = DateTime.Today.AddDays(-7);
+    private DateTime? _filterEnd = DateTime.Today.AddDays(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        await Load();
+        await LoadSessions();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _items = await Api.GetAsync<List<OperatorDto>>(
+            $"/api/operators?includeInactive={_showInactive}") ?? new();
+        _loading = false;
+    }
+
+    private async Task LoadSessions()
+    {
+        _loadingSessions = true;
+        var q = new List<string> { "limit=200" };
+        if (_filterClientId.HasValue) q.Add($"clientId={_filterClientId}");
+        if (_filterStart.HasValue) q.Add($"startDate={_filterStart.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_filterEnd.HasValue) q.Add($"endDate={_filterEnd.Value:yyyy-MM-ddTHH:mm:ss}");
+        _sessions = await Api.GetAsync<List<OperatorSessionDto>>(
+            $"/api/operators/sessions?" + string.Join("&", q)) ?? new();
+        _loadingSessions = false;
+    }
+
+    private bool FilterFunc(OperatorDto o)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return o.EmployeeNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || o.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (o.Department?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<OperatorFormDialog>
+        {
+            { x => x.Model, new OperatorUpsertDto { IsActive = true } },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<OperatorFormDialog>(L["operator.createTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (OperatorUpsertDto)result.Data!;
+                await Api.PostAsync<OperatorUpsertDto, OperatorDto>("/api/operators", dto);
+                Snackbar.Add(L.Format("operator.createdFmt", dto.Name), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(OperatorDto src)
+    {
+        var copy = new OperatorUpsertDto
+        {
+            EmployeeNumber = src.EmployeeNumber,
+            Name = src.Name,
+            Department = src.Department,
+            IsActive = src.IsActive,
+            Pin = null
+        };
+        var parameters = new DialogParameters<OperatorFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<OperatorFormDialog>(L.Format("operator.editTitleFmt", src.Name), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (OperatorUpsertDto)result.Data!;
+                await Api.PutAsync<OperatorUpsertDto, OperatorDto>($"/api/operators/{src.Id}", dto);
+                Snackbar.Add(L.Format("operator.updatedFmt", dto.Name), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(OperatorDto o)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("operator.confirmDeleteFmt", o.Name),
+            L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+        try
+        {
+            await Api.DeleteAsync($"/api/operators/{o.Id}");
+            Snackbar.Add(L.Format("operator.deletedFmt", o.Name), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private string KioskUrl(int idx) =>
+        $"{Nav.BaseUri.TrimEnd('/')}/kiosk/{idx}";
+
+    private static string FormatMinutes(double mins)
+    {
+        if (mins < 60) return $"{mins:F0}분";
+        var h = (int)(mins / 60); var m = (int)(mins % 60);
+        return $"{h}시간 {m}분";
+    }
+
+    private static string ReasonLabel(string r, ILocalizer L) => r switch
+    {
+        "Logout" => L["operator.reasonLogout"],
+        "ShiftChange" => L["operator.reasonShiftChange"],
+        "Auto" => L["operator.reasonAuto"],
+        _ => r
+    };
+
+    private static Color ReasonColor(string r) => r switch
+    {
+        "Logout" => Color.Info,
+        "ShiftChange" => Color.Warning,
+        "Auto" => Color.Default,
+        _ => Color.Default
+    };
+}

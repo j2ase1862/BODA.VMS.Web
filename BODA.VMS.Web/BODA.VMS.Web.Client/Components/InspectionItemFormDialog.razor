@@ -6,13 +6,13 @@
             <DataAnnotationsValidator />
 
             <MudSelect T="string" Value="Model.Category" ValueChanged="OnCategoryChanged"
-                       Label="Category"
+                       Label="분류"
                        Variant="Variant.Outlined" Class="mb-4"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.Category">
-                <MudSelectItem T="string" Value="@("Pattern")">Pattern Matching</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Blob")">Blob Analysis</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Dimension")">Dimension</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Pattern")">패턴 매칭 (Pattern)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Blob")">블롭 분석 (Blob)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Dimension")">치수 (Dimension)</MudSelectItem>
             </MudSelect>
 
             @if (!string.IsNullOrEmpty(Model.Category))
@@ -24,7 +24,7 @@
             }
 
             <MudNumericField T="int" Value="Model.ParamCode" ValueChanged="OnParamCodeChanged"
-                             Label="Parameter Code"
+                             Label="파라미터 코드"
                              Variant="Variant.Outlined" Class="mb-4"
                              Min="1"
                              Adornment="Adornment.Start"
@@ -34,33 +34,50 @@
                              ErrorText="@_duplicateMessage"
                              HelperText="@(_isDuplicate ? "" : "고유 숫자 코드 (PLC 레지스터 주소 방식)")" />
 
-            <MudNumericField @bind-Value="Model.ParamValue" Label="Value"
+            <MudNumericField @bind-Value="Model.ParamValue" Label="값"
                              Variant="Variant.Outlined" Class="mb-4"
                              Format="F4"
                              Adornment="Adornment.Start"
                              AdornmentIcon="@Icons.Material.Filled.Numbers" />
 
-            <MudTextField @bind-Value="Model.Description" Label="Description"
+            <MudTextField @bind-Value="Model.Description" Label="설명"
                           Variant="Variant.Outlined" Class="mb-4"
                           Placeholder="@GetDescPlaceholder(Model.Category)"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Description" />
 
-            <MudTextField @bind-Value="Model.Unit" Label="Unit"
+            <MudTextField @bind-Value="Model.Unit" Label="단위"
                           Variant="Variant.Outlined" Class="mb-4"
                           Placeholder="@GetUnitPlaceholder(Model.Category)"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Straighten" />
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Primary" />
+            <MudGrid Spacing="2" Class="mb-2">
+                <MudItem xs="6">
+                    <MudNumericField T="double?" @bind-Value="Model.LowerLimit" Label="규격 하한 (LSL)"
+                                     Variant="Variant.Outlined" Format="F4" Clearable="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.VerticalAlignBottom"
+                                     HelperText="SPC Cp/Cpk 계산용 (선택)" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField T="double?" @bind-Value="Model.UpperLimit" Label="규격 상한 (USL)"
+                                     Variant="Variant.Outlined" Format="F4" Clearable="true"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.VerticalAlignTop"
+                                     HelperText="둘 다 입력해야 SPC 활성화" />
+                </MudItem>
+            </MudGrid>
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@(_isDuplicate && !IsEdit)"
                    Class="vms-btn">
-            @(IsEdit ? "Update" : "Create")
+            @(IsEdit ? "수정" : "등록")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -103,7 +120,7 @@
         if (ExistingCodes.Contains(code))
         {
             _isDuplicate = true;
-            _duplicateMessage = $"Code {code} is already in use in this recipe";
+            _duplicateMessage = $"코드 {code}는 이미 이 레시피에서 사용중입니다";
         }
         else
         {
@@ -127,9 +144,9 @@
 
     private static string GetDescPlaceholder(string category) => category switch
     {
-        "Pattern" => "Pattern_01 Score Threshold",
-        "Blob" => "Blob_01 Min Area",
-        "Dimension" => "Width Reference Value",
+        "Pattern" => "예: 패턴1 점수 임계값",
+        "Blob" => "예: 블롭1 최소 면적",
+        "Dimension" => "예: 폭 기준값",
         _ => "파라미터 설명"
     };
 
@@ -145,7 +162,7 @@
     {
         if (_isDuplicate && !IsEdit)
         {
-            Snackbar.Add($"Code {Model.ParamCode} is already in use", Severity.Error);
+            Snackbar.Add($"코드 {Model.ParamCode}는 이미 사용중입니다", Severity.Error);
             return;
         }
         MudDialog.Close(DialogResult.Ok(Model));

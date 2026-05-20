@@ -42,6 +42,17 @@ public class RecipeParameter
     [MaxLength(20)]
     public string? Unit { get; set; }
 
+    /// <summary>
+    /// 하한 규격값 (LSL — Lower Specification Limit). SPC Cp/Cpk 계산용.
+    /// NULL이면 SPC 분석에서 제외됨.
+    /// </summary>
+    public double? LowerLimit { get; set; }
+
+    /// <summary>
+    /// 상한 규격값 (USL — Upper Specification Limit). SPC Cp/Cpk 계산용.
+    /// </summary>
+    public double? UpperLimit { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

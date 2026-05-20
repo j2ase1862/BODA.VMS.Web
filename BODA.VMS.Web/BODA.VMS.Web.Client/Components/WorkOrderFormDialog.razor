@@ -1,0 +1,151 @@
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.OrderNo" Label="지시 번호"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          ReadOnly="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.ConfirmationNumber"
+                          HelperText="자동 채번 (WO-YYYYMMDD-NNN)" />
+
+            <MudSelect T="int" Value="Model.ProductId" ValueChanged="OnProductChanged"
+                       Label="제품" Variant="Variant.Outlined" Class="mb-4"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Inventory">
+                <MudSelectItem T="int" Value="0">-- 제품 선택 --</MudSelectItem>
+                @foreach (var p in _products)
+                {
+                    <MudSelectItem T="int" Value="p.Id">@p.Code — @p.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="int" Value="Model.ClientId" ValueChanged="OnClientChanged"
+                       Label="생산 라인" Variant="Variant.Outlined" Class="mb-4"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Router">
+                <MudSelectItem T="int" Value="0">-- 라인 선택 --</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int" Value="c.Id">
+                        #@c.ClientIndex.ToString("D2") — @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="int" @bind-Value="Model.RecipeId"
+                       Label="레시피" Variant="Variant.Outlined" Class="mb-4"
+                       Required="true"
+                       Disabled="@(Model.ClientId == 0)"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.MenuBook">
+                <MudSelectItem T="int" Value="0">-- 레시피 선택 --</MudSelectItem>
+                @foreach (var r in _recipes)
+                {
+                    <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudNumericField @bind-Value="Model.PlannedQuantity" Label="계획 수량"
+                             Variant="Variant.Outlined" Class="mb-4"
+                             Min="1"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Numbers" />
+
+            <MudDatePicker @bind-Date="_plannedStart" Label="계획 시작일"
+                           Variant="Variant.Outlined" Class="mb-4"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                           HelperText="계획 시작일 (선택)" />
+
+            <MudTextField @bind-Value="Model.Note" Label="비고"
+                          Variant="Variant.Outlined" Class="mb-4" Lines="2"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Notes" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="@(!IsValid())" Class="vms-btn">
+            @(IsEdit ? "수정" : "등록")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public WorkOrderDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private List<ProductDto> _products = new();
+    private List<ClientDto> _clients = new();
+    private List<RecipeDto> _recipes = new();
+    private DateTime? _plannedStart;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _products = await Api.GetAsync<List<ProductDto>>("/api/products") ?? new();
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        _plannedStart = Model.PlannedStartAt?.ToLocalTime();
+
+        if (!IsEdit && string.IsNullOrEmpty(Model.OrderNo))
+        {
+            var resp = await Api.GetAsync<NextOrderNoResponse>("/api/workorders/next-order-no");
+            Model.OrderNo = resp?.OrderNo ?? "";
+        }
+
+        if (Model.ClientId > 0)
+            await LoadRecipes();
+    }
+
+    private void OnProductChanged(int productId)
+    {
+        Model.ProductId = productId;
+        var product = _products.FirstOrDefault(p => p.Id == productId);
+        // 제품의 DefaultRecipe가 있고 현재 클라이언트의 레시피 중에 있으면 자동 선택
+        if (product?.DefaultRecipeId is int rid && _recipes.Any(r => r.Id == rid))
+            Model.RecipeId = rid;
+    }
+
+    private async Task OnClientChanged(int clientId)
+    {
+        Model.ClientId = clientId;
+        Model.RecipeId = 0;
+        await LoadRecipes();
+    }
+
+    private async Task LoadRecipes()
+    {
+        if (Model.ClientId == 0) { _recipes = new(); return; }
+        _recipes = await Api.GetAsync<List<RecipeDto>>(
+            $"/api/clients/{Model.ClientId}/recipes") ?? new();
+
+        var product = _products.FirstOrDefault(p => p.Id == Model.ProductId);
+        if (Model.RecipeId == 0 && product?.DefaultRecipeId is int rid
+            && _recipes.Any(r => r.Id == rid))
+        {
+            Model.RecipeId = rid;
+        }
+    }
+
+    private bool IsValid() =>
+        Model.ProductId > 0 && Model.ClientId > 0 && Model.RecipeId > 0
+        && Model.PlannedQuantity > 0;
+
+    private void Submit()
+    {
+        Model.PlannedStartAt = _plannedStart?.ToUniversalTime();
+        MudDialog.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private class NextOrderNoResponse { public string OrderNo { get; set; } = ""; }
+}

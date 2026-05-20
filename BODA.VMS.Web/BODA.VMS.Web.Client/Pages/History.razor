@@ -3,17 +3,18 @@
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject ILocalizer L
 
-<PageTitle>Production History - BODA VMS</PageTitle>
+<PageTitle>@L["page.history"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">Production History</MudText>
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.history"]</MudText>
 
 <!-- Filters -->
 <MudPaper Class="vms-filter-bar pa-4 mb-4">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_filter.ClientId" Label="Client" Clearable="true"
-                       Variant="Variant.Outlined" Dense="true">
+            <MudSelect T="int?" @bind-Value="_filter.ClientId" Label="@(L["common.line"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var client in _clients)
                 {
                     <MudSelectItem Value="@((int?)client.Id)">@client.Name</MudSelectItem>
@@ -21,30 +22,30 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudDateRangePicker @bind-DateRange="_dateRange" Label="Date Range"
-                                Variant="Variant.Outlined" Dense="true" />
+            <MudDateRangePicker @bind-DateRange="_dateRange" Label="@(L["history.filterPeriod"])"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
         <MudItem xs="12" sm="2">
-            <MudSelect T="bool?" @bind-Value="_filter.IsPass" Label="Result" Clearable="true"
-                       Variant="Variant.Outlined" Dense="true">
-                <MudSelectItem Value="@((bool?)true)">PASS</MudSelectItem>
-                <MudSelectItem Value="@((bool?)false)">NG</MudSelectItem>
+            <MudSelect T="bool?" @bind-Value="_filter.IsPass" Label="@(L["common.result"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem Value="@((bool?)true)">@L["status.pass"]</MudSelectItem>
+                <MudSelectItem Value="@((bool?)false)">@L["status.ng"]</MudSelectItem>
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="2">
+        <MudItem xs="6" sm="2" Class="d-flex align-center">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Search"
-                       FullWidth="true" Size="Size.Medium"
+                       FullWidth="true"
                        StartIcon="@Icons.Material.Filled.Search"
-                       Class="vms-btn" Style="height: 40px;">
-                Search
+                       Class="vms-btn">
+                @L["action.search"]
             </MudButton>
         </MudItem>
-        <MudItem xs="12" sm="2">
+        <MudItem xs="6" sm="2" Class="d-flex align-center">
             <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Download"
-                       OnClick="ExportExcel" FullWidth="true" Size="Size.Medium"
-                       Class="vms-btn" Style="height: 40px;">
-                Export
+                       OnClick="ExportExcel" FullWidth="true"
+                       Class="vms-btn">
+                @L["history.exportExcel"]
             </MudButton>
         </MudItem>
     </MudGrid>
@@ -54,7 +55,7 @@
 @if (_summary.Count > 0)
 {
     <MudPaper Class="vms-panel pa-5 mb-4">
-        <MudText Class="vms-panel-header mb-3">Daily Summary</MudText>
+        <MudText Class="vms-panel-header mb-3">@L["history.dailySummary"]</MudText>
         <MudChart ChartType="ChartType.Line" ChartSeries="@_chartSeries" XAxisLabels="@_chartLabels"
                   Width="100%" Height="250px"
                   ChartOptions="@(new ChartOptions { LineStrokeWidth = 2 })" />
@@ -66,13 +67,13 @@
     <MudTable ServerData="LoadServerData" @ref="_table" Dense="true" Hover="true" Elevation="0"
               Loading="_loading" RowsPerPage="50">
         <HeaderContent>
-            <MudTh Class="d-none d-sm-table-cell">ID</MudTh>
-            <MudTh>Client</MudTh>
-            <MudTh Class="d-none d-sm-table-cell">Recipe</MudTh>
-            <MudTh>Result</MudTh>
-            <MudTh Class="d-none d-sm-table-cell">NG Code</MudTh>
-            <MudTh>Time</MudTh>
-            <MudTh Style="text-align: right;">Detail</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">@L["history.colId"]</MudTh>
+            <MudTh>@L["common.line"]</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">@L["common.recipe"]</MudTh>
+            <MudTh>@L["common.result"]</MudTh>
+            <MudTh Class="d-none d-sm-table-cell">NG @L["common.code"]</MudTh>
+            <MudTh>@L["history.colInspectedAt"]</MudTh>
+            <MudTh Style="text-align: right;">@L["history.colDetail"]</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd Class="d-none d-sm-table-cell">
@@ -88,11 +89,11 @@
             <MudTd>
                 @if (context.IsPass)
                 {
-                    <MudChip T="string" Size="Size.Small" Class="vms-chip-pass">PASS</MudChip>
+                    <MudChip T="string" Size="Size.Small" Class="vms-chip-pass">@L["status.pass"]</MudChip>
                 }
                 else
                 {
-                    <MudChip T="string" Size="Size.Small" Class="vms-chip-ng">NG</MudChip>
+                    <MudChip T="string" Size="Size.Small" Class="vms-chip-ng">@L["status.ng"]</MudChip>
                 }
             </MudTd>
             <MudTd Class="d-none d-sm-table-cell">
@@ -120,7 +121,7 @@
             <div class="pa-8 d-flex flex-column align-center">
                 <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large"
                          Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">No inspection records found</MudText>
+                <MudText Style="color: var(--vms-text-secondary);">@L["history.noInspections"]</MudText>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -184,9 +185,9 @@
             _chartLabels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
             _chartSeries = new List<ChartSeries>
             {
-                new() { Name = "Total", Data = summary.Select(s => (double)s.TotalCount).ToArray() },
-                new() { Name = "Pass", Data = summary.Select(s => (double)s.PassCount).ToArray() },
-                new() { Name = "NG", Data = summary.Select(s => (double)s.NgCount).ToArray() }
+                new() { Name = L["chart.total"], Data = summary.Select(s => (double)s.TotalCount).ToArray() },
+                new() { Name = L["chart.pass"], Data = summary.Select(s => (double)s.PassCount).ToArray() },
+                new() { Name = L["chart.ng"], Data = summary.Select(s => (double)s.NgCount).ToArray() }
             };
         }
     }
@@ -219,7 +220,7 @@
             { x => x.Detail, item }
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        await Dialog.ShowAsync<NgDetailDialog>("NG Detail", parameters, options);
+        await Dialog.ShowAsync<NgDetailDialog>(L["history.ngDetailTitle"], parameters, options);
     }
 
     private async Task ExportExcel()
@@ -229,11 +230,11 @@
             ApplyDateRange();
             var qs = BuildQueryString();
             var bytes = await Api.GetBytesAsync($"/api/history/export?{qs}");
-            Snackbar.Add("Export initiated", Severity.Success);
+            Snackbar.Add(L["history.exportStarted"], Severity.Success);
         }
         catch
         {
-            Snackbar.Add("Export failed", Severity.Error);
+            Snackbar.Add(L["history.exportFailed"], Severity.Error);
         }
     }
 }

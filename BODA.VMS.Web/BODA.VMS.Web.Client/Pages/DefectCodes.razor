@@ -1,0 +1,336 @@
+@page "/defect-codes"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.defectCodes"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.defectCodes"]</MudText>
+
+@if (_unregistered.Count > 0)
+{
+    <div class="vms-panel pa-3 mb-3" style="border-left: 4px solid var(--mud-palette-warning);">
+        <div class="d-flex align-center mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.NotificationImportant"
+                     Color="Color.Warning" Class="mr-2" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight:700;">
+                @L.Format("defect.unregisteredTitleFmt", _unregisteredDays)
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); margin-left: 8px;">
+                @L.Format("defect.unregisteredHint", _unregistered.Count)
+            </MudText>
+            <MudSpacer />
+            <MudSelect T="int" Value="_unregisteredDays" ValueChanged="OnDaysChanged"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Style="max-width: 110px;">
+                <MudSelectItem T="int" Value="7">@L.Format("defect.daysFmt", 7)</MudSelectItem>
+                <MudSelectItem T="int" Value="30">@L.Format("defect.daysFmt", 30)</MudSelectItem>
+                <MudSelectItem T="int" Value="90">@L.Format("defect.daysFmt", 90)</MudSelectItem>
+            </MudSelect>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;">
+            @foreach (var u in _unregistered)
+            {
+                <div class="vms-panel pa-3"
+                     style="cursor: pointer; background: rgba(255, 152, 0, 0.06); border: 1px solid rgba(255, 152, 0, 0.2);"
+                     @onclick="@(() => RegisterFromUnregistered(u))">
+                    <div class="d-flex align-center justify-space-between mb-1">
+                        <span class="vms-mono" style="font-size:16px; font-weight:700;">@u.Code</span>
+                        <span style="color: var(--mud-palette-error); font-family: 'Roboto Mono', monospace; font-size:13px; font-weight:700;">
+                            @L.Format("defect.occurrenceCountFmt", u.OccurrenceCount)
+                        </span>
+                    </div>
+                    <div style="font-size:12px; color: var(--vms-text-secondary); min-height: 32px;">
+                        @if (!string.IsNullOrEmpty(u.SuggestedDescription))
+                        {
+                            <span>@u.SuggestedDescription</span>
+                        }
+                        else
+                        {
+                            <span style="font-style: italic;">@L["defect.noSuggestion"]</span>
+                        }
+                    </div>
+                    <div class="d-flex align-center justify-space-between mt-1" style="font-size:11px;">
+                        @if (!string.IsNullOrEmpty(u.SuggestedCategory))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Style="height:16px; font-size:10px;">@u.SuggestedCategory</MudChip>
+                        }
+                        else { <span></span> }
+                        <span style="color: var(--vms-text-secondary);">
+                            @L.Format("defect.lastSeenFmt", u.LastSeenAt.ToLocalTime().ToString("MM-dd HH:mm"))
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
+              Filter="new Func<DefectCodeDto, bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Class="vms-panel-header">@L["defect.header"]</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
+                @L.Format("defect.totalCountFmt", _items.Count)
+            </MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="@(L["defect.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
+                          Style="max-width: 240px;" />
+            <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary"
+                       Class="mr-2" />
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                               Variant="Variant.Filled" Size="Size.Small"
+                               OnClick="OpenCreateDialog" Class="vms-btn">
+                        @L["defect.btnCreate"]
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>@L["defect.colCode"]</MudTh>
+            <MudTh>@L["defect.colDescription"]</MudTh>
+            <MudTh>@L["common.category"]</MudTh>
+            <MudTh>@L["common.severity"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span class="vms-mono" style="font-weight: 700;">@context.Code</span>
+            </MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Category))
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Category</MudChip>
+                }
+                else { <span style="color: var(--vms-text-secondary);">—</span> }
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                         Color="@GetSeverityColor(context.Severity)">
+                    @SevLabel(context.Severity, L)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align: right; white-space: nowrap;">
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized Context="auth1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="auth2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteItem(context))" />
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.BugReport" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">@L["defect.noDefects"]</MudText>
+                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
+                    @L["defect.noDefectsHint"]
+                </MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<DefectCodeDto> _items = new();
+    private List<UnregisteredNgCodeDto> _unregistered = new();
+    private int _unregisteredDays = 30;
+    private bool _loading;
+    private bool _showInactive;
+    private string _search = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        await LoadUnregistered();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _items = await Api.GetAsync<List<DefectCodeDto>>(
+            $"/api/defect-codes?includeInactive={_showInactive}") ?? new();
+        _loading = false;
+    }
+
+    private async Task LoadUnregistered()
+    {
+        try
+        {
+            _unregistered = await Api.GetAsync<List<UnregisteredNgCodeDto>>(
+                $"/api/defect-codes/unregistered?days={_unregisteredDays}") ?? new();
+        }
+        catch
+        {
+            _unregistered = new();
+        }
+    }
+
+    private async Task OnDaysChanged(int days)
+    {
+        _unregisteredDays = days;
+        await LoadUnregistered();
+    }
+
+    private async Task RegisterFromUnregistered(UnregisteredNgCodeDto u)
+    {
+        var prefilled = new DefectCodeDto
+        {
+            Code = u.Code,
+            Description = u.SuggestedDescription ?? "",
+            Category = u.SuggestedCategory,
+            Severity = "Major"
+        };
+
+        var parameters = new DialogParameters<DefectCodeFormDialog>
+        {
+            { x => x.Model, prefilled },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<DefectCodeFormDialog>(
+            L.Format("defect.registerFromTitleFmt", u.Code), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (DefectCodeDto)result.Data!;
+                await Api.PostAsync<DefectCodeDto, DefectCodeDto>("/api/defect-codes", dto);
+                Snackbar.Add(L.Format("defect.createdFromUnregFmt", dto.Code, u.OccurrenceCount), Severity.Success);
+                await Load();
+                await LoadUnregistered();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private bool FilterFunc(DefectCodeDto d)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return d.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || d.Description.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (d.Category?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<DefectCodeFormDialog>
+        {
+            { x => x.Model, new DefectCodeDto() },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<DefectCodeFormDialog>(L["defect.createTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (DefectCodeDto)result.Data!;
+                await Api.PostAsync<DefectCodeDto, DefectCodeDto>("/api/defect-codes", dto);
+                Snackbar.Add(L.Format("defect.createdFmt", dto.Code), Severity.Success);
+                await Load();
+                await LoadUnregistered();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(DefectCodeDto src)
+    {
+        var copy = new DefectCodeDto
+        {
+            Id = src.Id, Code = src.Code, Description = src.Description,
+            Category = src.Category, Severity = src.Severity, IsActive = src.IsActive
+        };
+        var parameters = new DialogParameters<DefectCodeFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<DefectCodeFormDialog>(L.Format("defect.editTitleFmt", src.Code), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (DefectCodeDto)result.Data!;
+                await Api.PutAsync<DefectCodeDto, DefectCodeDto>($"/api/defect-codes/{src.Id}", dto);
+                Snackbar.Add(L.Format("defect.updatedFmt", dto.Code), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(DefectCodeDto d)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("defect.confirmDeleteFmt", d.Code), L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.DeleteAsync($"/api/defect-codes/{d.Id}");
+            Snackbar.Add(L.Format("defect.deletedFmt", d.Code), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private static string SevLabel(string s, ILocalizer L) => s switch
+    {
+        "Critical" => L["status.critical"],
+        "Major" => L["status.major"],
+        "Minor" => L["status.minor"],
+        _ => s
+    };
+
+    private static Color GetSeverityColor(string sev) => sev switch
+    {
+        "Critical" => Color.Error,
+        "Major" => Color.Warning,
+        "Minor" => Color.Info,
+        _ => Color.Default
+    };
+}

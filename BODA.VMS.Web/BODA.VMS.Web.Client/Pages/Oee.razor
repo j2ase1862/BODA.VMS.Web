@@ -1,0 +1,195 @@
+@page "/oee"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject ILocalizer L
+
+<PageTitle>@L["page.oee"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.oee"]</MudText>
+
+<div class="vms-panel pa-3 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
+                @foreach (var c in _clients)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                        #@c.ClientIndex.ToString("D2") — @c.Name
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Calculate"
+                       OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</div>
+
+@if (_result is not null && _result.Clients.Count > 0)
+{
+    <MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+        @L["oee.formulaAlert"]
+    </MudAlert>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px;">
+        @foreach (var c in _result.Clients)
+        {
+            <div class="vms-panel pa-3" style="border-top: 4px solid @(GetOeeColor(c.Oee));">
+                <div class="d-flex align-center mb-2">
+                    <MudText Typo="Typo.h6" Style="font-weight:700;">
+                        #@c.ClientIndex.ToString("D2") — @c.ClientName
+                    </MudText>
+                    <MudSpacer />
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">OEE</div>
+                        <div style="font-size:32px; font-weight:800; font-family: 'Roboto Mono', monospace; color: @(GetOeeColor(c.Oee));">
+                            @((c.Oee * 100).ToString("F1"))%
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:12px;">
+                    <div style="text-align:center;">
+                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L["oee.availability"]</div>
+                        <div style="font-size:18px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                            @((c.Availability * 100).ToString("F1"))%
+                        </div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L["oee.performance"]</div>
+                        <div style="font-size:18px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                            @((c.Performance * 100).ToString("F1"))%
+                        </div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L["oee.quality"]</div>
+                        <div style="font-size:18px; font-weight:700; font-family: 'Roboto Mono', monospace;">
+                            @((c.Quality * 100).ToString("F1"))%
+                        </div>
+                    </div>
+                </div>
+
+                @{
+                    var runPct = c.PeriodSeconds > 0 ? c.RunningSeconds / c.PeriodSeconds * 100 : 0;
+                    var idlePct = c.PeriodSeconds > 0 ? c.IdleSeconds / c.PeriodSeconds * 100 : 0;
+                    var downPct = c.PeriodSeconds > 0 ? c.DownSeconds / c.PeriodSeconds * 100 : 0;
+                }
+                <div style="margin-bottom:8px;">
+                    <div style="font-size:11px; color: var(--vms-text-secondary); margin-bottom:4px;">
+                        @L["oee.statusDistribution"]
+                    </div>
+                    <div style="display:flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--vms-panel-2);">
+                        @if (runPct > 0)
+                        {
+                            <div style="width: @(runPct.ToString("F2"))%; background: var(--mud-palette-success);" title="@($"가동 {runPct:F1}%")"></div>
+                        }
+                        @if (idlePct > 0)
+                        {
+                            <div style="width: @(idlePct.ToString("F2"))%; background: var(--mud-palette-warning);" title="@($"대기 {idlePct:F1}%")"></div>
+                        }
+                        @if (downPct > 0)
+                        {
+                            <div style="width: @(downPct.ToString("F2"))%; background: var(--mud-palette-error);" title="@($"정지 {downPct:F1}%")"></div>
+                        }
+                    </div>
+                    <div class="d-flex justify-space-between mt-1" style="font-size:10px;">
+                        <span style="color: var(--mud-palette-success);">● @L["status.running"] @FormatHours(c.RunningSeconds)</span>
+                        <span style="color: var(--mud-palette-warning);">● @L["status.idle"] @FormatHours(c.IdleSeconds)</span>
+                        <span style="color: var(--mud-palette-error);">● @L["status.down"] @FormatHours(c.DownSeconds)</span>
+                    </div>
+                </div>
+
+                <MudDivider Class="my-2" />
+
+                <div class="d-flex justify-space-between" style="font-size:12px;">
+                    <span>@L["common.total"]: <strong>@c.TotalInspections.ToString("N0")</strong></span>
+                    <span style="color: var(--mud-palette-success);">@L["status.pass"]: <strong>@c.PassCount.ToString("N0")</strong></span>
+                    <span style="color: var(--mud-palette-error);">@L["status.ng"]: <strong>@c.NgCount.ToString("N0")</strong></span>
+                </div>
+            </div>
+        }
+    </div>
+}
+else if (_result is not null)
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudText Style="color: var(--vms-text-secondary);">@L["oee.noActiveLines"]</MudText>
+    </div>
+}
+else
+{
+    <div class="vms-panel pa-8 d-flex flex-column align-center">
+        <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Large"
+                 Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+        <MudText Style="color: var(--vms-text-secondary);">@L["oee.promptCalc"]</MudText>
+    </div>
+}
+
+@code {
+    private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private int? _clientId;
+
+    private List<ClientDto> _clients = new();
+    private OeeResultDto? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
+        await Calculate();
+    }
+
+    private async Task Calculate()
+    {
+        if (!_startDate.HasValue || !_endDate.HasValue) return;
+        var req = new OeeRequestDto
+        {
+            StartDate = _startDate.Value.ToUniversalTime(),
+            EndDate = _endDate.Value.ToUniversalTime(),
+            ClientId = _clientId
+        };
+        try
+        {
+            _result = await Api.PostAsync<OeeRequestDto, OeeResultDto>("/api/oee/calculate", req);
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private static string FormatHours(double seconds)
+    {
+        if (seconds < 60) return $"{seconds:F0}초";
+        var ts = TimeSpan.FromSeconds(seconds);
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}시간 {ts.Minutes}분";
+        return $"{ts.Minutes}분 {ts.Seconds}초";
+    }
+
+    private static string GetOeeColor(double oee)
+    {
+        // World-class OEE 기준: 85%↑, 일반 60%↑, 미달 <40%
+        if (oee >= 0.85) return "var(--mud-palette-success)";
+        if (oee >= 0.60) return "var(--mud-palette-info)";
+        if (oee >= 0.40) return "var(--mud-palette-warning)";
+        return "var(--mud-palette-error)";
+    }
+}
