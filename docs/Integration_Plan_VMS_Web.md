@@ -387,6 +387,7 @@ Web 통합 환경에서는 Operator 로그인 + WO 선택 필수, Standalone(`Op
 - [x] **B2 — Completed 후 다음 WO 흐름** — CanStartStop 에 WO Status (Planned/InProgress) 조건 추가. WorkOrderCompleted 시 ShowConfirmation("다음 작업지시 선택?") → Yes 면 SelectedWorkOrder=null + OpenWorkOrderListCommand 자동 실행, No 면 unselect 만. Completed 상태 WO 가 남아 AUTO RUN 이 다시 눌리는 모호함 해소. (2026-05-21, VMS 에이전트)
 - [x] **B3 — WO 완료 알람 UX 개선** — 기본 MessageBox → `WorkOrderCompletedDialog` 신설. 560×500 chromeless 다크 + 큰 ✓ 원형 아이콘 + KPI 카드 4개 (계획/검사/Pass/NG) + Pass rate · 진척률 + SystemSounds.Asterisk 사운드. PickNext 프로퍼티로 호출자에게 선택 전달. (2026-05-21, VMS 에이전트)
 - [x] **B4 — 헤더 WO 칩 ProgressBar 시각화** — `SelectedWorkOrderProgressPercent` / `HasSelectedWorkOrderProgress` 계산 프로퍼티 + ProgressBar Width 80 Height 6 with 커스텀 Template (다크 #1A1A1C 트랙 + #14B8A6 인디케이터, CornerRadius 3). OnWorkOrderProgressed 에서 알림 발생으로 결과 업로드 응답마다 즉시 갱신. (2026-05-21, VMS 에이전트)
+- [x] **C6 — 업로드 큐/자동 재시도** — `ParameterSyncService` 에 disk queue (`%LocalAppData%/BODA VISION AI/upload_queue/{timestamp}_{guid}.json`) + 5초 주기 retry timer. UploadResultsAsync 분리 (TrySendAsync + EnqueueFailed). 첫 실패 시 즉시 중단 — 순서 보존 + 서버 다운 시 스팸 방지. PendingUploadCount 프로퍼티 노출. MainViewModel.OnWorkOrderCompletedFromServer 가드: stale 한 WO completed 가 다른 WO unselect 못하도록 Id 일치 검사. (2026-05-21, VMS 에이전트)
 - [ ] **(선택)** ShareLibrary 신설 + DTO 이관 — ShareLibrary 현재 .NET Framework 4.8 + Cognex 의존이라 .NET 8 sub-project 신설 필요 (큰 작업)
 
 ---
