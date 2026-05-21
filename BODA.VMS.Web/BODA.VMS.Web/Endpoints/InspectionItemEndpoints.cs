@@ -123,14 +123,37 @@ public static class InspectionItemEndpoints
                 }
             }
 
+            // Stage 3: WO 진행률 응답을 위한 snapshot 보관
+            Data.Entities.WorkOrder? touchedWo = null;
+            bool woJustCompleted = false;
+
             if (request.WorkOrderId.HasValue)
             {
                 var wo = await db.WorkOrders.FindAsync(request.WorkOrderId.Value);
-                if (wo is not null && wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                if (wo is not null)
                 {
-                    wo.ProducedQuantity++;
-                    if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
-                    wo.UpdatedAt = DateTime.UtcNow;
+                    // Planned 상태였다면 자동 InProgress 전이 (첫 검사 결과 도착 = 시작 시점)
+                    if (wo.Status == Data.Entities.WorkOrderStatus.Planned)
+                    {
+                        wo.Status = Data.Entities.WorkOrderStatus.InProgress;
+                        wo.ActualStartAt ??= DateTime.UtcNow;
+                    }
+
+                    if (wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                    {
+                        wo.ProducedQuantity++;
+                        if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
+                        wo.UpdatedAt = DateTime.UtcNow;
+
+                        // Stage 3: 계획 수량 도달 → 자동 Completed 전이
+                        if (wo.PlannedQuantity > 0 && wo.ProducedQuantity >= wo.PlannedQuantity)
+                        {
+                            wo.Status = Data.Entities.WorkOrderStatus.Completed;
+                            wo.ActualEndAt = DateTime.UtcNow;
+                            woJustCompleted = true;
+                        }
+                    }
+                    touchedWo = wo;
                 }
             }
 
@@ -154,7 +177,29 @@ public static class InspectionItemEndpoints
                 });
             }
 
-            return Results.Ok(new { historyId = history.Id, isPass });
+            // Stage 3: WO 진행률 응답에 포함 (VMS 가 헤더 칩 갱신 + 알람/자동정지 판정에 사용)
+            object? workOrderInfo = null;
+            if (touchedWo is not null)
+            {
+                workOrderInfo = new
+                {
+                    id = touchedWo.Id,
+                    orderNo = touchedWo.OrderNo,
+                    plannedQuantity = touchedWo.PlannedQuantity,
+                    producedQuantity = touchedWo.ProducedQuantity,
+                    passQuantity = touchedWo.PassQuantity,
+                    ngQuantity = touchedWo.NgQuantity,
+                    status = touchedWo.Status,
+                    completed = woJustCompleted
+                };
+            }
+
+            return Results.Ok(new
+            {
+                historyId = history.Id,
+                isPass,
+                workOrder = workOrderInfo
+            });
         }).AllowAnonymous();
 
         // === 관리 엔드포인트 (인증 필요) ===
