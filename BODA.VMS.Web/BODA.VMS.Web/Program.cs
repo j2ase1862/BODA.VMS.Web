@@ -664,6 +664,7 @@ app.MapMaintenanceEndpoints();
 
 // Map SignalR hub
 app.MapHub<VmsHub>("/hubs/vms");
+app.MapHub<VmsPublicHub>("/hubs/vms-public"); // C5: 익명 — VMS 클라이언트 운영 흐름 푸시용
 
 // Razor Component endpoint는 익명 허용 — 페이지의 [Authorize]는 클라이언트 측 AuthorizeRouteView가 처리.
 // (JWT를 localStorage에 저장하므로 F5 시 서버로 토큰이 전달되지 않아 401이 발생하지 않도록 함)

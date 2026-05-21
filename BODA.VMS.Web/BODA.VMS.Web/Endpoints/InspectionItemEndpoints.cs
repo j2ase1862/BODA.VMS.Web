@@ -1,7 +1,9 @@
 using System.Text.Json;
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -47,6 +49,7 @@ public static class InspectionItemEndpoints
             IAlarmService alarmSvc,
             IShiftService shiftSvc,
             IOperatorSessionService operatorSessionSvc,
+            IHubContext<VmsPublicHub> hub,
             ILogger<Program> logger) =>
         {
             var client = await db.Clients
@@ -192,6 +195,19 @@ public static class InspectionItemEndpoints
                     status = touchedWo.Status,
                     completed = woJustCompleted
                 };
+
+                // C5: 모든 연결된 VMS / 라이브 모니터 화면에 진행률 broadcast.
+                // 본인 (업로드한 VMS) 도 같은 페이로드를 응답으로 받지만, idempotent 핸들러라 무해.
+                try
+                {
+                    await hub.Clients.All.SendAsync("WorkOrderUpdated", workOrderInfo);
+                    if (woJustCompleted)
+                        await hub.Clients.All.SendAsync("WorkOrderCompleted", workOrderInfo);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[VmsPublicHub] WO broadcast failed");
+                }
             }
 
             return Results.Ok(new
