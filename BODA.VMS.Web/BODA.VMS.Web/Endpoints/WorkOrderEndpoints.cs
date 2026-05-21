@@ -1,4 +1,5 @@
 using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,21 @@ public static class WorkOrderEndpoints
 {
     public static void MapWorkOrderEndpoints(this WebApplication app)
     {
+        // 익명 — VMS Client 가 자기 ClientIndex 기준으로 작업지시 목록 조회 (Stage 2)
+        // 인증된 /api/workorders 그룹과 별개. 옵션 status (예: "InProgress","Planned").
+        app.MapGet("/api/workorders/by-client/{clientIndex:int}", async (
+            int clientIndex,
+            string? status,
+            BodaVmsDbContext db,
+            IWorkOrderService svc) =>
+        {
+            var client = await db.Clients.FirstOrDefaultAsync(c => c.ClientIndex == clientIndex);
+            if (client is null)
+                return Results.Ok(new List<WorkOrderDto>());
+            var items = await svc.GetAllAsync(status, client.Id);
+            return Results.Ok(items);
+        }).AllowAnonymous();
+
         var group = app.MapGroup("/api/workorders")
             .RequireAuthorization();
 
