@@ -380,8 +380,9 @@ Web 통합 환경에서는 Operator 로그인 + WO 선택 필수, Standalone(`Op
 - [x] **Phase 7 / Stage 2 (Web)** — `/api/workorders/by-client/{clientIndex}` 익명 endpoint (2026-05-21, VMS 에이전트가 양쪽 작성)
 - [x] **Phase 7 / Stage 2 (VMS)** — `WorkOrderDto` + `WorkOrderClient` + `WorkOrderListWindow` + MainViewModel 통합 + WO→Recipe 자동 로드 + AUTO RUN 활성화 조건 강화 (2026-05-21, VMS 에이전트)
 - [x] **Phase 7 / Stage 2 UI/UX** — 헤더 운영 흐름 단순화 (Operator → WO → Recipe → Ctx → AUTO RUN), 도구 액션은 Camera Control 사이드 섹션으로 이동, ComboBox SelectedValue 버그 수정 (2026-05-21, VMS 에이전트)
-- [ ] **Phase 7 / Stage 3 (Web)** — 결과 업로드 시 WO ProducedQuantity/PassQuantity 증가 + WorkOrderCompleted SignalR 이벤트 + 상태 자동 전이
-- [ ] **Phase 7 / Stage 3 (VMS)** — WO chip 진행률 실시간 갱신 + 계획 수량 도달 알람/히스토리 + AUTO RUN 자동 정지 옵션
+- [x] **Phase 7 / Stage 3 (Web)** — `/api/parameters/results` 응답에 workOrder 진행률 dict 추가, Planned→InProgress 자동 전이, ProducedQuantity≥PlannedQuantity 시 Completed + ActualEndAt 자동 설정 (2026-05-21, VMS 에이전트가 양쪽 작성)
+- [x] **Phase 7 / Stage 3 (VMS)** — `WorkOrderProgressDto` 신설, `IParameterSyncService` 에 WorkOrderProgressed/WorkOrderCompleted 이벤트, MainViewModel 구독 → 헤더 WO 칩 실시간 갱신 + 계획 수량 도달 시 ShowInformation 알람 + StopInspectionAsync 자동 정지 (2026-05-21, VMS 에이전트)
+- [ ] **Phase 7 / Stage 3 (SignalR 푸시 — 선택)** — VMS 폴링 없이 다중 클라이언트 동시 갱신을 위해 VmsHub 에 WorkOrderUpdated/WorkOrderCompleted 이벤트 추가 (현재는 결과 업로드 응답으로 충분)
 - [ ] **(선택)** ShareLibrary 신설 + DTO 이관 — ShareLibrary 현재 .NET Framework 4.8 + Cognex 의존이라 .NET 8 sub-project 신설 필요 (큰 작업)
 
 ---
@@ -412,3 +413,4 @@ Web 통합 환경에서는 Operator 로그인 + WO 선택 필수, Standalone(`Op
 | 2026-05-21 | VMS 측 | Phase 3 (DTO 4필드) + Phase 4 (Web register + VMS fallback) 구현. VMS는 OpenCvSharp/.NET 8이라 ShareLibrary 무관함을 명확화. VMS 측 테스트 121/121 통과, Web CS 에러 0 (dev 서버 lock 외에는 클린). |
 | 2026-05-21 | VMS 측 | Phase 3 UI 추가 — MainView sub-toolbar 에 Inspection Context inline 입력 (WO/Lot/Op ID + Serial + Clear). 값 변경 시 ParameterSyncService 의 setter 가 호출되어 다음 UploadResultsAsync 부터 자동 첨부됨. |
 | 2026-05-21 | VMS 측 | Phase 7 추가 — 운영 워크플로 Stage 1/2/3 정의. Stage 1 (Operator Login) + Stage 2 (Work Order 목록 + 자동 Recipe 로드 + AUTO RUN 활성화 조건 강화) 완료. Phase 3 UI 를 VMS.VisionSetup → VMS Launcher MainWindow 로 이전 (작업자가 보는 곳). 헤더 운영 흐름 단순화: 도구 액션(Grab/Live/Roller) → Camera Control 사이드 섹션. Stage 3 (진행률/알람) 은 대기. |
+| 2026-05-21 | VMS 측 | Stage 3 완료 — Web `/api/parameters/results` 응답에 workOrder 진행률 dict + Planned→InProgress / Completed 자동 전이. VMS 측 `WorkOrderProgressDto` + IParameterSyncService 이벤트 두 개 (WorkOrderProgressed, WorkOrderCompleted), MainViewModel 구독으로 헤더 WO 칩 실시간 갱신 + 계획 수량 도달 시 알람 다이얼로그 + AUTO RUN 자동 정지. UploadResultsAsync 시그니처 변경 없음 (호출자 호환). |
