@@ -1,41 +1,52 @@
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="Model.EmployeeNumber" Label="사번"
+            <MudTextField @bind-Value="Model.EmployeeNumber" Label="@(L["dialog.operatorFieldEmpNo"])"
                           Variant="Variant.Outlined" Class="mb-4" Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Badge"
-                          HelperText="고유 사번" />
+                          HelperText="@(L["dialog.operatorFieldEmpNoHint"])" />
 
-            <MudTextField @bind-Value="Model.Name" Label="이름"
+            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.operatorFieldName"])"
                           Variant="Variant.Outlined" Class="mb-4" Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Person" />
 
-            <MudTextField @bind-Value="Model.Department" Label="부서"
+            <MudTextField @bind-Value="Model.Department" Label="@(L["dialog.operatorFieldDepartment"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Business" />
 
-            <MudTextField @bind-Value="Model.Pin" Label="@(IsEdit ? "새 PIN (비워두면 기존 유지)" : "PIN")"
+            <MudTextField @bind-Value="Model.Pin" Label="@(IsEdit ? L["dialog.operatorFieldPinEdit"] : L["dialog.operatorFieldPin"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           InputType="InputType.Password"
                           Required="@(!IsEdit)"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Pin"
-                          HelperText="최소 4자리. 숫자 권장 (키오스크 입력 편의)" />
+                          HelperText="@(L["dialog.operatorFieldPinHint"])" />
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+            <MudSelect T="string" @bind-Value="Model.Role" Label="Role / 등급"
+                       Variant="Variant.Outlined" Class="mb-4"
+                       AdornmentIcon="@Icons.Material.Filled.Shield"
+                       Adornment="Adornment.Start"
+                       HelperText="VMS 메뉴 가시성 제어 — Operator (일반) / Lead (반장) / Supervisor (관리자)">
+                <MudSelectItem Value="@("Operator")">Operator (일반 작업자)</MudSelectItem>
+                <MudSelectItem Value="@("Lead")">Lead (반장)</MudSelectItem>
+                <MudSelectItem Value="@("Supervisor")">Supervisor (관리자)</MudSelectItem>
+            </MudSelect>
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>

@@ -500,6 +500,22 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Operators_EmployeeNumber\" ON \"Operators\" (\"EmployeeNumber\");");
 
+    // D10: Operators 테이블에 Role 컬럼 추가 (기존 DB 마이그레이션)
+    using (var cmdOp = conn.CreateCommand())
+    {
+        cmdOp.CommandText = "PRAGMA table_info(Operators);";
+        var operatorColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var readerOp = await cmdOp.ExecuteReaderAsync())
+        {
+            while (await readerOp.ReadAsync())
+                operatorColumns.Add(readerOp.GetString(1));
+        }
+
+        if (!operatorColumns.Contains("Role"))
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE Operators ADD COLUMN Role TEXT NOT NULL DEFAULT 'Operator';");
+    }
+
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""OperatorSessions"" (
             ""Id""          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

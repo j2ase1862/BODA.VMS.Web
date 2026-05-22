@@ -6,6 +6,8 @@ public class OperatorDto
     public string EmployeeNumber { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Department { get; set; }
+    /// <summary>D10: 작업자 등급 — "Operator" / "Lead" / "Supervisor". VMS 메뉴 가시성 제어용.</summary>
+    public string Role { get; set; } = "Operator";
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -17,6 +19,8 @@ public class OperatorUpsertDto
     public string EmployeeNumber { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Department { get; set; }
+    /// <summary>D10: "Operator" / "Lead" / "Supervisor". 미지정 시 "Operator".</summary>
+    public string Role { get; set; } = "Operator";
 
     /// <summary>새 PIN. 편집 시 비워두면 기존 PIN 유지.</summary>
     public string? Pin { get; set; }
@@ -31,6 +35,8 @@ public class OperatorSessionDto
     public string OperatorName { get; set; } = string.Empty;
     public string EmployeeNumber { get; set; } = string.Empty;
     public string? Department { get; set; }
+    /// <summary>D10: 활성 세션 작업자의 등급. VMS 가 메뉴 가시성 결정에 사용.</summary>
+    public string Role { get; set; } = "Operator";
 
     public int ClientId { get; set; }
     public int ClientIndex { get; set; }

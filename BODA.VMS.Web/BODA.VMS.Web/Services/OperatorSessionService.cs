@@ -126,6 +126,7 @@ public class OperatorSessionService : IOperatorSessionService
         OperatorName = s.Operator?.Name ?? "",
         EmployeeNumber = s.Operator?.EmployeeNumber ?? "",
         Department = s.Operator?.Department,
+        Role = s.Operator?.Role ?? OperatorRole.Operator,
         ClientId = s.ClientId,
         ClientIndex = s.Client?.ClientIndex ?? 0,
         ClientName = s.Client?.Name ?? "",
