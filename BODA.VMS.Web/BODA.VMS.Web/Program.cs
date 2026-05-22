@@ -532,6 +532,21 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_OperatorSessions_OperatorId_StartedAt\" ON \"OperatorSessions\" (\"OperatorId\", \"StartedAt\");");
 
+    // Stale OperatorSession 정리 — VMS 가 비정상 종료(크래시/강제종료) 후 EndedAt=null 로
+    // 남아있어 작업자가 "계속 작업 중"으로 보이는 문제 해결.
+    // 클라이언트가 5분 넘게 heartbeat 가 없으면 활성 세션을 자동으로 'Stale' 로 종료.
+    // (정상 동작 중 VMS 가 heartbeat 를 5초마다 보내므로 5분이면 충분히 안전한 임계치.)
+    await db.Database.ExecuteSqlRawAsync(@"
+        UPDATE OperatorSessions
+        SET EndedAt   = datetime('now'),
+            EndReason = 'Stale'
+        WHERE EndedAt IS NULL
+          AND ClientId IN (
+            SELECT Id FROM Clients
+            WHERE LastSeenAt IS NULL
+               OR LastSeenAt < datetime('now', '-5 minutes')
+          );");
+
     // 2-i. G16 (Maintenance / PM): MaintenanceSchedules, MaintenanceRecords 테이블
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""MaintenanceSchedules"" (

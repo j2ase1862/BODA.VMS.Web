@@ -1,5 +1,6 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Data.Entities;
 using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -105,6 +106,7 @@ public static class ClientEndpoints
         app.MapPost("/api/clients/disconnect", async (
             DisconnectRequest request,
             BodaVmsDbContext db,
+            IOperatorSessionService operatorSessionSvc,
             IHubContext<VmsHub> hubContext) =>
         {
             var client = await db.Clients
@@ -115,6 +117,11 @@ public static class ClientEndpoints
 
             client.LastSeenAt = null;
             await db.SaveChangesAsync();
+
+            // VMS 종료 시 활성 OperatorSession 도 자동 종료 (graceful shutdown).
+            // EndSessionAsync 내부에서 OperatorSessionEnded SignalR broadcast 까지 처리.
+            try { await operatorSessionSvc.EndSessionAsync(client.Id, SessionEndReason.Disconnect); }
+            catch { /* 세션 없거나 종료 실패 — 무시 */ }
 
             await hubContext.Clients.All.SendAsync("ClientStatusChanged", client.Id, false);
 
