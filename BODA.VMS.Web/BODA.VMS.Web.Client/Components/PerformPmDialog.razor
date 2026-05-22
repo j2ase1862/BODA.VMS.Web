@@ -1,19 +1,20 @@
 @inject ApiClient Api
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
         <div style="min-width: 420px;">
             <MudText Typo="Typo.subtitle1" Class="mb-1">@Schedule.Name</MudText>
             <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);" Class="mb-3">
-                주기 @(Schedule.IntervalDays)일 · 예상 소요 @(Schedule.EstimatedDurationMinutes)분
+                @L.Format("dialog.performInfoFmt", Schedule.IntervalDays, Schedule.EstimatedDurationMinutes)
             </MudText>
 
             @if (!Schedule.ClientId.HasValue)
             {
-                <MudSelect T="int?" @bind-Value="_clientId" Label="수행 라인"
+                <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["dialog.performFieldClient"])"
                            Variant="Variant.Outlined" Class="mb-3" Required="true"
-                           HelperText="공통 일정은 수행 시 라인을 명시해야 합니다">
-                    <MudSelectItem T="int?" Value="@((int?)null)">-- 선택 --</MudSelectItem>
+                           HelperText="@(L["dialog.performFieldClientHint"])">
+                    <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.selectPlaceholder"]</MudSelectItem>
                     @foreach (var c in _clients)
                     {
                         <MudSelectItem T="int?" Value="@((int?)c.Id)">
@@ -23,23 +24,23 @@
                 </MudSelect>
             }
 
-            <MudNumericField T="int?" @bind-Value="_duration" Label="실제 소요 시간 (분)"
+            <MudNumericField T="int?" @bind-Value="_duration" Label="@(L["dialog.performFieldDuration"])"
                              Variant="Variant.Outlined" Class="mb-3"
                              Min="1" Clearable="true"
-                             HelperText="실제 소요 시간 (선택)" />
+                             HelperText="@(L["dialog.performFieldDurationHint"])" />
 
-            <MudTextField @bind-Value="_notes" Label="비고"
+            <MudTextField @bind-Value="_notes" Label="@(L["dialog.performFieldNotes"])"
                           Variant="Variant.Outlined" Lines="3"
-                          HelperText="확인 사항, 부품 교체, 이상 발견 등" />
+                          HelperText="@(L["dialog.performFieldNotesHint"])" />
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Success" Variant="Variant.Filled"
                    OnClick="Submit"
                    Disabled="@(!Schedule.ClientId.HasValue && !_clientId.HasValue)"
                    Class="vms-btn">
-            ✓ 수행 기록
+            @L["dialog.performBtnRecord"]
         </MudButton>
     </DialogActions>
 </MudDialog>

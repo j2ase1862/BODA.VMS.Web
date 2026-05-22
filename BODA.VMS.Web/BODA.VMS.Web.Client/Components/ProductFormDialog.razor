@@ -1,38 +1,39 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="Model.Code" Label="제품 코드"
+            <MudTextField @bind-Value="Model.Code" Label="@(L["dialog.productFieldCode"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.QrCode2"
-                          HelperText="고유 품번 (예: PRD-A001)" />
+                          HelperText="@(L["dialog.productFieldCodeHint"])" />
 
-            <MudTextField @bind-Value="Model.Name" Label="제품명"
+            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.productFieldName"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Inventory" />
 
-            <MudTextField @bind-Value="Model.Specification" Label="사양"
+            <MudTextField @bind-Value="Model.Specification" Label="@(L["dialog.productFieldSpec"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           Lines="2"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Description"
-                          HelperText="규격, 재질, 치수 등 (선택)" />
+                          HelperText="@(L["dialog.productFieldSpecHint"])" />
 
-            <MudSelect T="int?" @bind-Value="Model.DefaultRecipeId" Label="기본 레시피"
+            <MudSelect T="int?" @bind-Value="Model.DefaultRecipeId" Label="@(L["dialog.productFieldDefaultRecipe"])"
                        Variant="Variant.Outlined" Class="mb-4"
                        Clearable="true"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.MenuBook"
-                       HelperText="작업 지시 발행 시 기본 선택될 레시피 (선택)">
-                <MudSelectItem T="int?" Value="@((int?)null)">-- 없음 --</MudSelectItem>
+                       HelperText="@(L["dialog.productFieldDefaultRecipeHint"])">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.selectNone"]</MudSelectItem>
                 @foreach (var r in _allRecipes)
                 {
                     <MudSelectItem T="int?" Value="@((int?)r.Id)">
@@ -41,13 +42,13 @@
                 }
             </MudSelect>
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>

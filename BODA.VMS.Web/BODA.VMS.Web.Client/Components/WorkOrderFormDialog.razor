@@ -1,24 +1,25 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="Model.OrderNo" Label="지시 번호"
+            <MudTextField @bind-Value="Model.OrderNo" Label="@(L["dialog.workorderFieldOrderNo"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           ReadOnly="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.ConfirmationNumber"
-                          HelperText="자동 채번 (WO-YYYYMMDD-NNN)" />
+                          HelperText="@(L["dialog.workorderFieldOrderNoHint"])" />
 
             <MudSelect T="int" Value="Model.ProductId" ValueChanged="OnProductChanged"
-                       Label="제품" Variant="Variant.Outlined" Class="mb-4"
+                       Label="@(L["dialog.workorderFieldProduct"])" Variant="Variant.Outlined" Class="mb-4"
                        Required="true"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.Inventory">
-                <MudSelectItem T="int" Value="0">-- 제품 선택 --</MudSelectItem>
+                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldProductPlaceholder"]</MudSelectItem>
                 @foreach (var p in _products)
                 {
                     <MudSelectItem T="int" Value="p.Id">@p.Code — @p.Name</MudSelectItem>
@@ -26,11 +27,11 @@
             </MudSelect>
 
             <MudSelect T="int" Value="Model.ClientId" ValueChanged="OnClientChanged"
-                       Label="생산 라인" Variant="Variant.Outlined" Class="mb-4"
+                       Label="@(L["dialog.workorderFieldClient"])" Variant="Variant.Outlined" Class="mb-4"
                        Required="true"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.Router">
-                <MudSelectItem T="int" Value="0">-- 라인 선택 --</MudSelectItem>
+                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldClientPlaceholder"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
                     <MudSelectItem T="int" Value="c.Id">
@@ -40,41 +41,41 @@
             </MudSelect>
 
             <MudSelect T="int" @bind-Value="Model.RecipeId"
-                       Label="레시피" Variant="Variant.Outlined" Class="mb-4"
+                       Label="@(L["dialog.workorderFieldRecipe"])" Variant="Variant.Outlined" Class="mb-4"
                        Required="true"
                        Disabled="@(Model.ClientId == 0)"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.MenuBook">
-                <MudSelectItem T="int" Value="0">-- 레시피 선택 --</MudSelectItem>
+                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldRecipePlaceholder"]</MudSelectItem>
                 @foreach (var r in _recipes)
                 {
                     <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
                 }
             </MudSelect>
 
-            <MudNumericField @bind-Value="Model.PlannedQuantity" Label="계획 수량"
+            <MudNumericField @bind-Value="Model.PlannedQuantity" Label="@(L["dialog.workorderFieldPlannedQty"])"
                              Variant="Variant.Outlined" Class="mb-4"
                              Min="1"
                              Adornment="Adornment.Start"
                              AdornmentIcon="@Icons.Material.Filled.Numbers" />
 
-            <MudDatePicker @bind-Date="_plannedStart" Label="계획 시작일"
+            <MudDatePicker @bind-Date="_plannedStart" Label="@(L["dialog.workorderFieldPlannedStart"])"
                            Variant="Variant.Outlined" Class="mb-4"
                            Adornment="Adornment.Start"
                            AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                           HelperText="계획 시작일 (선택)" />
+                           HelperText="@(L["dialog.workorderFieldPlannedStartHint"])" />
 
-            <MudTextField @bind-Value="Model.Note" Label="비고"
+            <MudTextField @bind-Value="Model.Note" Label="@(L["dialog.workorderFieldNote"])"
                           Variant="Variant.Outlined" Class="mb-4" Lines="2"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Notes" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@(!IsValid())" Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>

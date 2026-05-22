@@ -1,26 +1,27 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="Model.Name" Label="일정 이름"
+            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.maintFieldName"])"
                           Variant="Variant.Outlined" Class="mb-4" Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Build" />
 
-            <MudTextField @bind-Value="Model.Description" Label="설명"
+            <MudTextField @bind-Value="Model.Description" Label="@(L["dialog.maintFieldDescription"])"
                           Variant="Variant.Outlined" Class="mb-4" Lines="2"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Description" />
 
-            <MudSelect T="int?" @bind-Value="Model.ClientId" Label="라인" Clearable="true"
+            <MudSelect T="int?" @bind-Value="Model.ClientId" Label="@(L["dialog.maintFieldClient"])" Clearable="true"
                        Variant="Variant.Outlined" Class="mb-4"
                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
-                       HelperText="비워두면 전체 라인 공통">
-                <MudSelectItem T="int?" Value="@((int?)null)">전체 라인 (공통)</MudSelectItem>
+                       HelperText="@(L["dialog.maintFieldClientHint"])">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.maintFieldClientAll"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
                     <MudSelectItem T="int?" Value="@((int?)c.Id)">
@@ -31,33 +32,33 @@
 
             <MudGrid Spacing="2" Class="mb-4">
                 <MudItem xs="6">
-                    <MudNumericField T="int" @bind-Value="Model.IntervalDays" Label="주기 (일)"
+                    <MudNumericField T="int" @bind-Value="Model.IntervalDays" Label="@(L["dialog.maintFieldInterval"])"
                                      Variant="Variant.Outlined" Min="1"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.Repeat"
-                                     HelperText="1=매일 / 7=매주 / 30=매월" />
+                                     HelperText="@(L["dialog.maintFieldIntervalHint"])" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudNumericField T="int" @bind-Value="Model.EstimatedDurationMinutes" Label="예상 소요 (분)"
+                    <MudNumericField T="int" @bind-Value="Model.EstimatedDurationMinutes" Label="@(L["dialog.maintFieldDuration"])"
                                      Variant="Variant.Outlined" Min="1"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.Timer" />
                 </MudItem>
             </MudGrid>
 
-            <MudDatePicker @bind-Date="Model.NextDueAt" Label="다음 수행 예정 (선택)"
+            <MudDatePicker @bind-Date="Model.NextDueAt" Label="@(L["dialog.maintFieldNextDue"])"
                            Variant="Variant.Outlined" Class="mb-4"
                            Adornment="Adornment.Start"
                            AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                           HelperText="비워두면 오늘 + 주기로 자동 설정" />
+                           HelperText="@(L["dialog.maintFieldNextDueHint"])" />
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>

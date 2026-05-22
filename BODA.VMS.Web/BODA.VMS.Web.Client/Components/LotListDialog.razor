@@ -1,19 +1,20 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
+@inject ILocalizer L
 
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
-            로트 — @WorkOrderNo
+            @L.Format("dialog.lotListTitleFmt", WorkOrderNo)
         </MudText>
     </TitleContent>
     <DialogContent>
         <div style="min-width: 600px;">
             <div class="d-flex align-center mb-3">
                 <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                    이 작업 지시에 속한 모든 로트. 새 원자재/교대 전환 시 새 로트를 발행하세요.
+                    @L["dialog.lotListHint"]
                 </MudText>
                 <MudSpacer />
                 <AuthorizeView Roles="Admin,User" Context="authHeader">
@@ -21,7 +22,7 @@
                         <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
                                    Variant="Variant.Filled" Size="Size.Small"
                                    OnClick="CreateLot" Class="vms-btn">
-                            로트 발행
+                            @L["dialog.lotListBtnCreate"]
                         </MudButton>
                     </Authorized>
                 </AuthorizeView>
@@ -29,14 +30,14 @@
 
             <MudTable Items="_lots" Dense="true" Hover="true" Elevation="0">
                 <HeaderContent>
-                    <MudTh>로트 번호</MudTh>
-                    <MudTh Style="text-align: right;">수량</MudTh>
-                    <MudTh Style="text-align: right;">합격</MudTh>
-                    <MudTh Style="text-align: right;">불량</MudTh>
-                    <MudTh Style="text-align: right;">불량률</MudTh>
-                    <MudTh>상태</MudTh>
-                    <MudTh>발행일</MudTh>
-                    <MudTh Style="text-align: right;">작업</MudTh>
+                    <MudTh>@L["dialog.lotListColNumber"]</MudTh>
+                    <MudTh Style="text-align: right;">@L["dialog.lotListColQty"]</MudTh>
+                    <MudTh Style="text-align: right;">@L["dialog.lotListColPass"]</MudTh>
+                    <MudTh Style="text-align: right;">@L["dialog.lotListColNg"]</MudTh>
+                    <MudTh Style="text-align: right;">@L["dialog.lotListColNgRate"]</MudTh>
+                    <MudTh>@L["common.status"]</MudTh>
+                    <MudTh>@L["dialog.lotListColCreatedAt"]</MudTh>
+                    <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
@@ -49,11 +50,11 @@
                     <MudTd>
                         @if (context.Status == "Open")
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">진행중</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">@L["dialog.lotListStatusOpen"]</MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">마감</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["dialog.lotListStatusClosed"]</MudChip>
                         }
                     </MudTd>
                     <MudTd>
@@ -77,14 +78,14 @@
                 </RowTemplate>
                 <NoRecordsContent>
                     <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">
-                        아직 발행된 로트가 없습니다.
+                        @L["dialog.lotListNoData"]
                     </div>
                 </NoRecordsContent>
             </MudTable>
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Variant="Variant.Text">닫기</MudButton>
+        <MudButton OnClick="Close" Variant="Variant.Text">@L["action.close"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -110,31 +111,31 @@
             var lot = await Api.PostAsync<CreateLotRequest, LotDto>(
                 $"/api/workorders/{WorkOrderId}/lots",
                 new CreateLotRequest { Note = null });
-            Snackbar.Add($"로트 '{lot?.LotNumber}' 발행됨", Severity.Success);
+            Snackbar.Add(L.Format("dialog.lotListCreatedFmt", lot?.LotNumber ?? ""), Severity.Success);
             await Load();
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"실패: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
     }
 
     private async Task CloseLot(LotDto lot)
     {
-        var confirmed = await Dialog.ShowMessageBox("마감 확인",
-            $"로트 '{lot.LotNumber}'을(를) 마감하시겠습니까?\n마감 후에는 새 검사 결과를 받지 않습니다.",
-            "마감", "취소");
+        var confirmed = await Dialog.ShowMessageBox(L["dialog.lotListConfirmCloseTitle"],
+            L.Format("dialog.lotListConfirmCloseFmt", lot.LotNumber),
+            L["dialog.lotListBtnClose"], L["action.cancel"]);
         if (confirmed != true) return;
 
         try
         {
             await Api.PostAsync<object, LotDto>($"/api/lots/{lot.Id}/close", new { });
-            Snackbar.Add($"로트 '{lot.LotNumber}' 마감됨", Severity.Warning);
+            Snackbar.Add(L.Format("dialog.lotListClosedFmt", lot.LotNumber), Severity.Warning);
             await Load();
         }
         catch (HttpRequestException ex)
         {
-            Snackbar.Add($"실패: {ex.Message}", Severity.Error);
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
     }
 
