@@ -14,6 +14,8 @@ public class SignalRService : IAsyncDisposable
     public event Action<string>? OnNgAlert;
     public event Action<AlarmEventDto>? OnAlarmCreated;
     public event Action<AlarmEventDto>? OnAlarmUpdated;
+    public event Action<OperatorSessionDto>? OnOperatorSessionStarted;
+    public event Action<OperatorSessionDto>? OnOperatorSessionEnded;
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
     public SignalRService(NavigationManager navigation, AuthStateProvider authProvider)
@@ -48,6 +50,12 @@ public class SignalRService : IAsyncDisposable
 
         _hub.On<AlarmEventDto>("AlarmUpdated", (alarm) =>
             OnAlarmUpdated?.Invoke(alarm));
+
+        _hub.On<OperatorSessionDto>("OperatorSessionStarted", (session) =>
+            OnOperatorSessionStarted?.Invoke(session));
+
+        _hub.On<OperatorSessionDto>("OperatorSessionEnded", (session) =>
+            OnOperatorSessionEnded?.Invoke(session));
 
         try
         {
