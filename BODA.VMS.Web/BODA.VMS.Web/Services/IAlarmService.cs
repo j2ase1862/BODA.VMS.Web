@@ -14,4 +14,7 @@ public interface IAlarmService
 
     Task<AlarmEventDto?> AcknowledgeAsync(int id, int userId, string userName);
     Task<AlarmEventDto?> ResolveAsync(int id, int userId, string userName, string resolution);
+
+    /// <summary>미확인 알람 일괄 확인 — NotificationBell "Mark all as read". 변경된 개수 반환.</summary>
+    Task<int> AcknowledgeAllAsync(int userId, string userName);
 }
