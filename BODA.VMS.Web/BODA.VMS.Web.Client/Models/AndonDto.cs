@@ -50,4 +50,32 @@ public class AndonSnapshotDto
 
     // 최근 미해제 Critical/Major 알람 (최대 10건)
     public List<AlarmEventDto> ActiveAlarms { get; set; } = new();
+
+    // === Predictive_DefectRate_Plan §6 Phase E + §8 Open Q #5 ===
+    // 알람 피로 방지를 위해 별도 "Predictive Insight" 채널 — 알람 생성 없이 권고만.
+    // 임계 초과(≥5%)한 라인만 포함 — 정상 라인은 카드에 표시하지 않음(노이즈 회피).
+    public List<PredictiveInsightDto> PredictiveInsights { get; set; } = new();
+}
+
+/// <summary>
+/// 다음 1시간 NG율 예측이 임계를 초과한 라인의 사전 경보.
+/// Plan §8 Open Q #5 정책: "초기에는 'Predictive Insight' 별도 채널 권장"
+/// → AlarmEvents 와 분리된 비-알람 권고 채널.
+/// </summary>
+public class PredictiveInsightDto
+{
+    public int ClientId { get; set; }
+    public int ClientIndex { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public string? RecipeName { get; set; }
+
+    /// <summary>예측 NG율(0~1).</summary>
+    public double PredictedNgRate { get; set; }
+
+    /// <summary>"high" (≥10%) / "medium" (5~10%). low(<5%)는 리스트에 포함되지 않음.</summary>
+    public string Severity { get; set; } = "medium";
+
+    public DateTime? WindowStart { get; set; }
+    public string? ModelName { get; set; }
+    public string? ModelVersion { get; set; }
 }

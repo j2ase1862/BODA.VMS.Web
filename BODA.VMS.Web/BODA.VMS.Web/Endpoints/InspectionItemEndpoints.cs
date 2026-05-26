@@ -94,7 +94,17 @@ public static class InspectionItemEndpoints
                 LotId = request.LotId,
                 OperatorId = operatorId,
                 SerialNumber = request.SerialNumber,
-                ShiftId = shiftId
+                ShiftId = shiftId,
+                // Predictive_DefectRate_Plan §5.1 — V1/V2/V3 예측 피처
+                // (구버전 VMS 가 보내지 않으면 자연스럽게 NULL)
+                CycleTimeMs = request.CycleTimeMs,
+                Brightness = request.Brightness,
+                ContrastStd = request.ContrastStd,
+                FocusScore = request.FocusScore,
+                BlobCount = request.BlobCount,
+                MaxBlobAreaPx = request.MaxBlobAreaPx,
+                DlConfidence = request.DlConfidence,
+                DlModelVersion = request.DlModelVersion
             };
 
             db.InspectionHistories.Add(history);

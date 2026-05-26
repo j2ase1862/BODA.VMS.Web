@@ -15,6 +15,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.*" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
     <PackageReference Include="MudBlazor" Version="7.15.0" />
     <PackageReference Include="QuestPDF" Version="2026.5.0" />
     <ProjectReference Include="..\BODA.VMS.Web.Client\BODA.VMS.Web.Client.csproj" />
