@@ -1,7 +1,9 @@
 using System.Text.Json;
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -47,6 +49,7 @@ public static class InspectionItemEndpoints
             IAlarmService alarmSvc,
             IShiftService shiftSvc,
             IOperatorSessionService operatorSessionSvc,
+            IHubContext<VmsPublicHub> hub,
             ILogger<Program> logger) =>
         {
             var client = await db.Clients
@@ -91,7 +94,17 @@ public static class InspectionItemEndpoints
                 LotId = request.LotId,
                 OperatorId = operatorId,
                 SerialNumber = request.SerialNumber,
-                ShiftId = shiftId
+                ShiftId = shiftId,
+                // Predictive_DefectRate_Plan §5.1 — V1/V2/V3 예측 피처
+                // (구버전 VMS 가 보내지 않으면 자연스럽게 NULL)
+                CycleTimeMs = request.CycleTimeMs,
+                Brightness = request.Brightness,
+                ContrastStd = request.ContrastStd,
+                FocusScore = request.FocusScore,
+                BlobCount = request.BlobCount,
+                MaxBlobAreaPx = request.MaxBlobAreaPx,
+                DlConfidence = request.DlConfidence,
+                DlModelVersion = request.DlModelVersion
             };
 
             db.InspectionHistories.Add(history);
@@ -123,14 +136,37 @@ public static class InspectionItemEndpoints
                 }
             }
 
+            // Stage 3: WO 진행률 응답을 위한 snapshot 보관
+            Data.Entities.WorkOrder? touchedWo = null;
+            bool woJustCompleted = false;
+
             if (request.WorkOrderId.HasValue)
             {
                 var wo = await db.WorkOrders.FindAsync(request.WorkOrderId.Value);
-                if (wo is not null && wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                if (wo is not null)
                 {
-                    wo.ProducedQuantity++;
-                    if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
-                    wo.UpdatedAt = DateTime.UtcNow;
+                    // Planned 상태였다면 자동 InProgress 전이 (첫 검사 결과 도착 = 시작 시점)
+                    if (wo.Status == Data.Entities.WorkOrderStatus.Planned)
+                    {
+                        wo.Status = Data.Entities.WorkOrderStatus.InProgress;
+                        wo.ActualStartAt ??= DateTime.UtcNow;
+                    }
+
+                    if (wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                    {
+                        wo.ProducedQuantity++;
+                        if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
+                        wo.UpdatedAt = DateTime.UtcNow;
+
+                        // Stage 3: 계획 수량 도달 → 자동 Completed 전이
+                        if (wo.PlannedQuantity > 0 && wo.ProducedQuantity >= wo.PlannedQuantity)
+                        {
+                            wo.Status = Data.Entities.WorkOrderStatus.Completed;
+                            wo.ActualEndAt = DateTime.UtcNow;
+                            woJustCompleted = true;
+                        }
+                    }
+                    touchedWo = wo;
                 }
             }
 
@@ -154,7 +190,42 @@ public static class InspectionItemEndpoints
                 });
             }
 
-            return Results.Ok(new { historyId = history.Id, isPass });
+            // Stage 3: WO 진행률 응답에 포함 (VMS 가 헤더 칩 갱신 + 알람/자동정지 판정에 사용)
+            object? workOrderInfo = null;
+            if (touchedWo is not null)
+            {
+                workOrderInfo = new
+                {
+                    id = touchedWo.Id,
+                    orderNo = touchedWo.OrderNo,
+                    plannedQuantity = touchedWo.PlannedQuantity,
+                    producedQuantity = touchedWo.ProducedQuantity,
+                    passQuantity = touchedWo.PassQuantity,
+                    ngQuantity = touchedWo.NgQuantity,
+                    status = touchedWo.Status,
+                    completed = woJustCompleted
+                };
+
+                // C5: 모든 연결된 VMS / 라이브 모니터 화면에 진행률 broadcast.
+                // 본인 (업로드한 VMS) 도 같은 페이로드를 응답으로 받지만, idempotent 핸들러라 무해.
+                try
+                {
+                    await hub.Clients.All.SendAsync("WorkOrderUpdated", workOrderInfo);
+                    if (woJustCompleted)
+                        await hub.Clients.All.SendAsync("WorkOrderCompleted", workOrderInfo);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[VmsPublicHub] WO broadcast failed");
+                }
+            }
+
+            return Results.Ok(new
+            {
+                historyId = history.Id,
+                isPass,
+                workOrder = workOrderInfo
+            });
         }).AllowAnonymous();
 
         // === 관리 엔드포인트 (인증 필요) ===

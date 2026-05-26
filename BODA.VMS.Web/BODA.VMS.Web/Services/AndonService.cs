@@ -8,10 +8,17 @@ namespace BODA.VMS.Web.Services;
 public class AndonService : IAndonService
 {
     private readonly BodaVmsDbContext _db;
+    private readonly IPredictionService _prediction;
 
-    public AndonService(BodaVmsDbContext db)
+    // Plan §8 Open Q #5 — 알람화 안 함, 임계 초과만 Insight 채널로
+    // /forecast 카드 임계와 동일한 의미 유지(operator 가 같은 색·임계 학습)
+    private const double InsightHighThreshold   = 0.10;  // ≥10% → high
+    private const double InsightMediumThreshold = 0.05;  // 5~10% → medium
+
+    public AndonService(BodaVmsDbContext db, IPredictionService prediction)
     {
         _db = db;
+        _prediction = prediction;
     }
 
     public async Task<AndonSnapshotDto> GetSnapshotAsync()
@@ -128,6 +135,49 @@ public class AndonService : IAndonService
             Resolution = a.Resolution
         }).ToList();
 
+        // === Predictive Insights (Plan §6 Phase E + §8 Open Q #5) ===
+        // PredictionService.GetSnapshotAsync 는 active 클라이언트 모두에 대해 60s 캐시 hit 위주로
+        // 병렬 호출 — 안돈 응답 추가 latency 미미. ClientName 매핑 위해 lines 를 참조.
+        var clientNameByIdx = lines.ToDictionary(l => l.ClientIndex, l => l.ClientName);
+        var clientIdByIdx   = lines.ToDictionary(l => l.ClientIndex, l => l.ClientId);
+        var predictiveInsights = new List<PredictiveInsightDto>();
+        try
+        {
+            var predSnap = await _prediction.GetSnapshotAsync();
+            foreach (var item in predSnap.Items)
+            {
+                if (item.Status != "ok" || !item.PredictedNgRate.HasValue) continue;
+                var rate = item.PredictedNgRate.Value;
+                if (rate < InsightMediumThreshold) continue;  // 정상 — Insight 채널 미포함
+
+                var severity = rate >= InsightHighThreshold ? "high" : "medium";
+                clientNameByIdx.TryGetValue(item.ClientIndex, out var name);
+                clientIdByIdx.TryGetValue(item.ClientIndex, out var cid);
+
+                predictiveInsights.Add(new PredictiveInsightDto
+                {
+                    ClientId = cid,
+                    ClientIndex = item.ClientIndex,
+                    ClientName = name ?? $"Client#{item.ClientIndex}",
+                    RecipeName = item.RecipeName,
+                    PredictedNgRate = rate,
+                    Severity = severity,
+                    WindowStart = item.WindowStart,
+                    ModelName = item.ModelName,
+                    ModelVersion = item.ModelVersion,
+                });
+            }
+            // High 가 위로
+            predictiveInsights = predictiveInsights
+                .OrderByDescending(i => i.Severity == "high")
+                .ThenByDescending(i => i.PredictedNgRate)
+                .ToList();
+        }
+        catch
+        {
+            // 예측 인프라 장애가 안돈 전체 응답을 막아선 안 됨 — insights 빈 리스트로 폴백
+        }
+
         return new AndonSnapshotDto
         {
             AsOf = asOf,
@@ -138,7 +188,8 @@ public class AndonService : IAndonService
             RunningLines = lines.Count(l => l.Status == EquipmentStatus.Running),
             IdleLines = lines.Count(l => l.Status == EquipmentStatus.Idle),
             DownLines = lines.Count(l => l.Status == EquipmentStatus.Down),
-            ActiveAlarms = activeAlarmDtos
+            ActiveAlarms = activeAlarmDtos,
+            PredictiveInsights = predictiveInsights,
         };
     }
 }

@@ -5,6 +5,8 @@
 @inject IDialogService Dialog
 @inject NavigationManager Nav
 @inject ILocalizer L
+@inject SignalRService Signal
+@implements IAsyncDisposable
 
 <PageTitle>@L["page.operators"] - BODA VMS</PageTitle>
 
@@ -216,6 +218,27 @@
         _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
         await Load();
         await LoadSessions();
+
+        // SignalR — VMS 작업자 로그인/로그아웃 시 Sessions 탭 자동 갱신
+        Signal.OnOperatorSessionStarted += OnSessionChanged;
+        Signal.OnOperatorSessionEnded += OnSessionChanged;
+        await Signal.StartAsync();
+    }
+
+    private async void OnSessionChanged(OperatorSessionDto _)
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadSessions();
+            StateHasChanged();
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Signal.OnOperatorSessionStarted -= OnSessionChanged;
+        Signal.OnOperatorSessionEnded -= OnSessionChanged;
+        await Task.CompletedTask;
     }
 
     private async Task Load()

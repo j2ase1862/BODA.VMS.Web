@@ -1,44 +1,45 @@
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="Model.Name" Label="교대 이름"
+            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.shiftFieldName"])"
                           Variant="Variant.Outlined" Class="mb-4" Required="true"
-                          Placeholder="예: 1조 (주간)"
+                          Placeholder="@(L["dialog.shiftFieldNamePlaceholder"])"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Label" />
 
             <MudGrid Spacing="2" Class="mb-4">
                 <MudItem xs="6">
-                    <MudNumericField T="int" @bind-Value="Model.StartHour" Label="시작 시간"
+                    <MudNumericField T="int" @bind-Value="Model.StartHour" Label="@(L["dialog.shiftFieldStart"])"
                                      Variant="Variant.Outlined" Min="0" Max="23"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.PlayArrow"
-                                     HelperText="0-23시 (정수)" />
+                                     HelperText="@(L["dialog.shiftFieldStartHint"])" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudNumericField T="int" @bind-Value="Model.EndHour" Label="종료 시간"
+                    <MudNumericField T="int" @bind-Value="Model.EndHour" Label="@(L["dialog.shiftFieldEnd"])"
                                      Variant="Variant.Outlined" Min="0" Max="23"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.Stop"
-                                     HelperText="종료&lt;시작이면 야간 교대" />
+                                     HelperText="@(L["dialog.shiftFieldEndHint"])" />
                 </MudItem>
             </MudGrid>
 
             <MudAlert Severity="MudBlazor.Severity.Info" Dense="true" Variant="Variant.Text" Class="mb-3">
-                <strong>@PreviewRange</strong> · 근무 @PreviewDuration 시간
+                <strong>@GetPreviewRange()</strong> · @L.Format("dialog.shiftPreviewDurationFmt", PreviewDuration)
             </MudAlert>
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -48,9 +49,14 @@
     [Parameter] public ShiftDto Model { get; set; } = new();
     [Parameter] public bool IsEdit { get; set; }
 
-    private string PreviewRange =>
-        $"{Model.StartHour:D2}:00 - {Model.EndHour:D2}:00" +
-        (Model.StartHour > Model.EndHour ? " (야간 교대)" : "");
+    private string GetPreviewRange()
+    {
+        var range = L.Format("dialog.shiftPreviewRangeFmt",
+            $"{Model.StartHour:D2}:00", $"{Model.EndHour:D2}:00");
+        if (Model.StartHour > Model.EndHour)
+            return $"{range} {L["dialog.shiftPreviewNight"]}";
+        return range;
+    }
 
     private int PreviewDuration => Model.StartHour < Model.EndHour
         ? Model.EndHour - Model.StartHour

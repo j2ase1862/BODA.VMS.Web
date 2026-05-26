@@ -25,9 +25,23 @@ public class Operator
     [MaxLength(100)]
     public string? Department { get; set; }
 
+    /// <summary>
+    /// 작업자 등급. VMS 측 메뉴/기능 가시성 제어용 — Web 인증과 무관.
+    /// "Operator" (기본) / "Lead" (반장) / "Supervisor" (관리자).
+    /// </summary>
+    [Required, MaxLength(20)]
+    public string Role { get; set; } = OperatorRole.Operator;
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+}
+
+public static class OperatorRole
+{
+    public const string Operator = "Operator";
+    public const string Lead = "Lead";
+    public const string Supervisor = "Supervisor";
 }

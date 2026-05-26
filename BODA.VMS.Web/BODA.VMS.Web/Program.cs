@@ -116,6 +116,15 @@ builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 builder.Services.AddHostedService<ClientMonitorService>();
 
+// Predictive_DefectRate_Plan §6 Phase E — IPredictionService 는 Singleton:
+//   • InferenceSession 을 보유(생성 비용 큼, thread-safe)
+//   • IMemoryCache 와 함께 60s TTL 캐시 유지
+//   • IServiceScopeFactory 로 scoped DbContext 만 안전하게 생성
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IPredictionService, PredictionService>();
+// Phase F — PredictionLog.ActualNgRate 자동 백필 (5분 주기)
+builder.Services.AddHostedService<PredictionLogBackfillService>();
+
 var app = builder.Build();
 
 // Shared DB: VisionServer owns the schema. Web adds only its own columns/tables.
@@ -488,6 +497,7 @@ using (var scope = app.Services.CreateScope())
         "CREATE INDEX IF NOT EXISTS \"IX_AuditLogs_UserId\" ON \"AuditLogs\" (\"UserId\");");
 
     // InspectionHistories.ShiftId 컬럼 추가
+    // + Predictive_DefectRate_Plan §5.1 (V1/V2/V3): 예측 피처 컬럼 idempotent 추가
     using (var cmdSh = conn.CreateCommand())
     {
         cmdSh.CommandText = "PRAGMA table_info(InspectionHistories);";
@@ -499,6 +509,24 @@ using (var scope = app.Services.CreateScope())
         }
         if (!hCols.Contains("ShiftId"))
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN ShiftId INTEGER;");
+
+        // === 예측 피처 컬럼 (모두 nullable — 구버전 VMS 후방호환) ===
+        if (!hCols.Contains("CycleTimeMs"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN CycleTimeMs INTEGER;");
+        if (!hCols.Contains("Brightness"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN Brightness REAL;");
+        if (!hCols.Contains("ContrastStd"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN ContrastStd REAL;");
+        if (!hCols.Contains("FocusScore"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN FocusScore REAL;");
+        if (!hCols.Contains("BlobCount"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN BlobCount INTEGER;");
+        if (!hCols.Contains("MaxBlobAreaPx"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN MaxBlobAreaPx REAL;");
+        if (!hCols.Contains("DlConfidence"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN DlConfidence REAL;");
+        if (!hCols.Contains("DlModelVersion"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN DlModelVersion TEXT;");
     }
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_InspectionHistories_ShiftId\" ON \"InspectionHistories\" (\"ShiftId\");");
@@ -518,6 +546,22 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Operators_EmployeeNumber\" ON \"Operators\" (\"EmployeeNumber\");");
 
+    // D10: Operators 테이블에 Role 컬럼 추가 (기존 DB 마이그레이션)
+    using (var cmdOp = conn.CreateCommand())
+    {
+        cmdOp.CommandText = "PRAGMA table_info(Operators);";
+        var operatorColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var readerOp = await cmdOp.ExecuteReaderAsync())
+        {
+            while (await readerOp.ReadAsync())
+                operatorColumns.Add(readerOp.GetString(1));
+        }
+
+        if (!operatorColumns.Contains("Role"))
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE Operators ADD COLUMN Role TEXT NOT NULL DEFAULT 'Operator';");
+    }
+
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""OperatorSessions"" (
             ""Id""          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -533,6 +577,21 @@ using (var scope = app.Services.CreateScope())
         "CREATE INDEX IF NOT EXISTS \"IX_OperatorSessions_ClientId_EndedAt\" ON \"OperatorSessions\" (\"ClientId\", \"EndedAt\");");
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_OperatorSessions_OperatorId_StartedAt\" ON \"OperatorSessions\" (\"OperatorId\", \"StartedAt\");");
+
+    // Stale OperatorSession 정리 — VMS 가 비정상 종료(크래시/강제종료) 후 EndedAt=null 로
+    // 남아있어 작업자가 "계속 작업 중"으로 보이는 문제 해결.
+    // 클라이언트가 5분 넘게 heartbeat 가 없으면 활성 세션을 자동으로 'Stale' 로 종료.
+    // (정상 동작 중 VMS 가 heartbeat 를 5초마다 보내므로 5분이면 충분히 안전한 임계치.)
+    await db.Database.ExecuteSqlRawAsync(@"
+        UPDATE OperatorSessions
+        SET EndedAt   = datetime('now'),
+            EndReason = 'Stale'
+        WHERE EndedAt IS NULL
+          AND ClientId IN (
+            SELECT Id FROM Clients
+            WHERE LastSeenAt IS NULL
+               OR LastSeenAt < datetime('now', '-5 minutes')
+          );");
 
     // 2-i. G16 (Maintenance / PM): MaintenanceSchedules, MaintenanceRecords 테이블
     await db.Database.ExecuteSqlRawAsync(@"
@@ -570,6 +629,102 @@ using (var scope = app.Services.CreateScope())
         );");
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_MaintenanceRecords_Schedule_Performed\" ON \"MaintenanceRecords\" (\"ScheduleId\", \"PerformedAt\");");
+
+    // 2-j. Predictive_DefectRate_Plan §3.2-D2 / §4.2 — 예측 인프라 테이블
+    //      (SensorReadings, MLModels, PredictionLogs)
+    //      VMS V4 가 환경 센서를 보내기 시작하면 SensorReadings 가 채워지고,
+    //      Python trainer 가 ONNX 를 export 하면 MLModels 에 등록 → IPredictionService 가 추론.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""SensorReadings"" (
+            ""Id""             INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""ClientId""       INTEGER NOT NULL,
+            ""Timestamp""      TEXT NOT NULL,
+            ""TemperatureC""   REAL,
+            ""HumidityPct""    REAL,
+            ""VibrationRms""   REAL,
+            ""PressurePsi""    REAL,
+            FOREIGN KEY (""ClientId"") REFERENCES ""Clients"" (""Id"")
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_SensorReadings_ClientId_Timestamp\" ON \"SensorReadings\" (\"ClientId\", \"Timestamp\");");
+
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""MLModels"" (
+            ""Id""               INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""Name""             TEXT NOT NULL,
+            ""Version""          TEXT NOT NULL,
+            ""OnnxPath""         TEXT NOT NULL,
+            ""Mae""              REAL NOT NULL DEFAULT 0,
+            ""R2""               REAL NOT NULL DEFAULT 0,
+            ""TrainedAt""        TEXT NOT NULL,
+            ""IsActive""         INTEGER NOT NULL DEFAULT 0,
+            ""FeatureSpecJson""  TEXT NOT NULL DEFAULT '{{}}'
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_MLModels_Name_IsActive\" ON \"MLModels\" (\"Name\", \"IsActive\");");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_MLModels_Name_Version\" ON \"MLModels\" (\"Name\", \"Version\");");
+
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""PredictionLogs"" (
+            ""Id""                INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""MLModelId""         INTEGER NOT NULL,
+            ""ClientId""          INTEGER NOT NULL,
+            ""RecipeId""          INTEGER NOT NULL,
+            ""WindowStart""       TEXT NOT NULL,
+            ""PredictedNgRate""   REAL NOT NULL,
+            ""ActualNgRate""      REAL,
+            ""CreatedAt""         TEXT NOT NULL,
+            FOREIGN KEY (""MLModelId"") REFERENCES ""MLModels"" (""Id""),
+            FOREIGN KEY (""ClientId"")  REFERENCES ""Clients"" (""Id"")
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_PredictionLogs_Client_Recipe_Window\" ON \"PredictionLogs\" (\"ClientId\", \"RecipeId\", \"WindowStart\");");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_PredictionLogs_MLModelId\" ON \"PredictionLogs\" (\"MLModelId\");");
+
+    // 2-k. Predictive_DefectRate_Plan §3.2-D6 / Phase B —
+    //      v_defect_features: (ClientId, RecipeName, HourBucket) 그룹별 피처 집계 VIEW.
+    //      Python trainer / data quality notebook / 추론 모두 이 VIEW 를 단일 진실원으로 사용
+    //      → 학습-추론 정의 분기 방지(plan §6 Phase B 핵심 요구).
+    //
+    //      DROP+CREATE 로 부트스트랩 시 항상 최신 정의 반영(데이터 손실 없음 — 집계 뷰).
+    //      대상: InspectionHistories. ParameterMeasurements/SensorReadings/EquipmentStatusLogs/
+    //      AlarmEvents/MaintenanceRecords 와의 join 은 trainer 측에서 시간 윈도우 단위로 수행.
+    await db.Database.ExecuteSqlRawAsync("DROP VIEW IF EXISTS v_defect_features;");
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE VIEW v_defect_features AS
+        SELECT
+            h.ClientId,
+            COALESCE(h.RecipeName, '') AS RecipeName,
+            strftime('%Y-%m-%dT%H:00:00', h.InspectedAt) AS HourBucket,
+            COUNT(*) AS InspectionCount,
+            SUM(CASE WHEN h.IsPass = 0 THEN 1 ELSE 0 END) AS NgCount,
+            CAST(SUM(CASE WHEN h.IsPass = 0 THEN 1 ELSE 0 END) AS REAL)
+                / COUNT(*) AS NgRate,
+            AVG(h.Brightness)     AS AvgBrightness,
+            AVG(h.ContrastStd)    AS AvgContrastStd,
+            AVG(h.FocusScore)     AS AvgFocusScore,
+            AVG(h.BlobCount)      AS AvgBlobCount,
+            AVG(h.MaxBlobAreaPx)  AS AvgMaxBlobAreaPx,
+            AVG(h.CycleTimeMs)    AS AvgCycleTimeMs,
+            AVG(h.DlConfidence)   AS AvgDlConfidence,
+            MIN(h.DlConfidence)   AS MinDlConfidence,
+            AVG(CASE WHEN h.Brightness     IS NULL THEN 1.0 ELSE 0.0 END) AS NullRateBrightness,
+            AVG(CASE WHEN h.ContrastStd    IS NULL THEN 1.0 ELSE 0.0 END) AS NullRateContrastStd,
+            AVG(CASE WHEN h.FocusScore     IS NULL THEN 1.0 ELSE 0.0 END) AS NullRateFocusScore,
+            AVG(CASE WHEN h.CycleTimeMs    IS NULL THEN 1.0 ELSE 0.0 END) AS NullRateCycleTimeMs,
+            AVG(CASE WHEN h.DlConfidence   IS NULL THEN 1.0 ELSE 0.0 END) AS NullRateDlConfidence,
+            MAX(h.ShiftId)               AS ShiftId,
+            COUNT(DISTINCT h.ShiftId)    AS DistinctShiftCount,
+            COUNT(DISTINCT h.OperatorId) AS DistinctOperatorCount,
+            COUNT(DISTINCT h.LotId)      AS DistinctLotCount,
+            COUNT(DISTINCT h.WorkOrderId) AS DistinctWorkOrderCount
+        FROM InspectionHistories h
+        WHERE h.InspectedAt IS NOT NULL
+        GROUP BY h.ClientId,
+                 COALESCE(h.RecipeName, ''),
+                 strftime('%Y-%m-%dT%H:00:00', h.InspectedAt);");
 
     // Default Shifts 시드 (한국 표준 3교대) — 빈 테이블일 때만
     using (var cmdSeed = conn.CreateCommand())
@@ -679,9 +834,12 @@ app.MapAuditLogEndpoints();
 app.MapReportEndpoints();
 app.MapOperatorEndpoints();
 app.MapMaintenanceEndpoints();
+app.MapSensorEndpoints();
+app.MapPredictionEndpoints();
 
 // Map SignalR hub
 app.MapHub<VmsHub>("/hubs/vms");
+app.MapHub<VmsPublicHub>("/hubs/vms-public"); // C5: 익명 — VMS 클라이언트 운영 흐름 푸시용
 
 // Razor Component endpoint는 익명 허용 — 페이지의 [Authorize]는 클라이언트 측 AuthorizeRouteView가 처리.
 // (JWT를 localStorage에 저장하므로 F5 시 서버로 토큰이 전달되지 않아 401이 발생하지 않도록 함)

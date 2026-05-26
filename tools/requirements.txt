@@ -1,0 +1,14 @@
+# Predictive_DefectRate_Plan Python toolchain
+#   • Phase B exporter        : pandas, pyarrow, numpy
+#   • Phase C baseline trainer: lightgbm, scikit-learn
+#   • Phase D ONNX 변환       : onnxmltools, onnx, onnxruntime
+# 버전 범위는 LightGBM 4.x + onnxmltools 1.12+ 호환, sklearn 1.3+ permutation_importance(n_jobs) 기준.
+
+pandas>=2.0,<3.0
+pyarrow>=14.0
+numpy>=1.24,<3.0
+lightgbm>=4.0
+scikit-learn>=1.3
+onnxmltools>=1.12
+onnx>=1.15
+onnxruntime>=1.16

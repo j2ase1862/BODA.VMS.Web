@@ -27,6 +27,9 @@ public class BodaVmsDbContext : DbContext
     public DbSet<OperatorSession> OperatorSessions => Set<OperatorSession>();
     public DbSet<MaintenanceSchedule> MaintenanceSchedules => Set<MaintenanceSchedule>();
     public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
+    public DbSet<SensorReading> SensorReadings => Set<SensorReading>();
+    public DbSet<MLModel> MLModels => Set<MLModel>();
+    public DbSet<PredictionLog> PredictionLogs => Set<PredictionLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -147,5 +150,22 @@ public class BodaVmsDbContext : DbContext
 
         modelBuilder.Entity<MaintenanceRecord>()
             .HasIndex(r => new { r.ScheduleId, r.PerformedAt });
+
+        // Predictive_DefectRate_Plan §3.2/§4.2 — 예측 인프라
+        modelBuilder.Entity<SensorReading>()
+            .HasIndex(s => new { s.ClientId, s.Timestamp });
+
+        modelBuilder.Entity<MLModel>()
+            .HasIndex(m => new { m.Name, m.IsActive });
+
+        modelBuilder.Entity<MLModel>()
+            .HasIndex(m => new { m.Name, m.Version })
+            .IsUnique();
+
+        modelBuilder.Entity<PredictionLog>()
+            .HasIndex(p => new { p.ClientId, p.RecipeId, p.WindowStart });
+
+        modelBuilder.Entity<PredictionLog>()
+            .HasIndex(p => p.MLModelId);
     }
 }

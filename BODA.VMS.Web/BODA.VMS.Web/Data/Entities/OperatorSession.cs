@@ -37,4 +37,8 @@ public static class SessionEndReason
     public const string Logout = "Logout";
     public const string ShiftChange = "ShiftChange";
     public const string Auto = "Auto";
+    /// <summary>VMS 가 graceful shutdown(/api/clients/disconnect) 으로 종료한 경우.</summary>
+    public const string Disconnect = "Disconnect";
+    /// <summary>Web startup 시 heartbeat 끊긴 클라이언트의 stale 세션 자동 정리.</summary>
+    public const string Stale = "Stale";
 }

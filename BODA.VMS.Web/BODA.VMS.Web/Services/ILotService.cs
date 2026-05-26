@@ -8,6 +8,9 @@ public interface ILotService
     Task<LotDto?> GetByIdAsync(int id);
     Task<LotDto?> GetByLotNumberAsync(string lotNumber);
 
+    /// <summary>WO 의 현재 활성(Open) Lot 1개 — VMS 가 검사 시작 시 자동 채움. 없으면 null.</summary>
+    Task<LotDto?> GetActiveByWorkOrderAsync(int workOrderId);
+
     /// <summary>새 Lot 생성 — LotNumber 자동 채번 ({YYYYMMDD}-{OrderNo}-{Seq:D3})</summary>
     Task<LotDto> CreateAsync(int workOrderId, string? note);
 

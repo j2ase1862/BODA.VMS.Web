@@ -29,3 +29,8 @@ Desktop.ini
 
 ## Claude Code
 .claude/
+
+## Python (예측 학습 파이프라인)
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/

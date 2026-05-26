@@ -1,5 +1,6 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Data.Entities;
 using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -46,10 +47,66 @@ public static class ClientEndpoints
             return Results.Ok();
         }).AllowAnonymous();
 
+        // Self-register endpoint (Phase 4) — VisionServer가 비활성/실패 시 VMS의 fallback
+        // VisionServer 없는 환경에서도 VMS가 첫 heartbeat 후 곧바로 등록 가능.
+        app.MapPost("/api/clients/register", async (
+            ClientRegisterRequest request,
+            BodaVmsDbContext db,
+            ILogger<Program> logger) =>
+        {
+            if (request.ClientIndex < 0)
+                return Results.BadRequest("ClientIndex must be >= 0");
+
+            // 이미 등록된 ClientIndex이면 그대로 반환 (idempotent)
+            var existing = await db.Clients
+                .FirstOrDefaultAsync(c => c.ClientIndex == request.ClientIndex);
+            if (existing is not null)
+            {
+                logger.LogInformation(
+                    "Client self-register: index {Index} already exists (id={Id})",
+                    request.ClientIndex, existing.Id);
+                return Results.Ok(new
+                {
+                    existing.Id,
+                    existing.ClientIndex,
+                    existing.Name,
+                    existing.IpAddress,
+                    existing.IsActive
+                });
+            }
+
+            var client = new BODA.VMS.Web.Data.Entities.VisionClient
+            {
+                ClientIndex = request.ClientIndex,
+                Name = string.IsNullOrWhiteSpace(request.Name)
+                    ? $"Client #{request.ClientIndex:D2}"
+                    : request.Name!,
+                IpAddress = request.IpAddress ?? string.Empty,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Clients.Add(client);
+            await db.SaveChangesAsync();
+
+            logger.LogInformation(
+                "Client self-registered: index {Index}, id={Id}, ip={Ip}",
+                client.ClientIndex, client.Id, client.IpAddress);
+
+            return Results.Ok(new
+            {
+                client.Id,
+                client.ClientIndex,
+                client.Name,
+                client.IpAddress,
+                client.IsActive
+            });
+        }).AllowAnonymous();
+
         // Vision client sends this on graceful shutdown → immediate offline
         app.MapPost("/api/clients/disconnect", async (
             DisconnectRequest request,
             BodaVmsDbContext db,
+            IOperatorSessionService operatorSessionSvc,
             IHubContext<VmsHub> hubContext) =>
         {
             var client = await db.Clients
@@ -60,6 +117,11 @@ public static class ClientEndpoints
 
             client.LastSeenAt = null;
             await db.SaveChangesAsync();
+
+            // VMS 종료 시 활성 OperatorSession 도 자동 종료 (graceful shutdown).
+            // EndSessionAsync 내부에서 OperatorSessionEnded SignalR broadcast 까지 처리.
+            try { await operatorSessionSvc.EndSessionAsync(client.Id, SessionEndReason.Disconnect); }
+            catch { /* 세션 없거나 종료 실패 — 무시 */ }
 
             await hubContext.Clients.All.SendAsync("ClientStatusChanged", client.Id, false);
 
@@ -146,3 +208,5 @@ public static class ClientEndpoints
 public record HeartbeatRequest(int ClientIndex, string? HostName = null, string? SwName = null);
 
 public record DisconnectRequest(int ClientIndex);
+
+public record ClientRegisterRequest(int ClientIndex, string? Name = null, string? IpAddress = null);

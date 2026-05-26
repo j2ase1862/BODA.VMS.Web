@@ -1,6 +1,8 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
+using BODA.VMS.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Services;
@@ -8,10 +10,12 @@ namespace BODA.VMS.Web.Services;
 public class OperatorSessionService : IOperatorSessionService
 {
     private readonly BodaVmsDbContext _db;
+    private readonly IHubContext<VmsHub> _hub;
 
-    public OperatorSessionService(BodaVmsDbContext db)
+    public OperatorSessionService(BodaVmsDbContext db, IHubContext<VmsHub> hub)
     {
         _db = db;
+        _hub = hub;
     }
 
     public async Task<OperatorSessionDto?> GetCurrentByClientIdAsync(int clientId)
@@ -71,7 +75,12 @@ public class OperatorSessionService : IOperatorSessionService
         _db.OperatorSessions.Add(session);
         await _db.SaveChangesAsync();
 
-        return (await GetByIdAsync(session.Id))!;
+        var dto = (await GetByIdAsync(session.Id))!;
+        // 자동 종료된 기존 세션도 broadcast 해서 admin 페이지가 동시에 갱신되도록
+        foreach (var prev in existing)
+            await BroadcastSessionEndedAsync(prev.Id);
+        await BroadcastSessionStartedAsync(dto);
+        return dto;
     }
 
     public async Task<OperatorSessionDto?> EndSessionAsync(int clientId, string reason)
@@ -85,7 +94,32 @@ public class OperatorSessionService : IOperatorSessionService
         session.EndedAt = DateTime.UtcNow;
         session.EndReason = reason;
         await _db.SaveChangesAsync();
-        return await GetByIdAsync(session.Id);
+        var dto = await GetByIdAsync(session.Id);
+        if (dto != null) await BroadcastSessionEndedAsync(dto);
+        return dto;
+    }
+
+    private async Task BroadcastSessionStartedAsync(OperatorSessionDto dto)
+    {
+        try { await _hub.Clients.All.SendAsync("OperatorSessionStarted", dto); }
+        catch { /* hub 미가용 시 무시 — REST 응답은 정상 */ }
+    }
+
+    private async Task BroadcastSessionEndedAsync(OperatorSessionDto dto)
+    {
+        try { await _hub.Clients.All.SendAsync("OperatorSessionEnded", dto); }
+        catch { }
+    }
+
+    /// <summary>Id 만 알 때 종료 broadcast 헬퍼 — DTO 재조회 후 송신.</summary>
+    private async Task BroadcastSessionEndedAsync(int sessionId)
+    {
+        try
+        {
+            var dto = await GetByIdAsync(sessionId);
+            if (dto != null) await _hub.Clients.All.SendAsync("OperatorSessionEnded", dto);
+        }
+        catch { }
     }
 
     public async Task<List<OperatorSessionDto>> GetHistoryAsync(
@@ -126,6 +160,7 @@ public class OperatorSessionService : IOperatorSessionService
         OperatorName = s.Operator?.Name ?? "",
         EmployeeNumber = s.Operator?.EmployeeNumber ?? "",
         Department = s.Operator?.Department,
+        Role = s.Operator?.Role ?? OperatorRole.Operator,
         ClientId = s.ClientId,
         ClientIndex = s.Client?.ClientIndex ?? 0,
         ClientName = s.Client?.Name ?? "",

@@ -1,5 +1,6 @@
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
@@ -7,14 +8,14 @@
             <DataAnnotationsValidator />
 
             <MudAutocomplete T="string" @bind-Value="Model.Code"
-                             Label="코드"
+                             Label="@(L["dialog.defectFieldCode"])"
                              Variant="Variant.Outlined" Class="mb-4" Required="true"
                              SearchFunc="SearchCodes"
                              CoerceText="true" CoerceValue="true"
                              ShowProgressIndicator="true"
                              Adornment="Adornment.Start"
                              AdornmentIcon="@Icons.Material.Filled.Tag"
-                             HelperText="@_codeHelperText"
+                             HelperText="@(L["dialog.defectFieldCodeHint"])"
                              ResetValueOnEmptyText="false"
                              MaxItems="50"
                              Dense="true">
@@ -29,70 +30,70 @@
                             @if (c.Source == "Param")
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info"
-                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">레시피</MudChip>
+                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">@L["dialog.defectCandidateRecipe"]</MudChip>
                             }
                             else
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Warning"
-                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">발생이력</MudChip>
+                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">@L["dialog.defectCandidateHistory"]</MudChip>
                             }
                             @if (c.IsRegistered)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Default"
-                                         Variant="Variant.Filled" Style="height:18px; font-size:10px;">등록됨</MudChip>
+                                         Variant="Variant.Filled" Style="height:18px; font-size:10px;">@L["dialog.defectCandidateRegistered"]</MudChip>
                             }
                             <span style="flex-grow:1; color: var(--vms-text-secondary); font-size:13px;">
-                                @(c.SuggestedDescription ?? "(설명 없음)")
+                                @(c.SuggestedDescription ?? L["dialog.defectCandidateNoDesc"])
                             </span>
                             @if (c.OccurrenceCount > 0)
                             {
                                 <span style="color: var(--mud-palette-error); font-family: 'Roboto Mono', monospace; font-size:12px;">
-                                    @(c.OccurrenceCount)건
+                                    @L.Format("dialog.defectCandidateCountFmt", c.OccurrenceCount)
                                 </span>
                             }
                         }
                         else
                         {
-                            <span style="color: var(--mud-palette-success); font-size:13px;">+ 신규 생성</span>
+                            <span style="color: var(--mud-palette-success); font-size:13px;">@L["dialog.defectCandidateNew"]</span>
                         }
                     </div>
                 </ItemTemplate>
             </MudAutocomplete>
 
-            <MudTextField @bind-Value="Model.Description" Label="설명"
+            <MudTextField @bind-Value="Model.Description" Label="@(L["dialog.defectFieldDescription"])"
                           Variant="Variant.Outlined" Class="mb-4" Required="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Description" />
 
-            <MudSelect T="string?" @bind-Value="Model.Category" Label="분류"
+            <MudSelect T="string?" @bind-Value="Model.Category" Label="@(L["dialog.defectFieldCategory"])"
                        Variant="Variant.Outlined" Class="mb-4" Clearable="true"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.Category">
-                <MudSelectItem T="string?" Value="@((string?)null)">-- 없음 --</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Pattern")">패턴 매칭</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Blob")">블롭 분석</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Dimension")">치수</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Surface")">표면</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Mechanical")">기계</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Other")">기타</MudSelectItem>
+                <MudSelectItem T="string?" Value="@((string?)null)">@L["dialog.selectNone"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Pattern")">@L["dialog.defectCategoryPattern"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Blob")">@L["dialog.defectCategoryBlob"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Dimension")">@L["dialog.defectCategoryDimension"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Surface")">@L["dialog.defectCategorySurface"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Mechanical")">@L["dialog.defectCategoryMechanical"]</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Other")">@L["dialog.defectCategoryOther"]</MudSelectItem>
             </MudSelect>
 
-            <MudSelect T="string" @bind-Value="Model.Severity" Label="심각도"
+            <MudSelect T="string" @bind-Value="Model.Severity" Label="@(L["dialog.defectFieldSeverity"])"
                        Variant="Variant.Outlined" Class="mb-4" Required="true"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.PriorityHigh">
-                <MudSelectItem T="string" Value="@("Critical")">치명 (Critical)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Major")">중대 (Major)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Minor")">경미 (Minor)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Critical")">@L["dialog.defectSeverityCritical"]</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Major")">@L["dialog.defectSeverityMajor"]</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Minor")">@L["dialog.defectSeverityMinor"]</MudSelectItem>
             </MudSelect>
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -104,7 +105,6 @@
 
     private List<DefectCodeCandidateDto> _candidates = new();
     private Dictionary<string, DefectCodeCandidateDto> _candidatesByCode = new(StringComparer.OrdinalIgnoreCase);
-    private string _codeHelperText = "레시피 파라미터 또는 실제 발생한 NG 코드에서 선택, 또는 새 코드 직접 입력";
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,7 +120,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"후보 로드 실패: {ex.Message}", Severity.Warning);
+            Snackbar.Add(L.Format("dialog.defectCandidateLoadFailedFmt", ex.Message), Severity.Warning);
         }
     }
 

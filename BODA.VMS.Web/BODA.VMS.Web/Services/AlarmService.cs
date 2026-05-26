@@ -135,6 +135,33 @@ public class AlarmService : IAlarmService
         return dto;
     }
 
+    public async Task<int> AcknowledgeAllAsync(int userId, string userName)
+    {
+        var now = DateTime.UtcNow;
+        var newOnes = await _db.AlarmEvents
+            .Where(a => a.AcknowledgedAt == null && a.ResolvedAt == null)
+            .ToListAsync();
+        if (newOnes.Count == 0) return 0;
+
+        foreach (var a in newOnes)
+        {
+            a.AcknowledgedAt = now;
+            a.AcknowledgedBy = userId;
+            a.AcknowledgedByName = userName;
+        }
+        await _db.SaveChangesAsync();
+
+        // 각 알람마다 broadcast — 다른 관리자 화면이 즉시 갱신되도록.
+        // 대량일 경우 단일 broadcast 도 가능하지만 클라이언트 호환성을 위해 기존 채널 사용.
+        foreach (var a in newOnes)
+        {
+            var dto = await GetByIdAsync(a.Id);
+            if (dto is not null)
+                await _hub.Clients.All.SendAsync("AlarmUpdated", dto);
+        }
+        return newOnes.Count;
+    }
+
     private static AlarmEventDto ToDto(AlarmEvent a) => new()
     {
         Id = a.Id,

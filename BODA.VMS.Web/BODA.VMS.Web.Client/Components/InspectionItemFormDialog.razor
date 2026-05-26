@@ -1,4 +1,5 @@
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
@@ -6,13 +7,13 @@
             <DataAnnotationsValidator />
 
             <MudSelect T="string" Value="Model.Category" ValueChanged="OnCategoryChanged"
-                       Label="분류"
+                       Label="@(L["dialog.inspParamCategory"])"
                        Variant="Variant.Outlined" Class="mb-4"
                        Adornment="Adornment.Start"
                        AdornmentIcon="@Icons.Material.Filled.Category">
-                <MudSelectItem T="string" Value="@("Pattern")">패턴 매칭 (Pattern)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Blob")">블롭 분석 (Blob)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Dimension")">치수 (Dimension)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Pattern")">@L["dialog.inspCategoryPattern"]</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Blob")">@L["dialog.inspCategoryBlob"]</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Dimension")">@L["dialog.inspCategoryDimension"]</MudSelectItem>
             </MudSelect>
 
             @if (!string.IsNullOrEmpty(Model.Category))
@@ -24,7 +25,7 @@
             }
 
             <MudNumericField T="int" Value="Model.ParamCode" ValueChanged="OnParamCodeChanged"
-                             Label="파라미터 코드"
+                             Label="@(L["dialog.inspFieldParamCode"])"
                              Variant="Variant.Outlined" Class="mb-4"
                              Min="1"
                              Adornment="Adornment.Start"
@@ -32,21 +33,21 @@
                              Style="font-family: 'Roboto Mono', monospace;"
                              Error="@_isDuplicate"
                              ErrorText="@_duplicateMessage"
-                             HelperText="@(_isDuplicate ? "" : "고유 숫자 코드 (PLC 레지스터 주소 방식)")" />
+                             HelperText="@(_isDuplicate ? "" : L["dialog.inspFieldParamCodeHint"])" />
 
-            <MudNumericField @bind-Value="Model.ParamValue" Label="값"
+            <MudNumericField @bind-Value="Model.ParamValue" Label="@(L["dialog.inspFieldValue"])"
                              Variant="Variant.Outlined" Class="mb-4"
                              Format="F4"
                              Adornment="Adornment.Start"
                              AdornmentIcon="@Icons.Material.Filled.Numbers" />
 
-            <MudTextField @bind-Value="Model.Description" Label="설명"
+            <MudTextField @bind-Value="Model.Description" Label="@(L["dialog.inspFieldDescription"])"
                           Variant="Variant.Outlined" Class="mb-4"
-                          Placeholder="@GetDescPlaceholder(Model.Category)"
+                          Placeholder="@GetDescPlaceholder(Model.Category, L)"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Description" />
 
-            <MudTextField @bind-Value="Model.Unit" Label="단위"
+            <MudTextField @bind-Value="Model.Unit" Label="@(L["dialog.inspFieldUnit"])"
                           Variant="Variant.Outlined" Class="mb-4"
                           Placeholder="@GetUnitPlaceholder(Model.Category)"
                           Adornment="Adornment.Start"
@@ -54,30 +55,30 @@
 
             <MudGrid Spacing="2" Class="mb-2">
                 <MudItem xs="6">
-                    <MudNumericField T="double?" @bind-Value="Model.LowerLimit" Label="규격 하한 (LSL)"
+                    <MudNumericField T="double?" @bind-Value="Model.LowerLimit" Label="@(L["dialog.inspFieldLowerLimit"])"
                                      Variant="Variant.Outlined" Format="F4" Clearable="true"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.VerticalAlignBottom"
-                                     HelperText="SPC Cp/Cpk 계산용 (선택)" />
+                                     HelperText="@(L["dialog.inspFieldLowerLimitHint"])" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudNumericField T="double?" @bind-Value="Model.UpperLimit" Label="규격 상한 (USL)"
+                    <MudNumericField T="double?" @bind-Value="Model.UpperLimit" Label="@(L["dialog.inspFieldUpperLimit"])"
                                      Variant="Variant.Outlined" Format="F4" Clearable="true"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.VerticalAlignTop"
-                                     HelperText="둘 다 입력해야 SPC 활성화" />
+                                     HelperText="@(L["dialog.inspFieldUpperLimitHint"])" />
                 </MudItem>
             </MudGrid>
 
-            <MudSwitch @bind-Value="Model.IsActive" Label="활성" Color="Color.Primary" />
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@(_isDuplicate && !IsEdit)"
                    Class="vms-btn">
-            @(IsEdit ? "수정" : "등록")
+            @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -120,7 +121,7 @@
         if (ExistingCodes.Contains(code))
         {
             _isDuplicate = true;
-            _duplicateMessage = $"코드 {code}는 이미 이 레시피에서 사용중입니다";
+            _duplicateMessage = L.Format("dialog.inspDuplicateCodeFmt", code);
         }
         else
         {
@@ -142,12 +143,12 @@
         _ => Severity.Normal
     };
 
-    private static string GetDescPlaceholder(string category) => category switch
+    private static string GetDescPlaceholder(string category, ILocalizer L) => category switch
     {
-        "Pattern" => "예: 패턴1 점수 임계값",
-        "Blob" => "예: 블롭1 최소 면적",
-        "Dimension" => "예: 폭 기준값",
-        _ => "파라미터 설명"
+        "Pattern" => L["dialog.inspDescPlaceholderPattern"],
+        "Blob" => L["dialog.inspDescPlaceholderBlob"],
+        "Dimension" => L["dialog.inspDescPlaceholderDimension"],
+        _ => L["dialog.inspDescPlaceholderDefault"]
     };
 
     private static string GetUnitPlaceholder(string category) => category switch
@@ -162,7 +163,7 @@
     {
         if (_isDuplicate && !IsEdit)
         {
-            Snackbar.Add($"코드 {Model.ParamCode}는 이미 사용중입니다", Severity.Error);
+            Snackbar.Add(L.Format("dialog.inspDuplicateSnackFmt", Model.ParamCode), Severity.Error);
             return;
         }
         MudDialog.Close(DialogResult.Ok(Model));

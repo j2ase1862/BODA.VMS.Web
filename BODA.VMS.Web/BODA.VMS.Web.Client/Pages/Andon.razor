@@ -164,6 +164,48 @@
                 </div>
             </div>
 
+            <!-- Predictive Insights (Plan §6 Phase E + §8 Open Q #5 — 알람 아님, 권고 채널) -->
+            <div class="insights-block">
+                <div class="insights-header">
+                    <span>@L["andon.predictiveInsights"]</span>
+                    <span class="count-badge @(_snap?.PredictiveInsights.Any(i => i.Severity == "high") == true ? "high" : "")">
+                        @(_snap?.PredictiveInsights.Count ?? 0)
+                    </span>
+                </div>
+                <div class="insights-list">
+                    @if (_snap is null || _snap.PredictiveInsights.Count == 0)
+                    {
+                        <div class="no-insights">✓ @L["andon.noInsights"]</div>
+                    }
+                    else
+                    {
+                        @foreach (var ins in _snap.PredictiveInsights)
+                        {
+                            <div class="insight-item @ins.Severity">
+                                <div class="insight-line1">
+                                    <span class="sev">@(ins.Severity == "high" ? L["andon.insightHigh"] : L["andon.insightMedium"])</span>
+                                    <span class="pct">@((ins.PredictedNgRate * 100).ToString("F1"))%</span>
+                                    <span class="title">#@ins.ClientIndex.ToString("D2") @ins.ClientName</span>
+                                </div>
+                                <div class="insight-line2">
+                                    @if (!string.IsNullOrEmpty(ins.RecipeName))
+                                    {
+                                        <span>@ins.RecipeName</span>
+                                        <span class="sep">·</span>
+                                    }
+                                    <span>@(ins.WindowStart?.ToLocalTime().ToString("MM-dd HH:mm") ?? "—")</span>
+                                    @if (!string.IsNullOrEmpty(ins.ModelName))
+                                    {
+                                        <span class="sep">·</span>
+                                        <span class="model">@ins.ModelName</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
             <!-- 마지막 갱신 -->
             <div class="footer-info">
                 <span>Last updated: @_lastRefresh.ToString("HH:mm:ss")</span>
@@ -403,6 +445,61 @@
         font-family: 'Roboto Mono', monospace;
     }
     .alarm-line2 .ack { color: #4caf50; margin-left: 6px; }
+
+    /* ===== Predictive Insights (Plan §8 Open Q #5 — 알람 아닌 권고 채널) ===== */
+    /* 알람과 차별화 위해 보라 톤. high=red 톤 유지(임계 일관성). */
+    .insights-block {
+        display: flex; flex-direction: column;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid #2a1f3a;
+        border-radius: 6px; overflow: hidden;
+    }
+    .insights-header {
+        height: 36px; padding: 0 12px;
+        display: flex; align-items: center; justify-content: space-between;
+        background: #1f1830; font-weight: 600; font-size: 13px; letter-spacing: 0.5px;
+    }
+    .insights-header .count-badge {
+        background: #3a2f50; color: #c9b3ff; padding: 2px 8px; border-radius: 10px;
+        font-size: 11px; font-weight: 700;
+    }
+    .insights-header .count-badge.high { background: #ef5350; color: white; }
+    .insights-list { flex: 0 1 auto; max-height: 280px; overflow: auto; padding: 8px; }
+    .no-insights {
+        text-align: center; color: #6b7d92; padding: 16px; font-size: 12px;
+    }
+    .insight-item {
+        padding: 8px 10px; margin-bottom: 6px;
+        background: rgba(0,0,0,0.25);
+        border-left: 3px solid #a78bfa;
+        border-radius: 3px;
+    }
+    .insight-item.high   { border-left-color: #ef5350; background: rgba(239, 83, 80, 0.10); }
+    .insight-item.medium { border-left-color: #ffa726; background: rgba(255, 167, 38, 0.06); }
+    .insight-line1 {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px; font-weight: 600;
+    }
+    .insight-line1 .sev {
+        padding: 1px 6px; border-radius: 3px; font-size: 10px;
+        font-weight: 700; letter-spacing: 1px;
+        background: #3a2f50; color: #c9b3ff;
+    }
+    .insight-item.high .sev   { background: #ef5350; color: white; }
+    .insight-item.medium .sev { background: #ffa726; color: #1a1a1a; }
+    .insight-line1 .pct {
+        font-size: 16px; font-weight: 800;
+        font-family: 'Roboto Mono', monospace;
+    }
+    .insight-item.high   .insight-line1 .pct { color: #ef5350; }
+    .insight-item.medium .insight-line1 .pct { color: #ffa726; }
+    .insight-line1 .title { flex: 1; color: #e8eef4; }
+    .insight-line2 {
+        font-size: 11px; color: #95a4b3; margin-top: 3px;
+        font-family: 'Roboto Mono', monospace;
+    }
+    .insight-line2 .sep { margin: 0 6px; }
+    .insight-line2 .model { color: #c9b3ff; }
 
     .footer-info {
         text-align: center; font-size: 11px; color: #95a4b3;

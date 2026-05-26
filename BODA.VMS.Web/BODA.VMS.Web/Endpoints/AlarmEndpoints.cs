@@ -44,6 +44,19 @@ public static class AlarmEndpoints
             return a is null ? Results.NotFound() : Results.Ok(a);
         });
 
+        group.MapPost("/acknowledge-all", async (IAlarmService svc, HttpContext ctx) =>
+        {
+            var userIdClaim = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userName = ctx.User.FindFirstValue("DisplayName")
+                ?? ctx.User.FindFirstValue(ClaimTypes.Name)
+                ?? "unknown";
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Results.Unauthorized();
+
+            var count = await svc.AcknowledgeAllAsync(userId, userName);
+            return Results.Ok(new { acknowledged = count });
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+
         group.MapPost("/{id:int}/action", async (
             int id, AlarmActionRequest req, IAlarmService svc, HttpContext ctx) =>
         {

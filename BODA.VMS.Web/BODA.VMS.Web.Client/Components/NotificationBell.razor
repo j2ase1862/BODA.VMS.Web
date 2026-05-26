@@ -1,51 +1,101 @@
 @inject SignalRService SignalR
 @inject ApiClient Api
 @inject NavigationManager Nav
+@inject ILocalizer L
+@inject ISnackbar Snackbar
 @implements IDisposable
 
-<MudBadge Content="@_count" Visible="@(_count > 0)" Color="@_badgeColor" Overlap="true" Bordered="true">
+<MudBadge Content="@_count"
+          Max="99"
+          Visible="@(_count > 0)"
+          Color="@_badgeColor"
+          Overlap="true"
+          Bordered="true"
+          Origin="Origin.TopLeft"
+          Class="vms-notif-badge">
     <MudMenu Icon="@Icons.Material.Filled.NotificationsNone" Color="Color.Inherit"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
         @if (_recent.Count == 0)
         {
             <MudMenuItem Disabled="true">
                 <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
-                    No active alarms
+                    @L["dialog.notifNoAlarms"]
                 </MudText>
             </MudMenuItem>
         }
         else
         {
+            <div class="d-flex align-center justify-space-between px-3 py-1"
+                 style="min-width: 280px; border-bottom: 1px solid var(--mud-palette-divider);">
+                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">
+                    @($"{_count}건 미확인")
+                </MudText>
+                <MudButton Size="Size.Small"
+                           Variant="Variant.Text"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.DoneAll"
+                           OnClick="AcknowledgeAll"
+                           Disabled="@_processing"
+                           Style="font-size: 11px;">
+                    모두 확인
+                </MudButton>
+            </div>
+
             @foreach (var a in _recent)
             {
-                <MudMenuItem OnClick="@(() => GoToAlarm(a))">
-                    <div style="min-width: 260px;">
-                        <div class="d-flex align-center" style="gap:6px;">
-                            <MudChip T="string" Size="Size.Small" Color="@SevColor(a.Severity)"
-                                     Variant="Variant.Filled"
-                                     Style="height:16px; font-size:10px;">@a.Severity</MudChip>
-                            <span style="font-weight:600; font-size:13px;">@a.Title</span>
+                <div class="d-flex align-center" style="gap:4px; padding-right: 4px;">
+                    <MudMenuItem OnClick="@(() => GoToAlarm(a))" Style="flex: 1;">
+                        <div style="min-width: 240px;">
+                            <div class="d-flex align-center" style="gap:6px;">
+                                <MudChip T="string" Size="Size.Small" Color="@SevColor(a.Severity)"
+                                         Variant="Variant.Filled"
+                                         Style="height:16px; font-size:10px;">@a.Severity</MudChip>
+                                <span style="font-weight:600; font-size:13px;">@a.Title</span>
+                            </div>
+                            <div style="font-size:11px; color: var(--vms-text-secondary); margin-top:2px;">
+                                @a.OccurredAt.ToLocalTime().ToString("MM-dd HH:mm:ss")
+                                @(string.IsNullOrEmpty(a.ClientName) ? "" : $" — {a.ClientName}")
+                            </div>
                         </div>
-                        <div style="font-size:11px; color: var(--vms-text-secondary); margin-top:2px;">
-                            @a.OccurredAt.ToLocalTime().ToString("MM-dd HH:mm:ss")
-                            @(string.IsNullOrEmpty(a.ClientName) ? "" : $" — {a.ClientName}")
-                        </div>
-                    </div>
-                </MudMenuItem>
+                    </MudMenuItem>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   Color="Color.Default"
+                                   OnClick="@(() => AcknowledgeOne(a))"
+                                   Disabled="@_processing"
+                                   Title="확인 처리 (목록에서 제거)" />
+                </div>
             }
             <MudDivider Class="my-1" />
             <MudMenuItem OnClick="GoToAlarms">
                 <MudText Typo="Typo.body2" Color="Color.Primary" Style="font-size: 0.8rem;">
-                    View all alarms →
+                    @L["dialog.notifViewAll"]
                 </MudText>
             </MudMenuItem>
         }
     </MudMenu>
 </MudBadge>
 
+<style>
+    /* D-fix: 알림 배지가 AppBar 상단 모서리에 잘리지 않도록 양수 오프셋 + 컬러/크기 강조 */
+    .vms-notif-badge .mud-badge {
+        font-size: 11px;
+        font-weight: 700;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        right: auto !important;
+        left: 4px !important;
+        top: 4px !important;
+        transform: none !important;
+        box-shadow: 0 0 0 2px var(--mud-palette-appbar-background, #1f1f23);
+    }
+</style>
+
 @code {
     private List<AlarmEventDto> _recent = new();
     private int _count;
+    private bool _processing;
     private Color _badgeColor = Color.Warning;
 
     protected override async Task OnInitializedAsync()
@@ -86,6 +136,39 @@
     private void GoToAlarm(AlarmEventDto a) => Nav.NavigateTo($"/alarms?id={a.Id}");
     private void GoToAlarms() => Nav.NavigateTo("/alarms");
 
+    private async Task AcknowledgeAll()
+    {
+        _processing = true;
+        try
+        {
+            var result = await Api.PostAsync<object, AckAllResponse>("/api/alarms/acknowledge-all", new { });
+            Snackbar.Add($"{result?.Acknowledged ?? 0}건 확인 처리됨", Severity.Success);
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"확인 실패: {ex.Message}", Severity.Error);
+        }
+        finally { _processing = false; }
+    }
+
+    private async Task AcknowledgeOne(AlarmEventDto a)
+    {
+        _processing = true;
+        try
+        {
+            await Api.PostAsync<AlarmActionRequest, AlarmEventDto>(
+                $"/api/alarms/{a.Id}/action",
+                new AlarmActionRequest { Action = "Acknowledge" });
+            await Refresh();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"실패: {ex.Message}", Severity.Error);
+        }
+        finally { _processing = false; }
+    }
+
     private static Color SevColor(string sev) => sev switch
     {
         "Critical" => Color.Error,
@@ -98,5 +181,10 @@
     {
         SignalR.OnAlarmCreated -= HandleAlarmCreated;
         SignalR.OnAlarmUpdated -= HandleAlarmUpdated;
+    }
+
+    private class AckAllResponse
+    {
+        public int Acknowledged { get; set; }
     }
 }

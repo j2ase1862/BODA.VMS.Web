@@ -73,4 +73,32 @@ public class InspectionHistory
 
     [ForeignKey(nameof(OperatorId))]
     public User? Operator { get; set; }
+
+    // ─── Predictive_DefectRate_Plan §5.1 (V1/V2/V3) 예측 피처 ───
+    // 모두 nullable — 구버전 VMS 클라이언트(필드 미전송)와의 후방호환.
+
+    /// <summary>V2: 검사 1회 소요 시간(ms). 가동 페이스 둔화 ↔ 품질 저하 선행 신호.</summary>
+    public int? CycleTimeMs { get; set; }
+
+    /// <summary>V1: 이미지 평균 밝기(0~255).</summary>
+    public double? Brightness { get; set; }
+
+    /// <summary>V1: 이미지 명암 표준편차.</summary>
+    public double? ContrastStd { get; set; }
+
+    /// <summary>V1: Laplacian variance — 초점/선명도 점수.</summary>
+    public double? FocusScore { get; set; }
+
+    /// <summary>V1: blob 개수(Otsu 이진화 후 connected components).</summary>
+    public int? BlobCount { get; set; }
+
+    /// <summary>V1: 가장 큰 blob 면적(px).</summary>
+    public double? MaxBlobAreaPx { get; set; }
+
+    /// <summary>V3: DL 모델 신뢰도(0~1).</summary>
+    public double? DlConfidence { get; set; }
+
+    /// <summary>V3: 사용된 DL 모델 버전(피처 분포 변화 추적용).</summary>
+    [MaxLength(50)]
+    public string? DlModelVersion { get; set; }
 }

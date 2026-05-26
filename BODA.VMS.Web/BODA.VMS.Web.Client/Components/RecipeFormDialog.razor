@@ -1,29 +1,29 @@
 @inject ISnackbar Snackbar
+@inject ILocalizer L
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="Name" Label="레시피 이름"
+        <MudTextField @bind-Value="Name" Label="@(L["dialog.recipeFieldName"])"
                       Variant="Variant.Outlined" Class="mb-4"
                       Placeholder="S25_BackGlass, APPLE_I15_CASE"
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.MenuBook" />
 
-        <MudTextField @bind-Value="Description" Label="설명"
+        <MudTextField @bind-Value="Description" Label="@(L["dialog.recipeFieldDescription"])"
                       Variant="Variant.Outlined" Class="mb-4"
-                      Placeholder="제품 모델 설명"
+                      Placeholder="@(L["dialog.recipeFieldDescriptionPlaceholder"])"
                       Lines="2" />
 
         <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-2">
-            레시피 ID는 서버에서 자동 발급됩니다.
-            생성 후 VisionSetup에서 비전 로직(카메라/툴/스텝)을 구성하세요.
+            @L["dialog.recipeAlertInfo"]
         </MudAlert>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">취소</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@string.IsNullOrWhiteSpace(Name)"
                    Class="vms-btn">
-            등록
+            @L["action.create"]
         </MudButton>
     </DialogActions>
 </MudDialog>

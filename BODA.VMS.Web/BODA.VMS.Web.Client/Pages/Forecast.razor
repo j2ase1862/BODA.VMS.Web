@@ -1,0 +1,411 @@
+@page "/forecast"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ILocalizer L
+@implements IAsyncDisposable
+
+<PageTitle>@L["page.forecast"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">@L["page.forecast"]</MudText>
+        <MudSpacer />
+        @if (_snapshot is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Default">
+                @L["forecast.lastRefreshed"]: @_snapshot.ServerUtc.ToLocalTime().ToString("HH:mm:ss")
+            </MudText>
+        }
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                       OnClick="RefreshAsync"
+                       Disabled="_loading"
+                       Color="Color.Primary" />
+    </MudStack>
+
+    @if (_status is not null && !_status.ModelLoaded)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <MudText Typo="Typo.body1">@L["forecast.noModelBanner"]</MudText>
+            @if (!string.IsNullOrEmpty(_status.LastError))
+            {
+                <MudText Typo="Typo.caption">@_status.LastError</MudText>
+            }
+        </MudAlert>
+    }
+    else if (_status is not null && _status.RetrainRecommended)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Icon="@Icons.Material.Filled.Refresh">
+            <MudText Typo="Typo.body1">@L["forecast.retrainBanner"]</MudText>
+            <MudText Typo="Typo.caption">
+                @L["forecast.residual.mae"]: @(_status.ResidualMae?.ToString("F4") ?? "—")
+                · @L["forecast.residual.samples"]: @_status.ResidualSampleCount
+            </MudText>
+        </MudAlert>
+    }
+
+    @if (_loading && _snapshot is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_snapshot is null || _snapshot.Items.Count == 0)
+    {
+        <MudPaper Class="pa-6" Elevation="0">
+            <MudText Align="Align.Center" Color="Color.Default">@L["forecast.empty"]</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (var item in _snapshot.Items)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Outlined="true"
+                             Class="@(item.ClientIndex == _selectedClientIndex ? "mud-elevation-4" : "")"
+                             Style="@CardStyle(item)"
+                             @onclick="@(() => SelectClient(item.ClientIndex))">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.subtitle1">
+                                    @L["forecast.client"] #@item.ClientIndex
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    @(string.IsNullOrEmpty(item.RecipeName) ? "—" : item.RecipeName)
+                                </MudText>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                @{
+                                    var (statusText, statusColor) = StatusLabel(item.Status);
+                                }
+                                <MudChip T="string" Size="Size.Small" Color="@statusColor" Variant="Variant.Filled">
+                                    @statusText
+                                </MudChip>
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (item.Status == "ok" && item.PredictedNgRate.HasValue)
+                            {
+                                var pct = item.PredictedNgRate.Value * 100.0;
+                                <MudText Typo="Typo.h3" Color="@SeverityColor(pct)">
+                                    @pct.ToString("F1")%
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    @L["forecast.predictedNgRate"]
+                                </MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText Typo="Typo.caption">
+                                    @L["forecast.windowStart"]:
+                                    @(item.WindowStart?.ToLocalTime().ToString("MM-dd HH:mm") ?? "—")
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    @L["forecast.inspectionsThisHour"]: @item.InspectionCountThisHour
+                                </MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Default">
+                                    @(item.Message ?? L["forecast.noData"])
+                                </MudText>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudPaper Class="pa-4 mt-4" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">@L["forecast.historyTitle"]</MudText>
+                <MudSpacer />
+                @if (_selectedClientIndex.HasValue)
+                {
+                    <MudText Typo="Typo.caption">
+                        @L["forecast.client"] #@_selectedClientIndex
+                        @if (!string.IsNullOrEmpty(_actuals?.RecipeName))
+                        {
+                            <span> · @_actuals.RecipeName</span>
+                        }
+                    </MudText>
+                }
+            </MudStack>
+
+            @if (!_selectedClientIndex.HasValue)
+            {
+                <MudText Color="Color.Default">@L["forecast.selectClient"]</MudText>
+            }
+            else if (_actuals is null)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_actuals.Points.Count == 0)
+            {
+                <MudText Color="Color.Default">@L["forecast.noHistory"]</MudText>
+            }
+            else
+            {
+                <MudChart ChartType="ChartType.Line"
+                          ChartSeries="@_chartSeries"
+                          XAxisLabels="@_chartLabels"
+                          ChartOptions="@_chartOptions"
+                          Width="100%" Height="320px" />
+            }
+        </MudPaper>
+
+        @if (_selectedClientIndex.HasValue)
+        {
+            <MudPaper Class="pa-4 mt-4" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6">@L["forecast.residual.title"]</MudText>
+                    <MudSpacer />
+                    @if (_residuals is not null && _residuals.Points.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption">
+                            μ=@_residuals.ResidualMean.ToString("F4")
+                            · σ=@_residuals.ResidualStdDev.ToString("F4")
+                            · n=@_residuals.Points.Count
+                        </MudText>
+                    }
+                </MudStack>
+
+                @if (_residuals is null)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Secondary" />
+                }
+                else if (_residuals.Points.Count == 0)
+                {
+                    <MudText Color="Color.Default">@L["forecast.residual.empty"]</MudText>
+                }
+                else
+                {
+                    <MudChart ChartType="ChartType.Line"
+                              ChartSeries="@_residualSeries"
+                              XAxisLabels="@_residualLabels"
+                              ChartOptions="@_residualOptions"
+                              Width="100%" Height="320px" />
+                }
+            </MudPaper>
+        }
+    }
+</MudContainer>
+
+@code {
+    private PredictionSnapshotResponse? _snapshot;
+    private RecentActualsResponse? _actuals;
+    private ResidualsResponse? _residuals;
+    private PredictionServiceStatus? _status;
+    private int? _selectedClientIndex;
+    private bool _loading;
+    private Timer? _refreshTimer;
+
+    private List<ChartSeries> _chartSeries = new();
+    private string[] _chartLabels = Array.Empty<string>();
+    private readonly ChartOptions _chartOptions = new()
+    {
+        LineStrokeWidth = 2,
+        YAxisFormat = "0.##\\%",
+    };
+
+    // Phase F — 잔차 SPC 차트
+    private List<ChartSeries> _residualSeries = new();
+    private string[] _residualLabels = Array.Empty<string>();
+    private readonly ChartOptions _residualOptions = new()
+    {
+        LineStrokeWidth = 2,
+        YAxisFormat = "0.####",
+    };
+
+    // PredictionService 캐시 TTL 과 동일 60초
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(60);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        _refreshTimer = new Timer(async _ => await RefreshAsync(),
+            null, RefreshInterval, RefreshInterval);
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_loading) return;
+        _loading = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            _snapshot = await Api.GetAsync<PredictionSnapshotResponse>("/api/predictions/snapshot");
+            // Phase F: 잔차 통계 + 재학습 권고 시그널 포함 status 사용
+            _status = await Api.GetAsync<PredictionServiceStatus>("/api/predictions/status/full");
+
+            // 최초 진입 시 첫 카드 자동 선택
+            if (_selectedClientIndex is null && _snapshot is { Items.Count: > 0 })
+            {
+                _selectedClientIndex = _snapshot.Items[0].ClientIndex;
+            }
+
+            if (_selectedClientIndex.HasValue)
+            {
+                await LoadActualsAsync(_selectedClientIndex.Value);
+                await LoadResidualsAsync(_selectedClientIndex.Value);
+            }
+        }
+        catch
+        {
+            // 일시적 네트워크 실패 — 다음 tick 재시도
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SelectClient(int clientIndex)
+    {
+        _selectedClientIndex = clientIndex;
+        _residuals = null;  // 차트 progressbar 로 전환
+        await LoadActualsAsync(clientIndex);
+        await LoadResidualsAsync(clientIndex);
+    }
+
+    private async Task LoadActualsAsync(int clientIndex)
+    {
+        _actuals = await Api.GetAsync<RecentActualsResponse>(
+            $"/api/predictions/actuals/{clientIndex}?hours=24");
+        BuildChart();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadResidualsAsync(int clientIndex)
+    {
+        _residuals = await Api.GetAsync<ResidualsResponse>(
+            $"/api/predictions/residuals/{clientIndex}?hours=168");
+        BuildResidualChart();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildResidualChart()
+    {
+        if (_residuals is null || _residuals.Points.Count == 0)
+        {
+            _residualSeries = new();
+            _residualLabels = Array.Empty<string>();
+            return;
+        }
+
+        var pts = _residuals.Points;
+        _residualLabels = pts
+            .Select((p, i) => i % Math.Max(1, pts.Count / 12) == 0
+                ? p.WindowStart.ToLocalTime().ToString("MM-dd HH")
+                : "")
+            .ToArray();
+
+        var n = pts.Count;
+        var residualData = new double[n];
+        var predData = new double[n];
+        var actualData = new double[n];
+        var uclData = new double[n];
+        var lclData = new double[n];
+        for (int i = 0; i < n; i++)
+        {
+            residualData[i] = pts[i].Residual;
+            predData[i] = pts[i].Predicted;
+            actualData[i] = pts[i].Actual;
+            uclData[i] = _residuals.Ucl;
+            lclData[i] = _residuals.Lcl;
+        }
+
+        _residualSeries = new List<ChartSeries>
+        {
+            new ChartSeries { Name = L["forecast.residual.residual"], Data = residualData },
+            new ChartSeries { Name = L["forecast.residual.ucl"],      Data = uclData },
+            new ChartSeries { Name = L["forecast.residual.lcl"],      Data = lclData },
+            new ChartSeries { Name = L["forecast.residual.predicted"], Data = predData },
+            new ChartSeries { Name = L["forecast.residual.actual"],    Data = actualData },
+        };
+    }
+
+    private void BuildChart()
+    {
+        if (_actuals is null || _actuals.Points.Count == 0)
+        {
+            _chartSeries = new();
+            _chartLabels = Array.Empty<string>();
+            return;
+        }
+
+        // 가독성: X 라벨은 시간만 (HH), 6시간 간격으로 thin
+        var pts = _actuals.Points;
+        _chartLabels = pts
+            .Select((p, i) => i % 4 == 0 ? p.HourBucket.ToLocalTime().ToString("HH") : "")
+            .ToArray();
+
+        _chartSeries = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = L["forecast.actualNgRate"],
+                Data = pts.Select(p => p.NgRate * 100.0).ToArray()
+            }
+        };
+
+        // 현재 예측이 ok 면 마지막 점에 예측값을 별도 시리즈로 — 시각 비교용
+        var current = _snapshot?.Items.FirstOrDefault(i => i.ClientIndex == _selectedClientIndex);
+        if (current?.PredictedNgRate is not null && current.Status == "ok")
+        {
+            var predData = new double?[pts.Count];
+            for (int i = 0; i < pts.Count - 1; i++) predData[i] = null;
+            predData[pts.Count - 1] = current.PredictedNgRate.Value * 100.0;
+            // MudChart 의 ChartSeries.Data 는 double[] — null 표현 안 됨.
+            // 대신 마지막 N 시점에 예측값 상수 라인 추가.
+            var predLine = new double[pts.Count];
+            for (int i = 0; i < pts.Count; i++) predLine[i] = double.NaN;
+            predLine[pts.Count - 1] = current.PredictedNgRate.Value * 100.0;
+            _chartSeries.Add(new ChartSeries
+            {
+                Name = L["forecast.predictedNgRate"],
+                Data = predLine
+            });
+        }
+    }
+
+    private string CardStyle(PredictionCurrentResponse item)
+    {
+        if (item.Status != "ok" || !item.PredictedNgRate.HasValue) return "cursor:pointer;";
+        var pct = item.PredictedNgRate.Value * 100.0;
+        var color = SeverityColorHex(pct);
+        return $"cursor:pointer;border-left:4px solid {color};";
+    }
+
+    private static Color SeverityColor(double pct) => pct switch
+    {
+        >= 10.0 => Color.Error,
+        >= 5.0 => Color.Warning,
+        _ => Color.Success,
+    };
+
+    private static string SeverityColorHex(double pct) => pct switch
+    {
+        >= 10.0 => "#f44336",
+        >= 5.0 => "#ff9800",
+        _ => "#4caf50",
+    };
+
+    private (string Text, Color Color) StatusLabel(string status) => status switch
+    {
+        "ok"       => (L["forecast.status.ok"],      Color.Success),
+        "no_model" => (L["forecast.status.noModel"], Color.Default),
+        "no_data"  => (L["forecast.status.noData"],  Color.Warning),
+        "error"    => (L["forecast.status.error"],   Color.Error),
+        _          => (status,                       Color.Default),
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_refreshTimer is not null)
+        {
+            await _refreshTimer.DisposeAsync();
+            _refreshTimer = null;
+        }
+    }
+}

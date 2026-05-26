@@ -40,6 +40,17 @@ public class LotService : ILotService
         return entity is null ? null : ToDto(entity);
     }
 
+    public async Task<LotDto?> GetActiveByWorkOrderAsync(int workOrderId)
+    {
+        // 가장 최근 Open Lot 1개 — Sequence DESC. 없으면 null.
+        var entity = await _db.Lots
+            .Include(l => l.WorkOrder)
+            .Where(l => l.WorkOrderId == workOrderId && l.Status == LotStatus.Open)
+            .OrderByDescending(l => l.Sequence)
+            .FirstOrDefaultAsync();
+        return entity is null ? null : ToDto(entity);
+    }
+
     public async Task<LotDto> CreateAsync(int workOrderId, string? note)
     {
         var workOrder = await _db.WorkOrders.FindAsync(workOrderId)

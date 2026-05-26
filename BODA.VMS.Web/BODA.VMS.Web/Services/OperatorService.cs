@@ -43,6 +43,7 @@ public class OperatorService : IOperatorService
             EmployeeNumber = dto.EmployeeNumber.Trim(),
             Name = dto.Name.Trim(),
             Department = string.IsNullOrWhiteSpace(dto.Department) ? null : dto.Department.Trim(),
+            Role = NormalizeRole(dto.Role),
             PinHash = BCrypt.Net.BCrypt.HashPassword(dto.Pin!),
             IsActive = dto.IsActive,
             CreatedAt = DateTime.UtcNow
@@ -60,6 +61,7 @@ public class OperatorService : IOperatorService
         e.EmployeeNumber = dto.EmployeeNumber.Trim();
         e.Name = dto.Name.Trim();
         e.Department = string.IsNullOrWhiteSpace(dto.Department) ? null : dto.Department.Trim();
+        e.Role = NormalizeRole(dto.Role);
         e.IsActive = dto.IsActive;
 
         // PIN은 입력된 경우에만 갱신
@@ -111,8 +113,17 @@ public class OperatorService : IOperatorService
         EmployeeNumber = e.EmployeeNumber,
         Name = e.Name,
         Department = e.Department,
+        Role = e.Role,
         IsActive = e.IsActive,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt
+    };
+
+    /// <summary>알 수 없는 Role 값은 "Operator" 로 정규화 (DB 손상/이전 데이터 방어).</summary>
+    private static string NormalizeRole(string? role) => role switch
+    {
+        OperatorRole.Supervisor => OperatorRole.Supervisor,
+        OperatorRole.Lead => OperatorRole.Lead,
+        _ => OperatorRole.Operator
     };
 }
