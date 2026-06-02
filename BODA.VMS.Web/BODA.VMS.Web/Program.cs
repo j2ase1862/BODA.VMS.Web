@@ -8,6 +8,7 @@ using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -122,6 +123,55 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 // FluentValidation — Validators/ 폴더의 모든 IValidator<T> 자동 등록.
 // Endpoint 에서 .AddEndpointFilter<ValidationEndpointFilter<TDto>>() 로 적용.
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+
+// GS 인증 High — 헬스 체크. /health 로 익명 접근, DB 연결 + 등록된 자체 check 수행.
+// Docker / Kubernetes liveness/readiness probe + 모니터링 도구(예: Uptime Kuma)
+// 에서 활용. 응답 형식: 200 OK "Healthy" / 503 ServiceUnavailable "Unhealthy".
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<BodaVmsDbContext>(
+        name: "sqlite-db",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "db", "ready" });
+
+// GS 인증 High — OpenAPI/Swagger 문서 자동 생성. 28 개 endpoint 의 계약 노출 +
+// 개발자 / 외부 통합 측이 API 시험 가능. Production 에서도 /swagger 활성 유지 —
+// 운영팀 트러블슈팅 / 외부 SI 인계 시 가치 크고, /swagger 자체는 인증된 endpoint
+// 호출 시 JWT 필요해 데이터 노출 위험 없음.
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(opts =>
+{
+    opts.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "BODA VMS Web API",
+        Version = "v1",
+        Description = "Vision Management System — 레시피 sync, 클라이언트 heartbeat, " +
+                      "검사 이력, 작업지시, OEE/SPC 분석 등을 제공하는 REST API."
+    });
+    // JWT Bearer 인증 스킴 — Swagger UI 에서 'Authorize' 버튼으로 토큰 입력 가능
+    opts.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Bearer 토큰. /api/auth/login 응답의 token 을 입력."
+    });
+    opts.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // SignalR
 builder.Services.AddSignalR();
@@ -824,6 +874,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
     app.UseHttpsRedirection();
 }
+
+// GS 인증 High — Swagger UI 활성화. /swagger 에서 OpenAPI 문서 + 테스트 가능.
+// 보안 헤더(X-Frame-Options=SAMEORIGIN)와 호환.
+app.UseSwagger();
+app.UseSwaggerUI(opts =>
+{
+    opts.SwaggerEndpoint("/swagger/v1/swagger.json", "BODA VMS Web API v1");
+    opts.RoutePrefix = "swagger";
+    opts.DocumentTitle = "BODA VMS Web API";
+});
+
 // Static files with aggressive caching for WASM framework files
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -888,6 +949,14 @@ app.MapOperatorEndpoints();
 app.MapMaintenanceEndpoints();
 app.MapSensorEndpoints();
 app.MapPredictionEndpoints();
+
+// GS 인증 High — 헬스 체크 endpoint. 익명, DB 연결 + 등록된 모든 check 수행.
+// liveness probe(/health/live): 앱 살아있음 / readiness probe(/health): DB 준비됨.
+app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false  // 어떤 check 도 실행하지 않음 — 앱 프로세스 생존 여부만 확인
+}).AllowAnonymous();
 
 // Map SignalR hub
 app.MapHub<VmsHub>("/hubs/vms");
