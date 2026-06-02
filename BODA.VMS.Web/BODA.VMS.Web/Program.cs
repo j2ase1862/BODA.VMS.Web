@@ -124,6 +124,12 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 // Endpoint 에서 .AddEndpointFilter<ValidationEndpointFilter<TDto>>() 로 적용.
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
+// GS 인증 High — VMS 머신 endpoint X-API-Key 검증 옵션.
+// Required=false (기본) — 기존 VMS 클라이언트 호환. 운영 전환 시 user-secrets/
+// 환경변수로 ClientApiKey__Required=true 설정.
+builder.Services.Configure<ClientApiKeyOptions>(
+    builder.Configuration.GetSection(ClientApiKeyOptions.SectionName));
+
 // GS 인증 High — 헬스 체크. /health 로 익명 접근, DB 연결 + 등록된 자체 check 수행.
 // Docker / Kubernetes liveness/readiness probe + 모니터링 도구(예: Uptime Kuma)
 // 에서 활용. 응답 형식: 200 OK "Healthy" / 503 ServiceUnavailable "Unhealthy".

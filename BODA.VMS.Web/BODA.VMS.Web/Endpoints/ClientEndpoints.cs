@@ -47,6 +47,7 @@ public static class ClientEndpoints
 
             return Results.Ok();
         }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>()
           .AddEndpointFilter<ValidationEndpointFilter<HeartbeatRequest>>();
 
         // Self-register endpoint (Phase 4) — VisionServer가 비활성/실패 시 VMS의 fallback
@@ -103,6 +104,7 @@ public static class ClientEndpoints
                 client.IsActive
             });
         }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>()
           .AddEndpointFilter<ValidationEndpointFilter<ClientRegisterRequest>>();
 
         // Vision client sends this on graceful shutdown → immediate offline
@@ -130,6 +132,7 @@ public static class ClientEndpoints
 
             return Results.Ok();
         }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>()
           .AddEndpointFilter<ValidationEndpointFilter<DisconnectRequest>>();
 
         var group = app.MapGroup("/api/clients")
