@@ -6,6 +6,7 @@ using BODA.VMS.Web.Endpoints;
 using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
@@ -117,6 +118,10 @@ builder.Services.AddCors(options =>
 // 구조화 로깅. Razor 페이지는 /Error fallback (UseExceptionHandler 옵션).
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+
+// FluentValidation — Validators/ 폴더의 모든 IValidator<T> 자동 등록.
+// Endpoint 에서 .AddEndpointFilter<ValidationEndpointFilter<TDto>>() 로 적용.
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 // SignalR
 builder.Services.AddSignalR();

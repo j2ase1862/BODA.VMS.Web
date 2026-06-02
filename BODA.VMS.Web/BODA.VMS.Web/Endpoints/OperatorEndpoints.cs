@@ -1,6 +1,7 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,7 +38,7 @@ public static class OperatorEndpoints
 
             var session = await sessionSvc.StartSessionAsync(client.Id, op.Id);
             return Results.Ok(session);
-        });
+        }).AddEndpointFilter<ValidationEndpointFilter<KioskLoginRequest>>();
 
         // 로그아웃 (현재 작업자 세션 종료)
         kiosk.MapPost("/logout", async (

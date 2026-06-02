@@ -2,6 +2,7 @@ using System.Text.Json;
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Hubs;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -226,7 +227,8 @@ public static class InspectionItemEndpoints
                 isPass,
                 workOrder = workOrderInfo
             });
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ValidationEndpointFilter<ParameterResultUploadRequest>>();
 
         // === 관리 엔드포인트 (인증 필요) ===
         var group = app.MapGroup("/api/parameters")
