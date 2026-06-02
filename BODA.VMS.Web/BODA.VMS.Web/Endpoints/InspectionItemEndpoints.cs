@@ -285,9 +285,11 @@ public static class InspectionItemEndpoints
                 logger.LogError(ex, "Failed to create parameter {Code}", dto.ParamCode);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<RecipeParameterDto>>();
 
-        // 배치 생성
+        // 배치 생성 — 배치 검증은 ValidationFilter 가 List 자체에 적용되지 않으므로
+        // 서비스 레이어에서 항목별 검증 권장 (별도 PR).
         group.MapPost("/batch", async (
             List<RecipeParameterDto> dtos,
             IRecipeParameterService service,
@@ -313,7 +315,8 @@ public static class InspectionItemEndpoints
         {
             var result = await service.UpdateAsync(id, dto);
             return result is null ? Results.NotFound() : Results.Ok(result);
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<RecipeParameterDto>>();
 
         // 삭제
         group.MapDelete("/{id:int}", async (int id, IRecipeParameterService service) =>

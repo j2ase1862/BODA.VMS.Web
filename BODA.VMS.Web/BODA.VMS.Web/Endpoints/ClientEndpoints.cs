@@ -1,7 +1,8 @@
-using BODA.VMS.Web.Client.Models;
+﻿using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
 using BODA.VMS.Web.Hubs;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +46,8 @@ public static class ClientEndpoints
             await db.SaveChangesAsync();
 
             return Results.Ok();
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ValidationEndpointFilter<HeartbeatRequest>>();
 
         // Self-register endpoint (Phase 4) — VisionServer가 비활성/실패 시 VMS의 fallback
         // VisionServer 없는 환경에서도 VMS가 첫 heartbeat 후 곧바로 등록 가능.
@@ -100,7 +102,8 @@ public static class ClientEndpoints
                 client.IpAddress,
                 client.IsActive
             });
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ValidationEndpointFilter<ClientRegisterRequest>>();
 
         // Vision client sends this on graceful shutdown → immediate offline
         app.MapPost("/api/clients/disconnect", async (
@@ -126,7 +129,8 @@ public static class ClientEndpoints
             await hubContext.Clients.All.SendAsync("ClientStatusChanged", client.Id, false);
 
             return Results.Ok();
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ValidationEndpointFilter<DisconnectRequest>>();
 
         var group = app.MapGroup("/api/clients")
             .RequireAuthorization();
@@ -155,13 +159,15 @@ public static class ClientEndpoints
                 logger.LogError(ex, "Failed to create client '{Name}'", dto.Name);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<ClientDto>>();
 
         group.MapPut("/{id:int}", async (int id, ClientDto dto, IClientService clientService) =>
         {
             var result = await clientService.UpdateClientAsync(id, dto);
             return result is null ? Results.NotFound() : Results.Ok(result);
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<ClientDto>>();
 
         group.MapDelete("/{id:int}", async (int id, IClientService clientService) =>
         {
@@ -192,7 +198,8 @@ public static class ClientEndpoints
                 logger.LogError(ex, "Failed to create recipe '{Name}' for client {ClientId}", dto.Name, id);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<RecipeDto>>();
 
         // Recipe 삭제
         group.MapDelete("/recipes/{recipeId:int}", async (

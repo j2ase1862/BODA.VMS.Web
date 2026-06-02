@@ -50,7 +50,7 @@ public static class OperatorEndpoints
             if (client is null) return Results.NotFound();
             var ended = await svc.EndSessionAsync(client.Id, SessionEndReason.Logout);
             return ended is null ? Results.NoContent() : Results.Ok(ended);
-        });
+        }).AddEndpointFilter<ValidationEndpointFilter<KioskLogoutRequest>>();
 
         // 라인 메타 (키오스크 페이지에서 라인 이름 표시용)
         kiosk.MapGet("/line/{clientIndex:int}", async (int clientIndex, BodaVmsDbContext db) =>
@@ -101,7 +101,8 @@ public static class OperatorEndpoints
                 logger.LogError(ex, "Failed to create operator");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<OperatorUpsertDto>>();
 
         operators.MapPut("/{id:int}", async (int id, OperatorUpsertDto dto, IOperatorService svc) =>
         {
@@ -114,7 +115,8 @@ public static class OperatorEndpoints
             {
                 return Results.BadRequest(ex.Message);
             }
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<OperatorUpsertDto>>();
 
         operators.MapDelete("/{id:int}", async (int id, IOperatorService svc) =>
         {

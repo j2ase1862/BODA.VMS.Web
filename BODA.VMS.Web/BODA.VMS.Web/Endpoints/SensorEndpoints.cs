@@ -1,3 +1,4 @@
+﻿using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
@@ -46,6 +47,7 @@ public static class SensorEndpoints
             await db.SaveChangesAsync();
 
             return Results.Ok(new { id = reading.Id });
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ValidationEndpointFilter<SensorReadingRequest>>();
     }
 }
