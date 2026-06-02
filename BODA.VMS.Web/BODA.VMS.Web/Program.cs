@@ -976,3 +976,7 @@ app.MapRazorComponents<App>()
     .AllowAnonymous();
 
 app.Run();
+
+// WebApplicationFactory<Program> 통합 테스트가 진입점 클래스에 접근하려면 public 필요.
+// top-level statements 의 Program 은 internal 이 기본이라 partial 로 가시성 확장.
+public partial class Program { }
