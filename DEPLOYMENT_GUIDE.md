@@ -75,19 +75,36 @@ publish/
 
 ## 4. 배포 전 설정
 
-### 4.1 JWT 보안 키 변경 (필수)
+### 4.1 JWT 보안 키 설정 (필수)
 
-`appsettings.Production.json` 파일에서 JWT 키를 반드시 변경해야 합니다.
+> **중요 (GS 보안 baseline):** v1.2 부터 JWT Key 는 **소스/appsettings 파일에 평문 저장 금지**. 시작 시 검증해 부재/32자 미만이면 부팅 실패함.
 
-```json
-{
-  "Jwt": {
-    "Key": "여기에-32자-이상의-안전한-랜덤-문자열-입력"
-  }
-}
+**개발 환경 (로컬 PC):**
+
+```powershell
+dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.VMS.Web\BODA.VMS.Web
 ```
 
-> **주의:** 기본 키(`CHANGE-THIS-TO-A-SECURE-RANDOM-KEY-AT-LEAST-32-CHARS`)를 그대로 사용하면 보안 위험이 있습니다. 반드시 고유한 값으로 변경하세요.
+- 저장 위치: `%APPDATA%\Microsoft\UserSecrets\boda-vms-web-d8f4a2c1-7e93-4b5f-9a01-3c6d8e2f1a45\secrets.json`
+- 개발자 개별 PC 에 보관 — 소스 저장소에 들어가지 않음
+
+**운영 환경 (Windows Service):**
+
+환경변수 `Jwt__Key` 로 설정 (이중 언더스코어 `__` 는 `:` 매핑):
+
+```powershell
+# 시스템 환경변수 등록 (관리자 PowerShell)
+[Environment]::SetEnvironmentVariable("Jwt__Key", "<32자 이상 무작위 키>", "Machine")
+
+# 또는 Windows 서비스의 환경변수로 등록 (sc.exe + leveryx 등)
+```
+
+**키 생성 예시:**
+
+```powershell
+# 64자 무작위 키 생성
+-join ((0x30..0x39) + (0x41..0x5A) + (0x61..0x7A) | Get-Random -Count 64 | % {[char]$_})
+```
 
 ### 4.2 포트 변경 (선택)
 

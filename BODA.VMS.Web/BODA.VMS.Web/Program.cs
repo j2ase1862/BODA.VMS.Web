@@ -4,6 +4,7 @@ using BODA.VMS.Web.Components;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Endpoints;
 using BODA.VMS.Web.Hubs;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -52,8 +53,16 @@ builder.Services.AddDbContext<BodaVmsDbContext>((sp, options) =>
     options.AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
 });
 
-// JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"]!;
+// JWT Authentication — Key 는 user-secrets / 환경변수에서만 로드 (소스 평문 저장 금지).
+// 시작 시 부재/너무 짧으면 명확한 에러로 부팅 중단 — GS 인증 보안 baseline.
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key 가 설정되지 않았거나 32자 미만입니다. 보안상 32자 이상 무작위 키 필수. " +
+        "개발: `dotnet user-secrets set \"Jwt:Key\" \"<32자 이상>\"` 실행. " +
+        "운영: 환경변수 `Jwt__Key` 설정 (서비스 환경변수 또는 컨테이너 secret).");
+}
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -84,6 +93,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+
+// CORS — Cors:AllowedOrigins 가 비어있으면 cross-origin 차단 (same-origin 만 허용).
+// VMS 데스크탑이 다른 호스트에서 API 호출시 appsettings 에 origin 등록.
+const string CorsPolicyVmsClients = "VmsClients";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicyVmsClients, policy =>
+    {
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? Array.Empty<string>();
+        if (origins.Length > 0)
+        {
+            policy.WithOrigins(origins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+    });
+});
+
+// GS 인증 baseline — API/Hub unhandled exception 을 ProblemDetails JSON 으로 반환 +
+// 구조화 로깅. Razor 페이지는 /Error fallback (UseExceptionHandler 옵션).
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -765,13 +798,24 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 app.UseResponseCompression();
 
+// GS 인증 baseline 보안 헤더 — 모든 응답에 적용.
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
 }
-else
+
+// API/Hub 예외 — ApiExceptionHandler 가 ProblemDetails JSON 반환,
+// Razor 페이지 / 컴포넌트 요청은 /Error 로 fallback. dev/prod 공통 적용.
+app.UseExceptionHandler(new Microsoft.AspNetCore.Builder.ExceptionHandlerOptions
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    ExceptionHandlingPath = "/Error",
+    AllowStatusCode404Response = true
+});
+
+if (!app.Environment.IsDevelopment())
+{
     app.UseHsts();
     app.UseHttpsRedirection();
 }
@@ -810,6 +854,9 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseAntiforgery();
+
+// CORS — UseAuthentication 직전이 권장 위치.
+app.UseCors(CorsPolicyVmsClients);
 
 app.UseAuthentication();
 app.UseAuthorization();
