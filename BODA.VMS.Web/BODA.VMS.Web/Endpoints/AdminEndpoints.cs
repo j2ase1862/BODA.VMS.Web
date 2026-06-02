@@ -1,4 +1,5 @@
 using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -26,7 +27,7 @@ public static class AdminEndpoints
         {
             var success = await userService.ApproveUserAsync(dto.UserId, dto.Role);
             return success ? Results.Ok() : Results.NotFound();
-        });
+        }).AddEndpointFilter<ValidationEndpointFilter<ApprovalDto>>();
 
         group.MapPost("/reject/{userId:int}", async (int userId, IUserManagementService userService) =>
         {
@@ -38,7 +39,7 @@ public static class AdminEndpoints
         {
             var success = await userService.ResetPasswordAsync(request.UserId, request.NewPassword);
             return success ? Results.Ok() : Results.NotFound();
-        });
+        }).AddEndpointFilter<ValidationEndpointFilter<ResetPasswordRequest>>();
     }
 }
 
