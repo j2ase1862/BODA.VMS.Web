@@ -4,6 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- 개발 비밀(JWT Key 등) 을 소스 외부(%APPDATA%\Microsoft\UserSecrets\) 에 저장.
+         dotnet user-secrets set "Jwt:Key" "..." 로 설정. 운영은 환경변수 Jwt__Key 사용. -->
+    <UserSecretsId>boda-vms-web-d8f4a2c1-7e93-4b5f-9a01-3c6d8e2f1a45</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
