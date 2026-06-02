@@ -48,6 +48,7 @@ public static class SensorEndpoints
 
             return Results.Ok(new { id = reading.Id });
         }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>()
           .AddEndpointFilter<ValidationEndpointFilter<SensorReadingRequest>>();
     }
 }

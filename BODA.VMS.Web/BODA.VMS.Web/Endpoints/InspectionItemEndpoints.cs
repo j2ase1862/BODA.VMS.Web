@@ -228,6 +228,7 @@ public static class InspectionItemEndpoints
                 workOrder = workOrderInfo
             });
         }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>()
           .AddEndpointFilter<ValidationEndpointFilter<ParameterResultUploadRequest>>();
 
         // === 관리 엔드포인트 (인증 필요) ===
