@@ -1,4 +1,5 @@
-using BODA.VMS.Web.Client.Models;
+﻿using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,7 +44,8 @@ public static class ShiftEndpoints
                 logger.LogError(ex, "Failed to create shift");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(p => p.RequireRole("Admin"));
+        }).RequireAuthorization(p => p.RequireRole("Admin"))
+          .AddEndpointFilter<ValidationEndpointFilter<ShiftDto>>();
 
         group.MapPut("/{id:int}", async (int id, ShiftDto dto, IShiftService svc) =>
         {
@@ -56,7 +58,8 @@ public static class ShiftEndpoints
             {
                 return Results.BadRequest(ex.Message);
             }
-        }).RequireAuthorization(p => p.RequireRole("Admin"));
+        }).RequireAuthorization(p => p.RequireRole("Admin"))
+          .AddEndpointFilter<ValidationEndpointFilter<ShiftDto>>();
 
         group.MapDelete("/{id:int}", async (int id, IShiftService svc) =>
         {
@@ -75,6 +78,6 @@ public static class ShiftEndpoints
         {
             var rows = await svc.GetReportAsync(req);
             return Results.Ok(rows);
-        });
+        }).AddEndpointFilter<ValidationEndpointFilter<ShiftReportRequestDto>>();
     }
 }

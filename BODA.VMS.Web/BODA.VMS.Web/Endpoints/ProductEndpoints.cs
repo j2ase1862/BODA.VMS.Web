@@ -1,4 +1,5 @@
-using BODA.VMS.Web.Client.Models;
+﻿using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,13 +46,15 @@ public static class ProductEndpoints
                 logger.LogError(ex, "Failed to create product {Code}", dto.Code);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<ProductDto>>();
 
         group.MapPut("/{id:int}", async (int id, ProductDto dto, IProductService svc) =>
         {
             var result = await svc.UpdateAsync(id, dto);
             return result is null ? Results.NotFound() : Results.Ok(result);
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<ProductDto>>();
 
         group.MapDelete("/{id:int}", async (int id, IProductService svc) =>
         {

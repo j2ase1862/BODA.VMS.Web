@@ -1,5 +1,6 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -43,7 +44,8 @@ public static class MaintenanceEndpoints
                 logger.LogError(ex, "Failed to create schedule");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<MaintenanceScheduleUpsertDto>>();
 
         group.MapPut("/schedules/{id:int}", async (
             int id, MaintenanceScheduleUpsertDto dto, IMaintenanceService svc) =>
@@ -54,7 +56,8 @@ public static class MaintenanceEndpoints
                 return s is null ? Results.NotFound() : Results.Ok(s);
             }
             catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<MaintenanceScheduleUpsertDto>>();
 
         group.MapDelete("/schedules/{id:int}", async (int id, IMaintenanceService svc) =>
         {
@@ -82,7 +85,8 @@ public static class MaintenanceEndpoints
                 return Results.Created($"/api/maintenance/records/{rec.Id}", rec);
             }
             catch (InvalidOperationException ex) { return Results.NotFound(ex.Message); }
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<PerformMaintenanceRequest>>();
 
         group.MapGet("/records", async (
             int? scheduleId, int? clientId,
@@ -100,6 +104,6 @@ public static class MaintenanceEndpoints
         {
             var stats = await svc.CalculateAsync(req);
             return Results.Ok(stats);
-        });
+        }).AddEndpointFilter<ValidationEndpointFilter<ReliabilityRequestDto>>();
     }
 }

@@ -1,4 +1,5 @@
-using BODA.VMS.Web.Client.Models;
+﻿using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,13 +40,15 @@ public static class DefectCodeEndpoints
                 logger.LogError(ex, "Failed to create defect code");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<DefectCodeDto>>();
 
         group.MapPut("/{id:int}", async (int id, DefectCodeDto dto, IDefectCodeService svc) =>
         {
             var r = await svc.UpdateAsync(id, dto);
             return r is null ? Results.NotFound() : Results.Ok(r);
-        }).RequireAuthorization(p => p.RequireRole("Admin", "User"));
+        }).RequireAuthorization(p => p.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<DefectCodeDto>>();
 
         group.MapDelete("/{id:int}", async (int id, IDefectCodeService svc) =>
         {
