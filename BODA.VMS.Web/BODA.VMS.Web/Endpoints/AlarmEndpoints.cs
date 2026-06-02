@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -82,6 +83,7 @@ public static class AlarmEndpoints
             {
                 return Results.BadRequest(ex.Message);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<AlarmActionRequest>>();
     }
 }

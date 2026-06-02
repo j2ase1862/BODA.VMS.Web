@@ -1,5 +1,6 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -61,7 +62,8 @@ public static class WorkOrderEndpoints
                 logger.LogError(ex, "Failed to create work order");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<WorkOrderDto>>();
 
         group.MapPut("/{id:int}", async (int id, WorkOrderDto dto, IWorkOrderService svc) =>
         {
@@ -74,7 +76,8 @@ public static class WorkOrderEndpoints
             {
                 return Results.Conflict(ex.Message);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<WorkOrderDto>>();
 
         group.MapPost("/{id:int}/status", async (
             int id,
@@ -94,7 +97,8 @@ public static class WorkOrderEndpoints
             {
                 return Results.BadRequest(ex.Message);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<WorkOrderStatusChangeRequest>>();
 
         group.MapDelete("/{id:int}", async (int id, IWorkOrderService svc) =>
         {
@@ -128,6 +132,7 @@ public static class WorkOrderEndpoints
             {
                 return Results.Conflict(ex.Message);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<ValidationEndpointFilter<CreateLotRequest>>();
     }
 }
