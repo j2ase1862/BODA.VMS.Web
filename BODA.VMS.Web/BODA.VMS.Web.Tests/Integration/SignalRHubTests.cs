@@ -9,18 +9,11 @@ namespace BODA.VMS.Web.Tests.Integration;
 /// <summary>
 /// SignalR Hub 연결 인증 검증.
 ///
-/// 현재 운영 코드 상태:
-/// - VmsHub (/hubs/vms): [Authorize] 없음 — 익명 접근 가능 (★ GS 갭 후보)
+/// 운영 코드 상태 (PR #18 → 본 PR 로 갭 해소):
+/// - VmsHub (/hubs/vms): [Authorize] 필수 — JWT 토큰 없으면 401
 /// - VmsPublicHub (/hubs/vms-public): 의도된 익명 — 운영 흐름 푸시용
 /// - JwtBearerEvents.OnMessageReceived: /hubs 경로의 ?access_token= 쿼리스트링을
 ///   Bearer 토큰으로 변환 — SignalR WebSocket 인증 표준 패턴
-///
-/// 본 PR 테스트:
-/// 1) 두 Hub 모두 익명 연결 가능 (현재 동작 문서화)
-/// 2) JWT 쿼리스트링이 정상 연결 흐름을 깨지 않음 (회귀 방어)
-///
-/// 후속: VmsHub 에 [Authorize] 추가 후 음성(토큰 없음 → 연결 실패) +
-/// 양성(유효 토큰 → 연결 + ClaimsPrincipal) 시나리오로 확장.
 /// </summary>
 public class SignalRHubTests : IDisposable
 {
@@ -59,13 +52,14 @@ public class SignalRHubTests : IDisposable
     }
 
     [Fact]
-    public async Task Private_hub_anonymous_connect_currently_succeeds()
+    public async Task Private_hub_anonymous_connect_fails_with_401()
     {
-        // 현재 운영 코드 상태 문서화 — VmsHub 에 [Authorize] 없음
-        // 후속 작업: [Authorize] 추가 후 본 테스트를 음성(연결 실패)로 변경
+        // [Authorize] 적용 — 토큰 없는 익명 연결은 SignalR negotiate 시 401 →
+        // HubConnection.StartAsync 가 HttpRequestException 으로 throw
         await using var conn = BuildConnection("/hubs/vms");
-        await conn.StartAsync();
-        conn.State.Should().Be(HubConnectionState.Connected);
+        var act = () => conn.StartAsync();
+        await act.Should().ThrowAsync<HttpRequestException>(
+            "이유: [Authorize] 가 negotiate POST 를 401 로 차단");
     }
 
     [Fact]
