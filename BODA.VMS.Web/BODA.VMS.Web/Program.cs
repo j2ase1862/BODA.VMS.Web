@@ -879,17 +879,43 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // 3. Seed default admin user if not exists
+    // 3. Seed initial admin user — Option C2 (사용자 결정 2026-06-04):
+    // 디폴트 admin/admin 하드코딩 제거 (약한 디폴트 + 양쪽 시스템 비일치 문제 해소).
+    // 운영자가 환경변수 또는 user-secrets 로 명시:
+    //   Initial:AdminUsername (선택, 기본 "admin")
+    //   Initial:AdminPassword (필수 시드 시점에)
+    // 미설정 + DB 에 admin 도 없음 → 첫 가동 차단 (RequireExplicit 패턴, JWT Key 와 동일 정책).
     using (var cmd = conn.CreateCommand())
     {
-        cmd.CommandText = "SELECT COUNT(*) FROM Users WHERE Username = 'admin';";
+        var initialUsername = builder.Configuration["Initial:AdminUsername"];
+        if (string.IsNullOrWhiteSpace(initialUsername)) initialUsername = "admin";
+
+        cmd.CommandText = $"SELECT COUNT(*) FROM Users WHERE Username = '{initialUsername.Replace("'", "''")}';";
         var adminExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
         if (!adminExists)
         {
-            var hash = BCrypt.Net.BCrypt.HashPassword("admin");
+            var initialPassword = builder.Configuration["Initial:AdminPassword"];
+
+            if (string.IsNullOrWhiteSpace(initialPassword))
+            {
+                throw new InvalidOperationException(
+                    "초기 admin 계정이 DB 에 없고 Initial:AdminPassword 가 미설정. " +
+                    "다음 중 하나로 명시:\n" +
+                    "  - 운영: setx Initial__AdminPassword \"<강한 비밀번호>\" /M\n" +
+                    "  - 개발: dotnet user-secrets set Initial:AdminPassword <비밀번호>\n" +
+                    "  - 디폴트 비밀번호 자동 시드는 GS 보안성 위반 — 절대 금지.");
+            }
+            if (initialPassword.Length < 8)
+            {
+                throw new InvalidOperationException(
+                    "Initial:AdminPassword 가 8자 미만입니다. 강한 비밀번호 (12자 이상 권장) 사용.");
+            }
+
+            var hash = BCrypt.Net.BCrypt.HashPassword(initialPassword);
             await db.Database.ExecuteSqlRawAsync(
-                "INSERT INTO Users (Username, PasswordHash, DisplayName, Role, IsApproved, CreatedAt) VALUES ('admin', {0}, 'Administrator', 'Admin', 1, '2025-01-01T00:00:00');",
-                hash);
+                "INSERT INTO Users (Username, PasswordHash, DisplayName, Role, IsApproved, CreatedAt) " +
+                "VALUES ({0}, {1}, 'Administrator', 'Admin', 1, {2});",
+                initialUsername, hash, DateTime.UtcNow.ToString("o"));
         }
     }
 
