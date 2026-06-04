@@ -1,3 +1,4 @@
+using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -17,7 +18,8 @@ public static class PredictionEndpoints
         {
             var resp = await svc.GetCurrentAsync(clientIndex, ct);
             return Results.Ok(resp);
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
         // Phase F: 기본 status 는 동기 (잔차 통계 제외) — UI 가 가벼운 헬스체크에 사용.
         app.MapGet("/api/predictions/status", (IPredictionService svc) =>
