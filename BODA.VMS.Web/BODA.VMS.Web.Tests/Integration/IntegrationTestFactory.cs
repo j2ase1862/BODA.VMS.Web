@@ -40,7 +40,10 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>
                 // Serilog 파일 sink 비활성 — 테스트 bin/Logs 폴더 부작용 차단
                 ["SerilogObservability:Disabled"] = "true",
                 // DB 자동 백업 비활성 — 테스트 bin 옆 backups 폴더 부작용 차단
-                ["DatabaseBackup:Enabled"] = "false"
+                ["DatabaseBackup:Enabled"] = "false",
+                // Option C2 (2026-06-04): admin 디폴트 시드 제거 후 환경변수 기반.
+                // 테스트는 명시 비밀번호 제공 — 부팅 차단 회피.
+                ["Initial:AdminPassword"] = "TestInitialAdminPassword_1234"
             };
             // ExtraConfig 가 같은 키를 가지면 override
             foreach (var kv in ExtraConfig)
