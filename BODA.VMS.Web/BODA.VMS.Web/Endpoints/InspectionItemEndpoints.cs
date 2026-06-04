@@ -289,8 +289,8 @@ public static class InspectionItemEndpoints
         }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
           .AddEndpointFilter<ValidationEndpointFilter<RecipeParameterDto>>();
 
-        // 배치 생성 — 배치 검증은 ValidationFilter 가 List 자체에 적용되지 않으므로
-        // 서비스 레이어에서 항목별 검증 권장 (별도 PR).
+        // 배치 생성 — CollectionValidationEndpointFilter 가 각 항목 검증.
+        // 한 항목이라도 invalid 면 400 ValidationProblemDetails ([index].Property 형식 키).
         group.MapPost("/batch", async (
             List<RecipeParameterDto> dtos,
             IRecipeParameterService service,
@@ -306,7 +306,8 @@ public static class InspectionItemEndpoints
                 logger.LogError(ex, "Failed to create parameter batch");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
+        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+          .AddEndpointFilter<CollectionValidationEndpointFilter<RecipeParameterDto>>();
 
         // 수정
         group.MapPut("/{id:int}", async (
