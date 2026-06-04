@@ -246,6 +246,12 @@ builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 builder.Services.AddHostedService<ClientMonitorService>();
 
+// DB 자동 온라인 백업 (GS 잔여 #7). SqliteConnection.BackupDatabase 사용 — 운영중 무중단.
+// 기본: 24h 주기 + 14 파일 보관. 운영 override 는 DatabaseBackup 섹션 또는 환경변수.
+builder.Services.Configure<DatabaseBackupOptions>(
+    builder.Configuration.GetSection(DatabaseBackupOptions.SectionName));
+builder.Services.AddHostedService<DatabaseBackupService>();
+
 // Predictive_DefectRate_Plan §6 Phase E — IPredictionService 는 Singleton:
 //   • InferenceSession 을 보유(생성 비용 큼, thread-safe)
 //   • IMemoryCache 와 함께 60s TTL 캐시 유지
