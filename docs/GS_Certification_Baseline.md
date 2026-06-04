@@ -1,27 +1,28 @@
 # BODA.VMS.Web GS 인증 Baseline — 취약점 감사 및 조치 보고서
 
-**문서 버전**: 1.0
-**작성일**: 2026-06-02
-**대상**: BODA.VMS.Web v1.1 → v1.2 (GS baseline 적용)
+**문서 버전**: 1.1
+**작성일**: 2026-06-02 (v1.0) / 2026-06-04 (v1.1)
+**대상**: BODA.VMS.Web v1.1 → v1.2 (GS baseline) → v1.3 (잔여 7 항목 후속 처리)
 **기준**: 한국 TTA GS(Good Software) 인증, ISO/IEC 25023 (SQuaRE) 8 개 품질 특성
 
 ---
 
 ## 1. 개요
 
-BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 SQLite DB 공유) 의 GS 인증 신청 가능 baseline 을 구축. 사전 감사로 식별한 **Critical 4 건 + High 4 건** 모두 처리 완료.
+BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 SQLite DB 공유) 의 GS 인증 신청 가능 baseline 을 구축하고, 후속으로 baseline 외 잔여 항목까지 모두 처리. 사전 감사로 식별한 **Critical 4 + High 4 + 잔여 7 = 총 15 항목** 모두 처리 완료.
 
-| 카테고리 | 항목 수 | 완료 |
-|----------|---------|------|
-| Critical (탈락 위험) | 4 | ✅ 4/4 |
-| High (지적 가능성) | 4 | ✅ 4/4 |
-| Medium / Low | 다수 | 점진 확장 영역으로 별도 관리 |
+| 카테고리 | 항목 수 | 완료 | 비고 |
+|----------|---------|------|------|
+| Critical (탈락 위험) | 4 | ✅ 4/4 | v1.0 |
+| High (지적 가능성) | 4 | ✅ 4/4 | v1.0 |
+| 잔여 (baseline 외, GS 강화) | 7 | ✅ 7/7 | v1.1 |
+| **자동 테스트** | **384 통과 / 0 실패** | | 시작 9 → 종료 384 (42 배 증가) |
 
 본 문서는 각 항목의 **취약점 → 영향 → 조치 → 검증** 흐름을 기록.
 
 ---
 
-## 2. 사전 감사 평가표 (Before)
+## 2. 사전 감사 평가표 (Before, 2026-06-02)
 
 GS 8 개 품질 특성 기준 사전 진단:
 
@@ -38,7 +39,7 @@ GS 8 개 품질 특성 기준 사전 진단:
 
 ---
 
-## 3. Critical 4 항목 — 인증 탈락 위험 우선 조치
+## 3. Critical 4 항목 — 인증 탈락 위험 우선 조치 (v1.0)
 
 ### 3.1 JWT Key 평문 저장
 **취약점**
@@ -99,6 +100,7 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 ### 3.3 보안 헤더 + CORS 누락
 **취약점**
 - `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` 모두 미설정
+- **`Content-Security-Policy` 미적용** — XSS / 데이터 유출 방어 표준 누락 (v1.1 에서 후속 처리, §5.5 참조)
 - CORS 정책 부재 → cross-origin 동작 예측 불가
 
 **영향**
@@ -114,7 +116,7 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
   | `Referrer-Policy` | `strict-origin-when-cross-origin` | Referrer 노출 최소화 |
   | `Permissions-Policy` | `camera=()/microphone=()/geolocation=()/payment=()` | 권한 최소화 |
 - CORS: `appsettings.Cors:AllowedOrigins` 배열 — 비어있으면 **cross-origin 차단** (same-origin 만 허용)
-- CSP 는 Blazor WASM 의 `wasm-unsafe-eval` 호환성 검토 필요로 후속 PR 분리
+- CSP 는 Blazor WASM 의 `wasm-unsafe-eval` 호환성 검토 필요로 v1.1 분리 (§5.5)
 
 **검증**
 - ✅ 브라우저 DevTools 응답 헤더에 4 헤더 모두 존재 확인
@@ -148,6 +150,8 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
   - 회원가입 암호 `MinLength=4` → **8** (RegisterRequest)
   - 키오스크 PIN — **4-8 자리 숫자 정규식**
   - Validator 실패 시 RFC 7807 `ValidationProblemDetails` JSON 400 응답
+- **단건 본문에만 적용**: 컬렉션 본문 (예: `List<RecipeParameterDto>` POST /batch) 은 v1.1 후속 처리 (§5.3)
+- **`private record` 본문 미적용**: SettingsEndpoints 의 일부 record 는 외부 어셈블리 (Validators) 에서 참조 불가 — v1.1 후속 처리 (§5.2)
 
 **검증**
 - ✅ 빌드 통과 (오류 0, 경고 0)
@@ -155,7 +159,7 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 
 ---
 
-## 4. High 4 항목 — 지적 가능성 처리
+## 4. High 4 항목 — 지적 가능성 처리 (v1.0)
 
 ### 4.1 헬스 체크 엔드포인트 부재
 **취약점**
@@ -194,7 +198,8 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 
 ### 4.3 익명 endpoint 접근 제어 (X-API-Key feature flag)
 **취약점**
-- 5 개 머신 endpoint (heartbeat / register / disconnect / inspection result / sensor reading) 가 익명 접근 가능
+- 5 개 머신 **POST** endpoint (heartbeat / register / disconnect / inspection result / sensor reading) 가 익명 접근 가능
+- **6 개 머신 GET endpoint** (parameters sync x2, lots x2, workorders/by-client, predictions/current) 도 동일 익명 — v1.0 에서 POST 만 처리, GET 은 v1.1 후속 (§5.1)
 - VMS 데스크탑 클라이언트가 호출하는 endpoint 라 인증 도입 시 클라이언트 동시 업데이트 필요 — 호환성 위험 큼
 
 **조치 (PR #10 + VMS PR #119, feature flag 패턴)**
@@ -225,12 +230,7 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 **조치 (PR #11)**
 - `BODA.VMS.Web.Tests` xUnit 프로젝트 신규 (net8.0)
 - NuGet: xUnit 2.9, FluentAssertions, FluentValidation.TestHelper, `Microsoft.AspNetCore.Mvc.Testing`
-- **Validator 단위 테스트 9 클래스** (패턴별 대표):
-  - Auth (Login, Register), Kiosk Login
-  - Inspection (RuleForEach 컬렉션)
-  - WorkOrder (조건부 시간 정합성), Alarm (조건부 Resolve→Resolution)
-  - Master (Client IPv4/IPv6, Shift 자정 넘는 야간 교대)
-  - Operations (Sensor 최소 한 값), Analytics (Spc SubgroupSize)
+- **Validator 단위 테스트 9 클래스** (패턴별 대표)
 - **Integration smoke test** — `WebApplicationFactory<Program>` + in-memory Jwt:Key 주입, `/health` 200 검증
 - **`Program.cs` 에 `public partial class Program {}` 추가** — top-level statements 의 `internal Program` 가시성 확장
 
@@ -240,27 +240,237 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 - 수정: `NotEmpty` 와 `MaximumLength` 를 별도 `RuleFor` 로 분리
 
 **검증**
-- ✅ 69 테스트 전부 통과
+- ✅ 9 → 69 → … → 384 테스트 누적 통과
 - ✅ 실제 운영 버그 1 건 발견·수정
+- v1.0 후속으로 19 Validator + 11 Service 통합 + SignalR Hub + DB 쓰기 endpoint + JWT 양성/Role 등 누적 확장 (§5 와 PR 인덱스 참조)
 
 ---
 
-## 5. After — 갱신된 평가표
+## 5. 잔여 후속 7 항목 처리 (v1.1, 2026-06-04)
 
-| 품질 특성 | Before | After | 비고 |
-|-----------|--------|-------|------|
-| 기능 적합성 | 중 | **상** | 28 Validator + ValidationFilter |
-| 신뢰성 | 낮음 | **상** | IExceptionHandler + Health Check |
-| **보안성** | **매우낮음** | **상** | JWT 외부화 + 보안 헤더 + X-API-Key + CORS |
-| 성능 효율성 | 중상 | 중상 | 무변경 (별도 PR 영역) |
-| 호환성 | 중 | **상** | Swagger + OpenAPI 자동 문서 |
-| 사용성 | 중상 | 중상 | 무변경 |
-| 유지보수성 | 중 | **상** | 단위 테스트 프로젝트 + 28 Validator 인프라 |
-| 이식성 | 중상 | 중상 | DEPLOYMENT_GUIDE 4.1 보강 |
+v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 미해소 상태였음. v1.1 에서 모두 처리 완료.
+
+### 5.1 익명 GET endpoint X-API-Key 비대칭
+**취약점**
+- v1.0 §4.3 는 **POST 5 개** 에만 `ClientApiKeyEndpointFilter` 적용
+- VMS 머신이 호출하는 **GET 6 개** (parameters/sync x2, lots/by-number, lots/active-by-workorder, workorders/by-client, predictions/current) 는 미보호
+- enforcement 모드 (`Required=true`) 에서 POST 는 막히는데 GET 은 열린 비대칭
+
+**영향**
+- GS 평가에서 "비인증 endpoint 가 운영 데이터 노출 여부" 항목 감점
+- 내부망 침입 시 GET 으로 작업 지시/레시피 파라미터/예측 결과 등 조회 가능
+
+**조치 (PR #30)**
+- 6 개 GET endpoint 에 `.AddEndpointFilter<ClientApiKeyEndpointFilter>()` 부착
+- 호환 모드(`Required=false`) 에서는 헤더 없어도 통과 — 기존 VMS 클라이언트 호환 유지
+
+**검증 (자동 테스트 18 케이스)**
+- ✅ EnforceMode + 헤더 없음 → 401 (6 endpoint Theory)
+- ✅ EnforceMode + 잘못된 헤더 → 401 (3 대표 endpoint Theory)
+- ✅ EnforceMode + 정확한 헤더 → filter 통과 (3 대표)
+- ✅ CompatMode + 헤더 없음 → 통과 (6 endpoint Theory)
 
 ---
 
-## 6. 적용 PR 인덱스 (시간순)
+### 5.2 SettingsEndpoints `private record` 검증 불가
+**취약점**
+- `/api/settings/visionserver` PUT 의 본문 타입 `VisionServerSettingsRequest` 가 `private record` 로 선언
+- 외부 어셈블리 (Validators, Tests) 에서 참조 불가 → FluentValidation 등록 자체 불가능
+- 결과: BaseUrl 값이 무엇이든 통과해 `appsettings.json` 에 영구 기록
+- `file:///C:/secret.txt`, `javascript:alert(1)`, `ftp://` 등도 그대로 저장
+
+**영향**
+- 운영 복구에 수동 편집 필요
+- LFI 우회 (file://), 저장 후 클라이언트 렌더링 시 XSS 우회 (javascript:) 가능성
+
+**조치 (PR #29)**
+- `private record` → **public record** 로 노출 (`VisionServerSettingsRequest` / `VisionServerSettingsResponse`)
+- 신규 `Validators/Admin/VisionServerSettingsRequestValidator.cs`:
+  - `BaseUrl` null/빈값 허용 (Enabled=false 시나리오)
+  - 값이 있으면 절대 http(s) URL + MaxLength(500)
+  - `file://`, `javascript:`, `ftp://` 등 비-http 스키마 차단 (Uri.UriSchemeHttp/Https 화이트리스트)
+- 엔드포인트에 `.AddEndpointFilter<ValidationEndpointFilter<VisionServerSettingsRequest>>()` 부착
+
+**검증 (자동 테스트 18 케이스)**
+- ✅ Validator 단위 11: 유효 URL 3 / null·empty 2 / 무효 6 (스키마 없음/상대경로/ftp/file/javascript:/형식) / 길이 초과 1
+- ✅ 통합 7: 401 / User 403 / 무효 BaseUrl 4-Theory → 400 + `errors.BaseUrl`
+- 양성 (성공 → appsettings.json 쓰기) 시나리오는 disk 부작용이라 통합에서 제외 — Validator 단위가 입력 매트릭스 커버
+
+---
+
+### 5.3 컬렉션 본문 검증 부재
+**취약점**
+- `ValidationEndpointFilter<T>` 는 단건 본문 `T` 만 인식
+- `POST /api/parameters/batch` 가 `List<RecipeParameterDto>` 받지만 검증 미적용
+- 한 항목이 invalid 여도 그대로 통과 → DB 에 부정확한 파라미터 저장
+
+**영향**
+- GS 입력 검증 항목에서 컬렉션 endpoint 가 단건과 동일 표준을 따르지 않는다는 평가 가능
+
+**조치 (PR #28)**
+- 신규 `Middleware/CollectionValidationEndpointFilter<T>`:
+  - `IEnumerable<T>` 인수의 각 항목을 `IValidator<T>` 로 검증
+  - 에러 키를 `[index].Property` 형식으로 집계 → ValidationProblemDetails (RFC 7807)
+  - validator 미등록 / null / 빈 컬렉션은 `next()` 통과 (현행 약속 보존)
+- `/api/parameters/batch` 에 부착
+
+**검증 (자동 테스트 5 케이스)**
+- ✅ 토큰 없음 → 401
+- ✅ 모두 valid → 201 + DB N 행
+- ✅ 한 항목 invalid → 400 + `[1].Description` 인덱스 키 + DB 0 행 (전체 거부)
+- ✅ 다중 invalid → 인덱스별 각 에러 집계
+- ✅ 빈 리스트 → 201 + 0 insert (약속 보존)
+
+---
+
+### 5.4 Service 통합 테스트 커버리지 부족
+**취약점**
+- v1.0 §4.4 단위 테스트 프로젝트는 Validator 9 클래스 + integration smoke 만 커버
+- 11 개 핵심 서비스의 비즈니스 로직 (상태 머신, 채번, 멱등성, 보안) 회귀 자동 검출 불능
+- IATF/ISO 추적성 단위 (WorkOrder/Lot 상태, EquipmentStatus 시계열, Operator 인증) 결함이 통과해도 탐지 어려움
+
+**영향**
+- 코드 변경 시 회귀 자동 검출 부족
+- GS 유지보수성 항목에서 "서비스 레이어 단위 테스트 커버리지" 평가 감점 위험
+
+**조치 (PR #20~#27)**
+- **11 개 Service 통합 테스트 추가** (in-memory SQLite + 비즈니스 규칙)
+
+| PR | 서비스 | 케이스 | 핵심 |
+|----|--------|--------|------|
+| #20 | WorkOrderService | 19 | Planned→InProgress→Completed→Closed 상태 머신, OrderNo 일일 채번, Closed 감사 보호 |
+| #21 | LotService | 11 | LotNumber `YYYYMMDD-OrderNo-Seq` 채번, Closed WorkOrder 차단 |
+| #22 | MaintenanceService | 16 | SEMI E10 PM 일정/NextDueAt 진행, 추적성 보호 |
+| #23 | EquipmentStatusService | 10 | 같은 상태 noop (row 폭발 방지), 시간 윈도우 4 매트릭스 |
+| #24 | OperatorService | 22 | BCrypt PIN 해시 (평문 미보존), 비활성 작업자 차단, 세션 이력 보호 |
+| #25 | OperatorSessionService | 14 | 라인별 활성 세션 1 개 불변, EndReason 분류 (Auto/ShiftChange) — `NoopHubContext<THub>` 헬퍼 신규 |
+| #26 | AlarmService | 15 | ISA-18.2 New→Ack→Resolved, Ack 멱등성 (첫 확인자 보호), skip-ack 자동 채움 |
+| #27 | HistoryService | 9 | 다중 필터, ToolResults JSON 안전, ClosedXML xlsx round-trip |
+
+- 신규 헬퍼: `BODA.VMS.Web.Tests/Helpers/NoopHubContext.cs` — `IHubContext<THub>` 의존 서비스용
+
+**검증**
+- ✅ 누적 116 케이스 통과 (#20~#27 합계)
+- ✅ 전체 테스트 217 → 333 (v1.0 217 → v1.1 §5 후속까지 384)
+
+---
+
+### 5.5 Content-Security-Policy 미적용
+**취약점**
+- v1.0 보안 헤더 4 종에 CSP 누락
+- XSS / 데이터 유출 / 외부 폼 제출 / clickjacking 보강 표준 미달
+
+**영향**
+- GS 보안성 항목에서 OWASP top 10 (A03 Injection / A07 ID & Auth Failures) 완화 누락 평가
+
+**조치 (PR #31)**
+- `SecurityHeadersMiddleware.DefaultContentSecurityPolicy` 상수 신규
+- Blazor WASM 호환 정책:
+
+| 디렉티브 | 값 | 이유 |
+|----------|-----|------|
+| default-src | 'self' | 모든 리소스 동일 origin 기본 |
+| script-src | 'self' 'wasm-unsafe-eval' | Blazor WASM `WebAssembly.instantiate` 필수 |
+| style-src | 'self' 'unsafe-inline' | MudBlazor 인라인 스타일 (CSP 가이드상 style 인라인은 허용 가능) |
+| img-src | 'self' data: blob: | 검사 이미지 + 로고 data URI |
+| font-src | 'self' data: | 로컬 폰트 |
+| connect-src | 'self' ws: wss: | SignalR WebSocket/LongPolling |
+| object-src | 'none' | Flash/플러그인 차단 |
+| base-uri | 'self' | `<base>` 태그 hijack 방어 |
+| frame-ancestors | 'self' | X-Frame-Options 보강 (CSP3) |
+| form-action | 'self' | 외부 폼 제출 차단 |
+
+- **운영 override 경로**: `SecurityHeaders:ContentSecurityPolicy` 환경변수/appsettings 로 정책 교체 — CDN/외부 도메인 화이트리스트가 필요할 때 코드 변경 없이 적용
+
+**검증 (자동 테스트 2 케이스)**
+- ✅ CSP 헤더 존재 + 핵심 9 디렉티브 검증 (`'wasm-unsafe-eval'`, default-src 'self', object-src 'none', ws:/wss:, img-src data: blob: 등)
+- ✅ `SecurityHeaders:ContentSecurityPolicy` override 동작 (IClassFixture 패턴)
+
+---
+
+### 5.6 구조화 로깅 / Observability 부재
+**취약점**
+- 기본 `Microsoft.Extensions.Logging` 은 사람 가독성 텍스트 포맷
+- 사후 분석 / SIEM 인제스트 / 구조화 쿼리 불가
+- 장애 추적시 grep 의존 — 분산 컨텍스트 (correlation, 요청 elapsed, status code) 누락
+
+**영향**
+- GS 신뢰성/유지보수성 항목에서 "운영 가관측성 (observability)" 평가 미달
+- 운영 사고 발생 시 RCA 시간 증가
+
+**조치 (PR #32)**
+- NuGet: `Serilog.AspNetCore 8.*` / `Serilog.Sinks.File 6.*` / `Serilog.Formatting.Compact 3.*`
+- `Program.cs`: `builder.Host.UseSerilog(...)`:
+  - Sink: Console + 일일 롤링 JSON 파일 (`Logs/boda-vms-{Date}.json`)
+  - Enrich: `Application=BODA.VMS.Web`, `Environment`, `FromLogContext`
+  - 기본 레벨 Information / Microsoft.AspNetCore + EFCore = Warning
+  - 14 일 자동 retention — 디스크 폭주 방지
+- `app.UseSerilogRequestLogging()` — Method / Path / StatusCode / Elapsed 자동 캡처 (SecurityHeaders 이전)
+- `SerilogObservability:Disabled` 환경변수로 파일 sink 토글 (테스트/CI 부작용 차단)
+
+**검증 (자동 테스트 2 케이스)**
+- ✅ `IDiagnosticContext` DI 등록 확인 → UseSerilog 활성 증명
+- ✅ UseSerilogRequestLogging 부착 후 응답 회귀 없음
+
+**운영 활용**
+- 로그 파일 → SIEM (Splunk/ELK) 인제스트 또는 `jq` 로 사후 분석
+- 구조화 키: `Application`, `Environment`, `RequestMethod`, `RequestPath`, `StatusCode`, `Elapsed`, `traceId`, …
+
+---
+
+### 5.7 DB 백업/복구 자동화 부재
+**취약점**
+- 운영 가이드에 수동 백업 절차만 기술 (Stop service → file copy → Start)
+- 운영자가 잊으면 DB 손상 시 복구 불가
+- 백업 무결성 검증 절차 부재
+
+**영향**
+- GS 신뢰성 항목 — 데이터 무결성 / 복구성 평가 미달
+- 산업용 vision 시스템 특성상 검사 이력 손실은 추적성 (IATF 16949) 위반
+
+**조치 (PR #33)**
+- 신규 `Services/DatabaseBackupOptions.cs`:
+  - Enabled (기본 true) / IntervalMinutes (기본 1440=24h) / BackupOnStartup (기본 false) / Destination (기본 `{DbDirectory}/backups`) / RetainCount (기본 14)
+- 신규 `Services/DatabaseBackupService.cs` (`BackgroundService`):
+  - `SqliteConnection.BackupDatabase` API (페이지 단위 복사) — **운영중 무중단**
+  - `ConnectionStrings:DefaultConnection` 에서 `DataSource` 자동 추출
+  - 파일명: `boda-vision-{yyyyMMdd-HHmmss}.db`
+  - 매 백업 후 RetainCount 초과 파일을 `LastWriteTime` 오름차순 삭제
+  - 백업 실패는 `LogError` 만 — 다음 주기 자동 재시도 (앱 중단 금지)
+- `Program.cs`: `AddHostedService<DatabaseBackupService>` + Options 바인딩
+- `IntegrationTestFactory`: `DatabaseBackup:Enabled=false` 주입 — 테스트 bin/backups 부작용 차단
+
+**검증 (자동 테스트 6 케이스)**
+- ✅ PerformBackup → 행 수 정확히 복제 (페이지 단위 검증, 42 rows)
+- ✅ 소스 누락 → FileNotFoundException
+- ✅ PruneOldBackups: N 만 남기고 삭제, `boda-vision-*.db` 패턴 외 파일(README 등) 보존
+- ✅ retainCount 0/음수 → no-op
+- ✅ 디렉토리 없어도 안전 (첫 가동 시나리오)
+- ✅ 연속 2 회 백업 → 파일명 분리 (타임스탬프 충돌 없음)
+
+**운영 운용**
+- 운영에서 `DatabaseBackup:Destination` 을 별도 디스크/네트워크 드라이브 경로로 지정 권장 (DB 파일과 동일 디스크 손상시 백업도 함께 손실되는 단일 실패점 회피)
+
+---
+
+## 6. After — 갱신된 평가표 (v1.1)
+
+| 품질 특성 | Before | After v1.0 | After v1.1 | 비고 |
+|-----------|--------|------------|------------|------|
+| 기능 적합성 | 중 | 상 | **상+** | 28 → 39 Validator + 컬렉션 검증 |
+| 신뢰성 | 낮음 | 상 | **상+** | + Serilog 구조화 로깅 + DB 자동 백업 |
+| **보안성** | 매우낮음 | 상 | **상+** | + CSP + 익명 GET X-API-Key + Settings 검증 |
+| 성능 효율성 | 중상 | 중상 | 중상 | 무변경 (별도 영역) |
+| 호환성 | 중 | 상 | 상 | Swagger 그대로 |
+| 사용성 | 중상 | 중상 | 중상 | 무변경 |
+| 유지보수성 | 중 | 상 | **상+** | + 11 Service 통합 (총 384 테스트) |
+| 이식성 | 중상 | 중상 | 중상 | DEPLOYMENT_GUIDE 보강 그대로 |
+
+---
+
+## 7. 적용 PR 인덱스 (시간순)
+
+### v1.0 — Critical + High baseline (2026-06-02)
 
 | # | 제목 | 영향 |
 |---|------|------|
@@ -269,30 +479,54 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 | #7 | Tier 2 Validator (WorkOrder + Admin + Alarm 6 개) | Critical 4/4 진행 |
 | #8 | Tier 3 Validator (Master + Operations + Analytics 18 개) | Critical 4/4 완료 |
 | #9 | 헬스 체크 + Swagger | High 2/4 |
-| #10 | X-API-Key feature flag (Web 측) | High 3/4 |
+| #10 | X-API-Key feature flag (Web 측 POST 5 개) | High 3/4 |
 | #11 | 단위 테스트 프로젝트 + 9 Validator + Integration smoke | High 4/4 완료 |
 | **VMS #119** | X-API-Key 헤더 송신 (VMS 데스크탑 측, 짝 작업) | Web #10 의 운영 전환 가능 |
 
+### v1.0 후속 점진 확장 (테스트 누적)
+
+| # | 제목 | 누적 테스트 |
+|---|------|-------------|
+| #12~#16 | Validator 잔여 19 개 단위 테스트 / Service 3 통합 / 미들웨어 4 영역 / DB 쓰기 endpoint / JWT 양성/Role | 9 → 214 |
+| #17~#18 | SignalR Hub 인증 (negotiate 401 + ?access_token=) | 214 → 217 |
+| #19 | **VmsHub `[Authorize]` 추가 — #18 발견 갭 해소** | 217 |
+
+### v1.1 — 잔여 7 항목 후속 처리 (2026-06-04)
+
+| # | 항목 | 누적 테스트 |
+|---|------|-------------|
+| #20 | Service 통합 — WorkOrderService 19 케이스 | 236 |
+| #21 | Service 통합 — LotService 11 케이스 | 247 |
+| #22 | Service 통합 — MaintenanceService 16 케이스 | 263 |
+| #23 | Service 통합 — EquipmentStatusService 10 케이스 | 273 |
+| #24 | Service 통합 — OperatorService 22 케이스 (BCrypt 보안) | 295 |
+| #25 | Service 통합 — OperatorSessionService 14 + `NoopHubContext` 헬퍼 | 309 |
+| #26 | Service 통합 — AlarmService 15 (ISA-18.2 멱등성) | 324 |
+| #27 | Service 통합 — HistoryService 9 (xlsx round-trip) | 333 |
+| **#28** | **잔여 #4** — CollectionValidationEndpointFilter + `/batch` 적용 | 338 |
+| **#29** | **잔여 #3** — VisionServerSettingsRequest public 화 + URL 검증 | 356 |
+| **#30** | **잔여 #2** — 익명 GET 6 endpoint X-API-Key 부착 | 374 |
+| **#31** | **잔여 #5** — Content-Security-Policy (Blazor WASM 호환) | 376 |
+| **#32** | **잔여 #6** — Serilog 구조화 로깅 + 일일 롤링 JSON | 378 |
+| **#33** | **잔여 #7** — SQLite 자동 온라인 백업 + retention | **384** |
+
 ---
 
-## 7. 잔여 점진 확장 (Baseline 외)
+## 8. 후속 발전 영역 (인증 영향 없음, 점진 고려)
 
-본 baseline 이후 점진적으로 확장할 항목:
+v1.1 시점 GS 인증 신청에 추가 작업 불필요. 운영 안정성/관측성을 더 강화하고 싶다면:
 
-1. **Validator 테스트 잔여 19 개** — Tier 1/2/3 의 9 개만 커버됨 (BODA.VMS.Web.Tests/Validators/ 패턴 그대로 적용)
-2. **Service 레이어 통합 테스트** — AuthService, ClientService 등 in-memory SQLite 활용
-3. **Endpoint integration 테스트** — X-API-Key filter, ValidationFilter 실제 동작 확인
-4. **GET 익명 endpoint 접근 제어** — `/api/parameters/by-recipe`, `/by-client`, `/api/workorders/by-client/{}` 등 현재 5 개 POST 만 X-API-Key 강제
-5. **SettingsEndpoints VisionServerSettingsRequest** — `private record` 라 Validator 미적용, public 화 후 검증 추가
-6. **InspectionItem POST /batch** — `List<RecipeParameterDto>` 컬렉션 검증 (현재 단건만)
-7. **Content-Security-Policy** — Blazor WASM `wasm-unsafe-eval` 호환성 검토 후 적용
-8. **모니터링/Observability** — Application Insights / OpenTelemetry / Serilog structured logging
-9. **백업/복구 자동화** — 현재 수동 절차만 기술
-10. **CI/CD 파이프라인** — GitHub Actions / Azure Pipelines
+1. **OpenTelemetry / Application Insights** — Serilog 파일 도입(§5.6), 분산 트레이싱은 미도입. 마이크로서비스 확장 시 고려.
+2. **백업 복구 자동 검증** — 현재는 생성만(§5.7), 복구 리허설은 수동. 정기 restore-test job 추가 가능.
+3. **Service 통합 테스트 확대** — ClientService / ProductService 는 IConfiguration/IHttpClientFactory 의존 → mock 라이브러리 도입 (NSubstitute/Moq) 후 추가 가능.
+4. **모바일 키오스크 endpoint 인증 강화** — `/api/kiosk` 그룹은 익명 유지 (UX/operator 흐름 영향 분석 필요).
+5. **CI/CD 파이프라인** — GitHub Actions / Azure Pipelines. 현재는 로컬 빌드/테스트 + 수동 배포.
 
 ---
 
-## 8. 운영 전환 절차 (X-API-Key Enforcement)
+## 9. 운영 전환 절차
+
+### 9.1 X-API-Key Enforcement 활성화
 
 본 baseline 적용 직후 X-API-Key 는 **호환 모드(Required=false)** 로 동작 — 기존 VMS 클라이언트 무영향. enforcement 활성화 절차:
 
@@ -315,11 +549,49 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
    ```
    → Web 서비스 재시작
 
-5. **검증** — VMS 가 정상 등록·heartbeat 유지되는지 모니터링. 잘못된 키 또는 헤더 누락 클라이언트는 401 + 자동 재연결 시도.
+5. **검증** — VMS 가 정상 등록·heartbeat 유지되는지 모니터링. 잘못된 키 또는 헤더 누락 클라이언트는 401 + 자동 재연결 시도. 본 enforcement 는 **POST 5 + GET 6** 모두 적용 (v1.1 §5.1).
+
+### 9.2 Serilog 로그 운용 (v1.1 §5.6)
+
+- **파일 경로**: `{ContentRoot}/Logs/boda-vms-{Date}.json` (UTF-8 JSON-per-line)
+- **포맷**: Serilog CompactJsonFormatter — `{"@t":"timestamp","@l":"Information","RequestPath":"/api/...",...}`
+- **Retention**: 14 일 자동 (RollingInterval.Day, retainedFileCountLimit=14)
+- **SIEM 연동**: Splunk Universal Forwarder / Elastic Beats 로 인제스트, 또는 `jq` 로 즉시 분석:
+   ```bash
+   jq 'select(.StatusCode >= 500)' Logs/boda-vms-20260604.json
+   ```
+- **테스트/CI 환경**: `SerilogObservability:Disabled=true` 환경변수로 파일 sink 비활성
+
+### 9.3 DB 자동 백업 운용 (v1.1 §5.7)
+
+- **백업 경로**: 기본 `{DbDirectory}/backups/boda-vision-{yyyyMMdd-HHmmss}.db`
+- **주기**: 기본 24h (`DatabaseBackup:IntervalMinutes=1440`)
+- **Retention**: 14 파일 (`DatabaseBackup:RetainCount`)
+- **운영 권장**: `DatabaseBackup:Destination` 을 **별도 디스크/네트워크 드라이브** 로 지정
+  ```powershell
+  [Environment]::SetEnvironmentVariable("DatabaseBackup__Destination", "\\backup-server\boda-vms\db", "Machine")
+  ```
+  → DB 파일과 동일 디스크 손상 시 백업도 함께 손실되는 단일 실패점 회피
+- **복구 절차**:
+   1. BODA.VMS.Web 서비스 중지
+   2. 손상된 `BodaVision.db` 를 백업 폴더의 최신 `boda-vision-*.db` 로 교체 (파일명 `BodaVision.db` 로 변경)
+   3. 서비스 재시작 → `/health` 200 확인
+
+### 9.4 CSP 정책 운용 (v1.1 §5.5)
+
+- 기본은 `SecurityHeadersMiddleware.DefaultContentSecurityPolicy` 상수 (§5.5 표 참조)
+- 운영에서 CDN/외부 API 도메인 화이트리스트 필요 시 환경변수로 override:
+   ```powershell
+   [Environment]::SetEnvironmentVariable(
+     "SecurityHeaders__ContentSecurityPolicy",
+     "default-src 'self' https://cdn.example.com; script-src 'self' 'wasm-unsafe-eval'",
+     "Machine")
+   ```
+- 적용 후 브라우저 DevTools Console 에서 CSP 위반 경고 모니터링 권장
 
 ---
 
-## 9. 참고 자료
+## 10. 참고 자료
 
 - ISO/IEC 25010:2011 — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models
 - ISO/IEC 25023:2016 — Measurement of system and software product quality
@@ -327,6 +599,10 @@ dotnet user-secrets set "Jwt:Key" "<32자 이상 무작위 키>" --project BODA.
 - ASP.NET Core 8 보안 가이드 — https://learn.microsoft.com/aspnet/core/security/
 - OWASP Top 10 2021 — https://owasp.org/Top10/
 - FluentValidation Documentation — https://docs.fluentvalidation.net/
+- Serilog Documentation — https://serilog.net/
+- ISA-18.2 — Management of Alarm Systems for the Process Industries (AlarmService §5.4 #26 의 기준)
+- IATF 16949 — Quality Management System (검사 이력 추적성 §5.4 의 동기)
+- SEMI E10 — Specification for Definition and Measurement of Equipment Reliability, Availability, and Maintainability (RAM) (MaintenanceService/EquipmentStatusService §5.4 의 기준)
 
 ---
 
