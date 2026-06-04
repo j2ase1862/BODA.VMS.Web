@@ -38,7 +38,9 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>
                 ["Jwt:Audience"] = TestJwtAudience,
                 ["Jwt:ExpireMinutes"] = "480",
                 // Serilog 파일 sink 비활성 — 테스트 bin/Logs 폴더 부작용 차단
-                ["SerilogObservability:Disabled"] = "true"
+                ["SerilogObservability:Disabled"] = "true",
+                // DB 자동 백업 비활성 — 테스트 bin 옆 backups 폴더 부작용 차단
+                ["DatabaseBackup:Enabled"] = "false"
             };
             // ExtraConfig 가 같은 키를 가지면 override
             foreach (var kv in ExtraConfig)
