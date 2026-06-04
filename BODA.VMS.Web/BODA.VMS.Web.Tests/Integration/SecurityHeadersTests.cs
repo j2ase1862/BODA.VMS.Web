@@ -44,4 +44,30 @@ public class SecurityHeadersTests : IClassFixture<IntegrationTestFactory>
         response.Headers.Should().ContainKey("X-Frame-Options");
         response.Headers.Should().ContainKey("X-Content-Type-Options");
     }
+
+    [Fact]
+    public async Task Content_Security_Policy_present_with_blazor_wasm_directives()
+    {
+        var response = await _client.GetAsync("/health");
+        response.Headers.Should().ContainKey("Content-Security-Policy");
+        var csp = response.Headers.GetValues("Content-Security-Policy").Single();
+
+        // Blazor WASM 인스턴스화 필수
+        csp.Should().Contain("'wasm-unsafe-eval'",
+            "이유: Blazor WASM 이 WebAssembly.instantiate 사용 → 'wasm-unsafe-eval' 없으면 앱 자체 로드 실패");
+
+        // 핵심 디렉티브 (XSS/clickjacking/exfiltration 방어)
+        csp.Should().Contain("default-src 'self'");
+        csp.Should().Contain("object-src 'none'");
+        csp.Should().Contain("base-uri 'self'");
+        csp.Should().Contain("frame-ancestors 'self'");
+        csp.Should().Contain("form-action 'self'");
+
+        // SignalR WebSocket
+        csp.Should().Contain("ws:");
+        csp.Should().Contain("wss:");
+
+        // 검사 이미지/로고 data URI
+        csp.Should().Contain("img-src 'self' data: blob:");
+    }
 }
