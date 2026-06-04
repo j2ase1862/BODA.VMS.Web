@@ -23,7 +23,8 @@ public static class WorkOrderEndpoints
                 return Results.Ok(new List<WorkOrderDto>());
             var items = await svc.GetAllAsync(status, client.Id);
             return Results.Ok(items);
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
         var group = app.MapGroup("/api/workorders")
             .RequireAuthorization();

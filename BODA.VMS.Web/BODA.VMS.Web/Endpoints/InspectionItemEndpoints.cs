@@ -32,7 +32,8 @@ public static class InspectionItemEndpoints
                 .ToListAsync();
 
             return Results.Ok(recipes);
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
         // VMS가 특정 레시피의 파라미터 다운로드 → Dictionary<int, double> 캐시용
         app.MapGet("/api/parameters/sync/recipe/{recipeId:int}", async (
@@ -41,7 +42,8 @@ public static class InspectionItemEndpoints
         {
             var items = await service.GetByRecipeAsync(recipeId);
             return Results.Ok(items.Where(i => i.IsActive));
-        }).AllowAnonymous();
+        }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
         // VMS가 검사 결과 업로드
         app.MapPost("/api/parameters/results", async (
