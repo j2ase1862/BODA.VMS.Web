@@ -13,11 +13,47 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Windows Service 지원 (콘솔 실행 시에는 영향 없음)
 builder.Host.UseWindowsService();
+
+// === Observability: Serilog 구조화 로깅 ===
+// 콘솔 + 일일 롤링 JSON 파일. appsettings.json "Serilog" 섹션이 있으면 override.
+// 기본 경로: ContentRoot/Logs/boda-vms-{Date}.json (Logs 폴더는 자동 생성).
+// 운영에서 SerilogObservability:Disabled=true 면 파일 sink 비활성 (테스트/CI 디스크 부작용 차단).
+builder.Host.UseSerilog((ctx, services, configuration) =>
+{
+    var disabled = ctx.Configuration.GetValue<bool>("SerilogObservability:Disabled");
+
+    configuration
+        .ReadFrom.Configuration(ctx.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "BODA.VMS.Web")
+        .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName)
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+        .WriteTo.Console();
+
+    if (!disabled)
+    {
+        var logsDir = Path.Combine(ctx.HostingEnvironment.ContentRootPath, "Logs");
+        Directory.CreateDirectory(logsDir);
+        var logPath = Path.Combine(logsDir, "boda-vms-.json");
+        configuration.WriteTo.File(
+            new CompactJsonFormatter(),
+            logPath,
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            shared: true);
+    }
+});
 
 // Response Compression (WASM DLL 전송 크기 대폭 감소)
 builder.Services.AddResponseCompression(options =>
@@ -858,6 +894,10 @@ using (var scope = app.Services.CreateScope())
 
 // Configure the HTTP request pipeline.
 app.UseResponseCompression();
+
+// Serilog request logging — Method / Path / StatusCode / Elapsed 자동 캡처.
+// SecurityHeaders 보다 먼저 두면 헤더 응답까지 elapsed 에 포함.
+app.UseSerilogRequestLogging();
 
 // GS 인증 baseline 보안 헤더 — 모든 응답에 적용.
 app.UseMiddleware<SecurityHeadersMiddleware>();
