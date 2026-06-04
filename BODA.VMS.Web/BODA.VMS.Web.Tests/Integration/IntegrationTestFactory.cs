@@ -36,7 +36,9 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>
                 ["Jwt:Key"] = TestJwtKey,
                 ["Jwt:Issuer"] = TestJwtIssuer,
                 ["Jwt:Audience"] = TestJwtAudience,
-                ["Jwt:ExpireMinutes"] = "480"
+                ["Jwt:ExpireMinutes"] = "480",
+                // Serilog 파일 sink 비활성 — 테스트 bin/Logs 폴더 부작용 차단
+                ["SerilogObservability:Disabled"] = "true"
             };
             // ExtraConfig 가 같은 키를 가지면 override
             foreach (var kv in ExtraConfig)
