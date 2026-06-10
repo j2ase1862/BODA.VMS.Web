@@ -1,22 +1,23 @@
 # BODA.VMS.Web GS 인증 Baseline — 취약점 감사 및 조치 보고서
 
-**문서 버전**: 1.1
-**작성일**: 2026-06-02 (v1.0) / 2026-06-04 (v1.1)
-**대상**: BODA.VMS.Web v1.1 → v1.2 (GS baseline) → v1.3 (잔여 7 항목 후속 처리)
+**문서 버전**: 1.2
+**작성일**: 2026-06-02 (v1.0) / 2026-06-04 (v1.1) / 2026-06-10 (v1.2)
+**대상**: BODA.VMS.Web v1.0 (Critical+High baseline) → v1.1 (잔여 7 항목) → v1.2 (인증 강화)
 **기준**: 한국 TTA GS(Good Software) 인증, ISO/IEC 25023 (SQuaRE) 8 개 품질 특성
 
 ---
 
 ## 1. 개요
 
-BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 SQLite DB 공유) 의 GS 인증 신청 가능 baseline 을 구축하고, 후속으로 baseline 외 잔여 항목까지 모두 처리. 사전 감사로 식별한 **Critical 4 + High 4 + 잔여 7 = 총 15 항목** 모두 처리 완료.
+BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 SQLite DB 공유) 의 GS 인증 신청 가능 baseline 을 구축하고, 후속으로 baseline 외 잔여 항목 + 인증(authn) 강화까지 모두 처리. 사전 감사로 식별한 **Critical 4 + High 4 + 잔여 7 + 인증 강화 6 = 총 21 항목** 모두 처리 완료.
 
 | 카테고리 | 항목 수 | 완료 | 비고 |
 |----------|---------|------|------|
 | Critical (탈락 위험) | 4 | ✅ 4/4 | v1.0 |
 | High (지적 가능성) | 4 | ✅ 4/4 | v1.0 |
 | 잔여 (baseline 외, GS 강화) | 7 | ✅ 7/7 | v1.1 |
-| **자동 테스트** | **384 통과 / 0 실패** | | 시작 9 → 종료 384 (42 배 증가) |
+| 인증 강화 (brute-force/패스워드/감사/CSP) | 6 | ✅ 6/6 | v1.2 |
+| **자동 테스트** | **443 통과 / 0 실패** | | 시작 9 → 종료 443 (49 배 증가) |
 
 본 문서는 각 항목의 **취약점 → 영향 → 조치 → 검증** 흐름을 기록.
 
@@ -453,18 +454,18 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 
 ---
 
-## 6. After — 갱신된 평가표 (v1.1)
+## 6. After — 갱신된 평가표 (v1.2)
 
-| 품질 특성 | Before | After v1.0 | After v1.1 | 비고 |
-|-----------|--------|------------|------------|------|
-| 기능 적합성 | 중 | 상 | **상+** | 28 → 39 Validator + 컬렉션 검증 |
-| 신뢰성 | 낮음 | 상 | **상+** | + Serilog 구조화 로깅 + DB 자동 백업 |
-| **보안성** | 매우낮음 | 상 | **상+** | + CSP + 익명 GET X-API-Key + Settings 검증 |
-| 성능 효율성 | 중상 | 중상 | 중상 | 무변경 (별도 영역) |
-| 호환성 | 중 | 상 | 상 | Swagger 그대로 |
-| 사용성 | 중상 | 중상 | 중상 | 무변경 |
-| 유지보수성 | 중 | 상 | **상+** | + 11 Service 통합 (총 384 테스트) |
-| 이식성 | 중상 | 중상 | 중상 | DEPLOYMENT_GUIDE 보강 그대로 |
+| 품질 특성 | Before | After v1.0 | After v1.1 | After v1.2 | 비고 |
+|-----------|--------|------------|------------|------------|------|
+| 기능 적합성 | 중 | 상 | 상+ | **상+** | + KISA 패스워드 복잡도 정책 |
+| 신뢰성 | 낮음 | 상 | 상+ | **상+** | + 인증 감사 로그 (성공/실패/잠금) |
+| **보안성** | 매우낮음 | 상 | 상+ | **최상** | + brute-force 다층 방어 + 열거 방지 + CSP 인라인 제거 |
+| 성능 효율성 | 중상 | 중상 | 중상 | 중상 | 무변경 (별도 영역) |
+| 호환성 | 중 | 상 | 상 | 상 | Swagger 그대로 |
+| 사용성 | 중상 | 중상 | 중상 | **중상+** | + 폰트 self-host (폐쇄망 오프라인 운영) |
+| 유지보수성 | 중 | 상 | 상+ | **상+** | + ClientService/ProductService + 인증 강화 (총 443 테스트) |
+| 이식성 | 중상 | 중상 | 중상 | 중상 | DEPLOYMENT_GUIDE 보강 그대로 |
 
 ---
 
@@ -510,6 +511,25 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 | **#32** | **잔여 #6** — Serilog 구조화 로깅 + 일일 롤링 JSON | 378 |
 | **#33** | **잔여 #7** — SQLite 자동 온라인 백업 + retention | **384** |
 
+### v1.1 후속 — Service 통합 테스트 확대 (§8 item 3 처리, 2026-06)
+
+| # | 제목 | 누적 테스트 |
+|---|------|-------------|
+| #35 | Web admin 시드 환경변수 기반 + 미설정 시 부팅 차단 (Option C2) | 384 |
+| #36 | ClientService + ProductService 통합 테스트 25 건 (HttpMessageHandler stub) | 409 |
+| #37 | ClientService VisionServer 활성 분기 12 테스트 | 421 |
+
+### v1.2 — 인증 강화 (auth hardening, 2026-06-10)
+
+| 항목 | 내용 | 누적 테스트 |
+|------|------|-------------|
+| §10.1 | brute-force 다층 방어 — IP rate limit(429) + 계정 잠금 | 430 |
+| §10.2 | 계정 열거(enumeration) 방지 — 균일 401 | 430 |
+| §10.3 | 인증 감사 로그 — LoginSuccess/Failed/Lockout + 키오스크 PIN | 431 |
+| §10.4 | KISA 패스워드 복잡도 (회원가입 + 재설정) | 440 |
+| §10.5 | Kestrel 요청 본문 크기 상한 명시 (DoS) | 440 |
+| §10.6 | CSP 강화 — 인라인 스크립트 제거 + 폰트 self-host(오프라인) | **443** |
+
 ---
 
 ## 8. 후속 발전 영역 (인증 영향 없음, 점진 고려)
@@ -518,8 +538,8 @@ v1.1 시점 GS 인증 신청에 추가 작업 불필요. 운영 안정성/관측
 
 1. **OpenTelemetry / Application Insights** — Serilog 파일 도입(§5.6), 분산 트레이싱은 미도입. 마이크로서비스 확장 시 고려.
 2. **백업 복구 자동 검증** — 현재는 생성만(§5.7), 복구 리허설은 수동. 정기 restore-test job 추가 가능.
-3. **Service 통합 테스트 확대** — ClientService / ProductService 는 IConfiguration/IHttpClientFactory 의존 → mock 라이브러리 도입 (NSubstitute/Moq) 후 추가 가능.
-4. **모바일 키오스크 endpoint 인증 강화** — `/api/kiosk` 그룹은 익명 유지 (UX/operator 흐름 영향 분석 필요).
+3. ~~**Service 통합 테스트 확대** — ClientService / ProductService~~ → **✅ 처리 완료** (PR #36/#37, HttpMessageHandler stub 으로 IHttpClientFactory 의존 격리, 37 케이스).
+4. **모바일 키오스크 endpoint 인증 강화** — `/api/kiosk/login` 은 v1.2 §10.1 로 IP rate limit + PIN 실패 감사 적용. 나머지 `/api/kiosk` 그룹은 익명 유지 (UX/operator 흐름 영향 분석 필요).
 5. **CI/CD 파이프라인** — GitHub Actions / Azure Pipelines. 현재는 로컬 빌드/테스트 + 수동 배포.
 
 ---
@@ -589,9 +609,133 @@ v1.1 시점 GS 인증 신청에 추가 작업 불필요. 운영 안정성/관측
    ```
 - 적용 후 브라우저 DevTools Console 에서 CSP 위반 경고 모니터링 권장
 
+### 9.5 인증 강화 옵션 운용 (v1.2 §10)
+
+- **로그인 rate limit** — 기본 IP 단위 60초 5회. 운영 환경/공유 NAT 사정에 맞춰 조정:
+   ```powershell
+   [Environment]::SetEnvironmentVariable("LoginRateLimit__PermitLimit", "5", "Machine")
+   [Environment]::SetEnvironmentVariable("LoginRateLimit__WindowSeconds", "60", "Machine")
+   ```
+   - reverse proxy 뒤에 배치 시 `X-Forwarded-For` 가 실제 IP 로 해석되도록 `ForwardedHeaders` 미들웨어 구성 필요 (그렇지 않으면 모든 클라이언트가 프록시 IP 단일 파티션 공유)
+- **계정 잠금** — 기본 연속 5회 실패 → 15분 잠금. `MaxFailedAttempts=0` 으로 비활성 가능:
+   ```powershell
+   [Environment]::SetEnvironmentVariable("AccountLockout__MaxFailedAttempts", "5", "Machine")
+   [Environment]::SetEnvironmentVariable("AccountLockout__LockoutMinutes", "15", "Machine")
+   ```
+   - 키오스크 Operator 는 계정 잠금 미적용(라인 가용성 우선) — PIN brute-force 는 rate limit 으로 방어
+- **인증 감사 조회** — 의심 활동 추적:
+   ```sql
+   SELECT Timestamp, UserName, IpAddress, Action, Changes
+   FROM AuditLogs WHERE EntityName IN ('Auth','KioskAuth')
+   ORDER BY Timestamp DESC;
+   ```
+- **패스워드 정책** — KISA 복잡도(3종 8자+ / 2종 10자+)는 코드 상수(`PasswordPolicy`). 기존 계정 암호는 소급 적용 안 됨 — 차기 변경/재설정 시 적용
+
 ---
 
-## 10. 참고 자료
+## 10. v1.2 — 인증 강화 (auth hardening, 2026-06-10)
+
+v1.1 baseline 적용 후 인증(authentication) 경로를 OWASP A07(Identification & Authentication Failures) 기준으로 추가 점검. brute-force 다층 방어, 패스워드 복잡도, 인증 감사, CSP 잔여 강화 등 **6 항목** 처리. `feat/gs-auth-hardening` 브랜치.
+
+### 10.1 로그인 brute-force 방어 부재 (rate limiting + 계정 잠금)
+**취약점**
+- `/api/auth/login` / `/api/kiosk/login` 에 시도 횟수 제한 없음 → 무제한 무차별 대입 가능
+- 특히 키오스크 PIN(4-8 자리 숫자)은 조합 공간이 작아(최대 10^8) 자동화 공격에 취약
+- 계정 단위 잠금도 없어 단일 계정 표적 공격 무방비
+
+**영향**
+- GS 보안성 항목 — 자격증명 무차별 대입 방어 부재 지적
+- 약한 PIN 정책과 결합 시 키오스크 계정 탈취 현실적 위험
+
+**조치**
+- **1차 (IP 단위 rate limit)**: `Middleware/LoginRateLimitOptions.cs` + `Program.cs` `AddRateLimiter` — IP partition fixed-window (기본 60초 5회 초과 시 **429**). `.RequireRateLimiting("login")` 을 두 로그인 endpoint 에만 부착. 거부 응답은 RFC 7807 `application/problem+json` (`ApiExceptionHandler` 포맷 일관)
+- **2차 (계정 단위 잠금)**: `Services/AccountLockoutOptions.cs` + `AuthService` — 연속 실패 `MaxFailedAttempts`(기본 5) 도달 시 `LockoutMinutes`(기본 15) 동안 잠금. 잠금 중에는 정확한 암호도 차단. 성공 시 카운트/잠금 리셋. `MaxFailedAttempts<=0` 이면 비활성
+- `User` 엔티티에 `FailedLoginCount` / `LockoutUntil` 컬럼 추가 — `Program.cs` 의 `PRAGMA table_info` 기반 **idempotent 마이그레이션** (기존 DB 무중단 ALTER)
+- **키오스크 Operator 는 계정 잠금 미적용** — 현장 라인 가용성 우선(잠금으로 생산 중단 방지), PIN brute-force 는 IP rate limit 으로 방어. 설계 의도를 옵션 XML 주석에 명시
+- 옵션은 요청 시점 `IOptions` 해석 — `WebApplicationFactory` 의 테스트 설정 주입 타이밍(Build 시점) 호환
+
+**검증 (자동 테스트 9 케이스)**
+- ✅ AuthServiceLockoutTests 6: 연속 실패 → 잠금, 잠금 중 정확 암호 차단, 성공 시 리셋, 만료 후 재허용, 미승인 계정 카운트 미증가, `MaxFailedAttempts=0` 비활성
+- ✅ LoginRateLimitTests 3: auth/login 한도 초과 429 + ProblemDetails, kiosk/login 429, 정책 미부착 endpoint(`/health/live`) 무제한
+
+### 10.2 계정 열거(username enumeration) 가능
+**취약점**
+- 기존 `LoginAsync` 는 "존재하지 않는 사용자" 와 "암호 불일치" 를 코드 경로상 구분 — 응답/타이밍 차이로 유효 사용자명 추측 가능
+
+**영향**
+- 공격자가 유효 계정 목록을 먼저 수집 → 표적 무차별 대입 효율 상승 (OWASP A07)
+
+**조치**
+- 모든 실패 경로(미존재/잠금/암호불일치/미승인)가 **동일하게 null → 401** 반환
+- 사유 구분은 감사 로그(`Changes`)에만 기록 — 클라이언트 응답에서는 불가관측
+
+**검증**
+- ✅ AuthServiceTests / AuthEndpointTests 의 음성 케이스가 모두 동일 401 확인
+
+### 10.3 인증 이벤트 감사 로그 부재
+**취약점**
+- 로그인 성공/실패/잠금 이력이 남지 않음 → brute-force 흔적·계정 탈취 사후 추적 불가
+- `AuditInterceptor` 는 엔티티 CRUD 만 기록, 인증 이벤트는 대상 외
+
+**영향**
+- GS 보안성/신뢰성 — 보안 사고 RCA(근본원인분석) 및 추적성 미달
+- IATF 16949 추적성 관점에서도 접근 이력 부재
+
+**조치**
+- `AuditLog.Action` 에 `LoginSuccess` / `LoginFailed` / `Lockout` 상수 추가 (`MaxLength` 10 → 20)
+- `AuthService.AuditAuthAsync` — 웹 로그인 이벤트를 `EntityName="Auth"` 로 기록 (UserId/UserName/IpAddress/사유). User 의 실패 카운트 변경과 **동일 SaveChanges** 로 원자적 영속화
+- 키오스크 PIN 실패는 `OperatorEndpoints` 에서 `EntityName="KioskAuth"` 로 기록 (성공은 OperatorSessions 행 자체가 이력)
+- `AuditInterceptor` ignore 목록에 `FailedLoginCount`/`LockoutUntil` 추가 — AuthService 가 전용 인증 감사를 남기므로 일반 Update 감사 중복 방지
+
+**검증**
+- ✅ AuthServiceLockoutTests — LoginFailed/Lockout/LoginSuccess 카운트, 미존재 사용자는 UserId=null + UserName/IP 기록 확인
+- ✅ AuthEndpointTests — full HTTP path 로 실패 시 `EntityName="Auth"` 감사 1 건 검증
+
+### 10.4 패스워드 복잡도 정책 미흡 (KISA)
+**취약점**
+- v1.0 에서 최소 길이만 8 자로 강화했으나 문자 종류(복잡도) 요건 없음 → `abcdefgh`, `12345678` 등 약한 패턴 통과
+
+**영향**
+- GS 기능 적합성/보안성 — 약한 자격증명이 무차별 대입/사전 공격에 취약
+
+**조치**
+- `Validators/PasswordPolicy.cs` — KISA 패스워드 가이드라인: **3종 조합(대/소/숫/특 중) 8자+ 또는 2종 조합 10자+**. `MustSatisfyPasswordComplexity()` 재사용 확장
+- `RegisterRequestValidator` + `ResetPasswordRequestValidator` 양쪽에 동일 정책 적용
+
+**검증 (자동 테스트)**
+- ✅ RegisterRequestValidatorTests Theory: 통과 3종(4종 8자/2종 10자/3종 8자) + 차단 4종(2종 8자/1종 다수, 과거 약패턴 `secret12` 포함)
+- ✅ ResetPasswordRequestValidatorTests Theory: 9자 2종·11자 1종 차단
+
+### 10.5 요청 본문 크기 상한 부재 (DoS)
+**취약점**
+- Kestrel 기본 `MaxRequestBodySize`(30MB) 가 명시되지 않아 운영 의도 불명확 — 과대 본문 업로드로 메모리 압박 가능
+
+**조치**
+- `appsettings.json` 의 `Kestrel:Limits:MaxRequestBodySize` 명시(30MB — 검사 이미지 JPEG 여유 포함). 기본 호스트가 `Kestrel` 섹션을 자동 바인딩하므로 코드 변경 불필요, 운영 override 가능
+
+**검증**
+- ✅ 빌드/기존 업로드 경로(검사 이미지) 회귀 없음 확인
+
+### 10.6 CSP 잔여 강화 — 인라인 스크립트 제거 + 폰트 self-host
+**취약점**
+- §5.5 CSP 도입에도 `App.razor` 에 boot-loader 인라인 `<script>` 잔존 → `script-src` 가 인라인 허용에 의존
+- Google Fonts CDN(`fonts.googleapis.com`) 외부 의존 — 폐쇄망(오프라인) 운영 불가 + CSP `connect/style-src` 외부 origin 필요
+
+**영향**
+- 인라인 스크립트는 XSS 주입 표면 확대, 엄격 CSP 적용 장애물
+- 외부 CDN 의존은 산업 폐쇄망 GS 운영 환경(인터넷 차단)에서 폰트 로드 실패 → 사용성 저하
+
+**조치**
+- boot-loader 인라인 스크립트를 `wwwroot/js/boot-loader.js` 로 외부화 → `script-src 'self'` 만으로 충족
+- Montserrat/Roboto/Roboto Mono 를 `wwwroot/fonts/*.woff2` variable font 로 self-host, `app.css` `@font-face` 로 전환 — 외부 CDN 의존 완전 제거(오프라인 운영)
+- `app.css?v=` 캐시 버스트 갱신, `.gitignore` 에 Serilog `Logs/` 추가(운영 로그 커밋 차단)
+
+**검증**
+- ✅ 빌드 통과, 폰트/부트로더 정상 로드, 외부 네트워크 요청 제거 확인
+
+---
+
+## 11. 참고 자료
 
 - ISO/IEC 25010:2011 — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models
 - ISO/IEC 25023:2016 — Measurement of system and software product quality

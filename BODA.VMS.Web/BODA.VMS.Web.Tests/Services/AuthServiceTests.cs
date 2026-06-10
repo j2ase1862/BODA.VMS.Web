@@ -1,9 +1,11 @@
-using BODA.VMS.Web.Client.Models;
+﻿using BODA.VMS.Web.Client.Models;
+using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
 using BODA.VMS.Web.Services;
 using BODA.VMS.Web.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace BODA.VMS.Web.Tests.Services;
 
@@ -23,11 +25,23 @@ public class AuthServiceTests
         return new JwtTokenService(config);
     }
 
+    internal static AuthService CreateService(
+        BodaVmsDbContext db, AccountLockoutOptions? lockout = null)
+        => new(db, CreateJwtService(), new StubCurrentUser(),
+               Options.Create(lockout ?? new AccountLockoutOptions()));
+
+    internal sealed class StubCurrentUser : ICurrentUserService
+    {
+        public int? UserId => null;
+        public string? UserName => null;
+        public string? IpAddress => "127.0.0.1";
+    }
+
     [Fact]
     public async Task Login_with_invalid_username_returns_null()
     {
         using var ctx = new InMemorySqliteDbContext();
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
 
         var result = await svc.LoginAsync(new LoginRequest { Username = "nobody", Password = "x" });
         result.Should().BeNull();
@@ -47,7 +61,7 @@ public class AuthServiceTests
         });
         await ctx.Db.SaveChangesAsync();
 
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
         var result = await svc.LoginAsync(new LoginRequest { Username = "alice", Password = "wrong" });
         result.Should().BeNull();
     }
@@ -67,7 +81,7 @@ public class AuthServiceTests
         });
         await ctx.Db.SaveChangesAsync();
 
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
         var result = await svc.LoginAsync(new LoginRequest { Username = "alice", Password = "secret" });
         result.Should().BeNull();
     }
@@ -86,7 +100,7 @@ public class AuthServiceTests
         });
         await ctx.Db.SaveChangesAsync();
 
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
         var result = await svc.LoginAsync(new LoginRequest { Username = "alice", Password = "secret" });
 
         result.Should().NotBeNull();
@@ -100,7 +114,7 @@ public class AuthServiceTests
     public async Task Register_new_user_persists_with_Pending_role_and_unapproved()
     {
         using var ctx = new InMemorySqliteDbContext();
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
 
         var (success, _) = await svc.RegisterAsync(new RegisterRequest
         {
@@ -132,7 +146,7 @@ public class AuthServiceTests
         });
         await ctx.Db.SaveChangesAsync();
 
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
         var (success, message) = await svc.RegisterAsync(new RegisterRequest
         {
             Username = "alice",
@@ -148,7 +162,7 @@ public class AuthServiceTests
     public async Task GetUserByIdAsync_returns_null_when_not_found()
     {
         using var ctx = new InMemorySqliteDbContext();
-        var svc = new AuthService(ctx.Db, CreateJwtService());
+        var svc = CreateService(ctx.Db);
         (await svc.GetUserByIdAsync(999)).Should().BeNull();
     }
 }

@@ -37,4 +37,14 @@ public class ResetPasswordRequestValidatorTests
         _validator.TestValidate(new ResetPasswordRequest { UserId = 1, NewPassword = "" })
             .ShouldHaveValidationErrorFor(x => x.NewPassword);
     }
+
+    // KISA 복잡도: 회원가입과 동일 정책 (3종 8자+ / 2종 10자+)
+    [Theory]
+    [InlineData("abcdefgh1")]    // 9자, 2종 — 10자 미만
+    [InlineData("abcdefghijk")]  // 11자, 1종
+    public void Password_failing_complexity_fails(string password)
+    {
+        _validator.TestValidate(new ResetPasswordRequest { UserId = 1, NewPassword = password })
+            .ShouldHaveValidationErrorFor(x => x.NewPassword);
+    }
 }

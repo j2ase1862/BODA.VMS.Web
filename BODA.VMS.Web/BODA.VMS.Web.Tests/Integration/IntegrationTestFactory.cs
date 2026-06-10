@@ -43,7 +43,10 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>
                 ["DatabaseBackup:Enabled"] = "false",
                 // Option C2 (2026-06-04): admin 디폴트 시드 제거 후 환경변수 기반.
                 // 테스트는 명시 비밀번호 제공 — 부팅 차단 회피.
-                ["Initial:AdminPassword"] = "TestInitialAdminPassword_1234"
+                ["Initial:AdminPassword"] = "TestInitialAdminPassword_1234",
+                // 로그인 rate limit 완화 — TestServer 는 RemoteIpAddress 가 없어 모든
+                // 테스트가 같은 파티션("unknown")을 공유. 전용 테스트만 ExtraConfig 로 낮춤.
+                ["LoginRateLimit:PermitLimit"] = "100000"
             };
             // ExtraConfig 가 같은 키를 가지면 override
             foreach (var kv in ExtraConfig)

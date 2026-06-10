@@ -17,7 +17,8 @@ public static class AuthEndpoints
             return result is null
                 ? Results.Unauthorized()
                 : Results.Ok(result);
-        }).AddEndpointFilter<ValidationEndpointFilter<LoginRequest>>();
+        }).AddEndpointFilter<ValidationEndpointFilter<LoginRequest>>()
+          .RequireRateLimiting(LoginRateLimitOptions.PolicyName); // GS 보안 — brute-force 방어
 
         group.MapPost("/register", async (RegisterRequest request, IAuthService authService) =>
         {
