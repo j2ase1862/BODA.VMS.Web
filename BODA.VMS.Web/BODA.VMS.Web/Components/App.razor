@@ -5,9 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <base href="/" />
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="app.css?v=20260520-9" />
+    <link rel="stylesheet" href="app.css?v=20260604-1" />
     <link rel="stylesheet" href="BODA.VMS.Web.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
@@ -28,24 +27,7 @@
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="js/download.js"></script>
-    <script>
-        (function () {
-            var hide = function () {
-                var el = document.getElementById('vms-boot-loader');
-                if (!el) return;
-                el.style.opacity = '0';
-                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
-            };
-            var observer = new MutationObserver(function () {
-                if (document.querySelector('.mud-layout, .vms-login-bg, .vms-login-card')) {
-                    hide();
-                    observer.disconnect();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            setTimeout(function () { hide(); observer.disconnect(); }, 30000);
-        })();
-    </script>
+    <script src="js/boot-loader.js"></script>
 </body>
 
 </html>

@@ -19,8 +19,8 @@ public class AuditLog
     [MaxLength(50)]
     public string? EntityId { get; set; }
 
-    /// <summary>Create / Update / Delete</summary>
-    [Required, MaxLength(10)]
+    /// <summary>Create / Update / Delete / LoginSuccess / LoginFailed / Lockout / TokenRefresh / Logout</summary>
+    [Required, MaxLength(20)]
     public string Action { get; set; } = string.Empty;
 
     /// <summary>변경된 속성들의 JSON: {"PropName": {"old": ..., "new": ...}}</summary>
@@ -42,4 +42,11 @@ public static class AuditAction
     public const string Create = "Create";
     public const string Update = "Update";
     public const string Delete = "Delete";
+
+    // 인증 이벤트 (EntityName="Auth" 웹 로그인 / "KioskAuth" 키오스크 PIN)
+    public const string LoginSuccess = "LoginSuccess";
+    public const string LoginFailed = "LoginFailed";
+    public const string Lockout = "Lockout";
+    public const string TokenRefresh = "TokenRefresh";
+    public const string Logout = "Logout";
 }

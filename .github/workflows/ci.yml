@@ -1,0 +1,63 @@
+name: CI
+
+# GS 유지보수성 — 빌드 + 전체 테스트 자동 실행 (수동 검증 의존 제거).
+# 제품이 Windows 서비스로 배포되므로 개발/운영과 동일한 windows-latest 에서 검증.
+
+on:
+  push:
+    branches: [master, "feat/**", "fix/**", "docs/**", "test/**"]
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+concurrency:
+  # 같은 브랜치/PR 의 이전 실행은 취소 — 최신 커밋만 검증
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # 8.0 = 앱 타깃(net8.0) 빌드 + 테스트 런타임,
+          # 10.0 = .slnx 솔루션 포맷 지원 SDK
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore BODA.VMS.Web.slnx
+
+      - name: Build
+        run: dotnet build BODA.VMS.Web.slnx --no-restore --configuration Release
+
+      - name: Test
+        # 앱 부팅 가드(Jwt:Key 32자+ / Initial:AdminPassword 8자+)를 만족시키는 테스트 전용
+        # dummy 값. 로컬은 개발자 user-secrets 가 제공 — 일부 통합 테스트는 bare
+        # WebApplicationFactory 라 ambient 설정에 의존(IntegrationTestFactory 미사용).
+        # 실제 비밀이 아니며 일회성 CI 앱 부팅만 통과시킴.
+        # Serilog 파일 sink / DB 백업은 CI 디스크 부작용 방지 위해 비활성.
+        env:
+          # 앱 부팅 가드(Program.cs top-level)는 factory 의 config 주입보다 먼저 실행되므로
+          # 환경변수로 제공해야 함. 테스트 전용 dummy(실제 비밀 아님) — 일회성 부팅만 통과.
+          # 토큰 발급/검증은 factory 가 request 시점에 TestJwtKey 로 덮어씀.
+          # DB 경로는 IntegrationTestFactory 가 인스턴스별 임시 파일로 교체(절대경로 의존 제거).
+          Jwt__Key: "ci-only-jwt-signing-key-not-a-secret-0123456789ABCDEF"
+          Initial__AdminPassword: "CiOnlyAdminPassword_123"
+          SerilogObservability__Disabled: "true"
+          DatabaseBackup__Enabled: "false"
+        run: dotnet test BODA.VMS.Web.slnx --no-build --configuration Release --verbosity normal

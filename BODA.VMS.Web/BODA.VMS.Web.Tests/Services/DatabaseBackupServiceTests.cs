@@ -148,4 +148,68 @@ public class DatabaseBackupServiceTests : IDisposable
         File.Exists(p1).Should().BeTrue();
         File.Exists(p2).Should().BeTrue();
     }
+
+    [Fact]
+    public async Task VerifyDatabaseIntegrityAsync_returns_true_for_valid_backup()
+    {
+        var src = CreateSampleDbAsync(rowCount: 10);
+        var destDir = Path.Combine(_tempDir, "backups");
+        var backupPath = await DatabaseBackupService.PerformBackupAsync(src, destDir);
+
+        (await DatabaseBackupService.VerifyDatabaseIntegrityAsync(backupPath))
+            .Should().BeTrue("정상 백업은 PRAGMA integrity_check 가 ok");
+    }
+
+    [Fact]
+    public async Task VerifyDatabaseIntegrityAsync_returns_false_for_corrupted_file()
+    {
+        // SQLite 헤더가 아닌 임의 바이트 → 유효한 DB 가 아님
+        var garbage = Path.Combine(_tempDir, "corrupt.db");
+        await File.WriteAllBytesAsync(garbage, new byte[] { 0x00, 0x01, 0x02, 0xFF, 0xAB, 0xCD });
+
+        (await DatabaseBackupService.VerifyDatabaseIntegrityAsync(garbage))
+            .Should().BeFalse("손상/비-DB 파일은 무결성 검증 실패");
+    }
+
+    [Fact]
+    public async Task VerifyDatabaseIntegrityAsync_returns_false_for_missing_file()
+    {
+        var missing = Path.Combine(_tempDir, "nope.db");
+        (await DatabaseBackupService.VerifyDatabaseIntegrityAsync(missing)).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// 문서 §9.3 복구 절차(손상 DB 를 백업으로 교체)를 자동 검증 —
+    /// 백업 → 원본 손실 시뮬레이션 → 백업으로 복구 → 행 무결성 + integrity_check 확인.
+    /// GS 신뢰성: 백업이 실제로 복원 가능함을 보장 (생성만 검증하던 기존 갭 해소).
+    /// </summary>
+    [Fact]
+    public async Task Backup_then_restore_roundtrip_preserves_data()
+    {
+        var src = CreateSampleDbAsync(rowCount: 137);
+        var destDir = Path.Combine(_tempDir, "backups");
+
+        // 1) 백업 생성
+        var backupPath = await DatabaseBackupService.PerformBackupAsync(src, destDir);
+        (await DatabaseBackupService.VerifyDatabaseIntegrityAsync(backupPath)).Should().BeTrue();
+
+        // 2) 원본 손실 시뮬레이션 (운영 DB 손상/삭제)
+        // SQLite 커넥션 풀이 파일 핸들을 잡고 있어 삭제 전 풀 비움 (운영에선 서비스 중지에 해당)
+        SqliteConnection.ClearAllPools();
+        File.Delete(src);
+        File.Exists(src).Should().BeFalse();
+
+        // 3) 복구 — 백업을 운영 DB 경로로 복사 (문서 §9.3 의 파일 교체 단계)
+        var restored = Path.Combine(_tempDir, "restored.db");
+        File.Copy(backupPath, restored);
+
+        // 4) 복구본 검증 — 무결성 + 행 수 완전 보존
+        (await DatabaseBackupService.VerifyDatabaseIntegrityAsync(restored)).Should().BeTrue();
+
+        using var conn = new SqliteConnection($"Data Source={restored}");
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM Items";
+        ((long)cmd.ExecuteScalar()!).Should().Be(137, "복구본은 백업 시점 모든 행을 보존");
+    }
 }

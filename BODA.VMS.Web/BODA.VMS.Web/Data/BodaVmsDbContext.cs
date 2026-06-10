@@ -30,6 +30,7 @@ public class BodaVmsDbContext : DbContext
     public DbSet<SensorReading> SensorReadings => Set<SensorReading>();
     public DbSet<MLModel> MLModels => Set<MLModel>();
     public DbSet<PredictionLog> PredictionLogs => Set<PredictionLog>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -167,5 +168,13 @@ public class BodaVmsDbContext : DbContext
 
         modelBuilder.Entity<PredictionLog>()
             .HasIndex(p => p.MLModelId);
+
+        // GS 보안 — refresh token 해시 조회 인덱스 (UNIQUE: 해시 충돌 불가 + 빠른 검증)
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(t => t.TokenHash)
+            .IsUnique();
+
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(t => t.UserId);
     }
 }

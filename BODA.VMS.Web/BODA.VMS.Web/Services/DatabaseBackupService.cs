@@ -73,7 +73,23 @@ public sealed class DatabaseBackupService : BackgroundService
         try
         {
             var path = await PerformBackupAsync(sourceDbPath, destination, ct);
-            _logger.LogInformation("DatabaseBackup ok — File={File} Size={Size}", path, new FileInfo(path).Length);
+
+            // 백업 직후 무결성 검증 — 침묵 손상(silent corruption)된 백업이 retention 으로
+            // 정상 백업을 밀어내는 것을 방지. 실패해도 파일은 보존(수동 분석용) + 에러 로그.
+            var intact = await VerifyDatabaseIntegrityAsync(path, ct);
+            if (intact)
+            {
+                _logger.LogInformation(
+                    "DatabaseBackup ok — File={File} Size={Size} IntegrityCheck=ok",
+                    path, new FileInfo(path).Length);
+            }
+            else
+            {
+                _logger.LogError(
+                    "DatabaseBackup integrity check FAILED — File={File}. 손상 가능성, 운영자 점검 필요.",
+                    path);
+            }
+
             PruneOldBackups(destination, retain);
         }
         catch (Exception ex)
@@ -102,6 +118,36 @@ public sealed class DatabaseBackupService : BackgroundService
         // BackupDatabase 는 페이지 단위 복사 — 운영중 안전
         source.BackupDatabase(dest);
         return destPath;
+    }
+
+    /// <summary>
+    /// SQLite DB 파일 무결성 검증 — <c>PRAGMA integrity_check</c> 가 "ok" 면 true.
+    /// 백업 직후/복구 전 호출해 파일이 실제로 복원 가능한지 보장 (GS 신뢰성 — 복구성).
+    /// 파일이 없거나 SQLite 가 열 수 없는(손상/비-DB) 경우 false.
+    /// </summary>
+    public static async Task<bool> VerifyDatabaseIntegrityAsync(string dbPath, CancellationToken ct = default)
+    {
+        if (!File.Exists(dbPath)) return false;
+        try
+        {
+            // ReadOnly — 검증이 대상 파일을 절대 수정하지 않도록
+            await using var conn = new SqliteConnection(
+                new SqliteConnectionStringBuilder
+                {
+                    DataSource = dbPath,
+                    Mode = SqliteOpenMode.ReadOnly
+                }.ToString());
+            await conn.OpenAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "PRAGMA integrity_check;";
+            var result = (string?)await cmd.ExecuteScalarAsync(ct);
+            return string.Equals(result, "ok", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (SqliteException)
+        {
+            // 손상되어 열 수 없음 ("file is not a database" 등) → 무결성 실패
+            return false;
+        }
     }
 
     /// <summary>오래된 파일부터 RetainCount 만 남기고 삭제. 패턴 외 파일은 건드리지 않음.</summary>

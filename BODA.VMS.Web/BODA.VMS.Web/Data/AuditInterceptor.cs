@@ -48,7 +48,8 @@ public class AuditInterceptor : SaveChangesInterceptor
     {
         "UpdatedAt", "CreatedAt", "LastSeenAt", "LastHeartbeatIp",
         "ProducedQuantity", "PassQuantity", "NgQuantity", // WorkOrder 자동 카운터
-        "Quantity", "PassCount", "NgCount" // Lot 자동 카운터
+        "Quantity", "PassCount", "NgCount", // Lot 자동 카운터
+        "FailedLoginCount", "LockoutUntil" // User 로그인 카운터 — AuthService 가 별도 인증 감사 기록
     };
 
     private readonly ICurrentUserService _currentUser;

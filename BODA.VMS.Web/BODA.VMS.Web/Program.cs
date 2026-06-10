@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Threading.RateLimiting;
 using BODA.VMS.Web.Components;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Endpoints;
@@ -8,6 +9,7 @@ using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
@@ -131,6 +133,49 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+
+// GS 보안 — 로그인 brute-force 1차 방어: IP 단위 fixed-window rate limiting.
+// /api/auth/login + /api/kiosk/login 에만 적용 (.RequireRateLimiting("login")).
+// 2차 방어는 계정 단위 잠금 (AccountLockoutOptions, AuthService).
+// 옵션은 요청 시점에 IOptions 로 해석 — builder.Configuration 직접 캡처는
+// WebApplicationFactory 의 테스트 설정 주입(Build 시점)보다 먼저 실행돼 무시됨
+// (IntegrationTestFactory 의 Jwt:Key 와 동일한 타이밍 이슈).
+builder.Services.Configure<LoginRateLimitOptions>(
+    builder.Configuration.GetSection(LoginRateLimitOptions.SectionName));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = static async (context, ct) =>
+    {
+        // RFC 7807 ProblemDetails — ApiExceptionHandler 와 동일 포맷 유지
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"type\":\"https://tools.ietf.org/html/rfc6585#section-4\"," +
+            "\"title\":\"Too Many Requests\",\"status\":429," +
+            "\"detail\":\"Too many login attempts. Try again later.\"}", ct);
+    };
+    options.AddPolicy(LoginRateLimitOptions.PolicyName, httpContext =>
+    {
+        var opts = httpContext.RequestServices
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<LoginRateLimitOptions>>().Value;
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = opts.PermitLimit,
+                Window = TimeSpan.FromSeconds(opts.WindowSeconds),
+                QueueLimit = 0
+            });
+    });
+});
+
+// GS 보안 — 로그인 brute-force 2차 방어: 계정 단위 연속 실패 잠금 (AuthService 적용).
+builder.Services.Configure<AccountLockoutOptions>(
+    builder.Configuration.GetSection(AccountLockoutOptions.SectionName));
+
+// GS 보안 — JWT refresh token: access token(8h) 만료 후 재로그인 없이 갱신 + 폐기(revocation).
+builder.Services.Configure<RefreshTokenOptions>(
+    builder.Configuration.GetSection(RefreshTokenOptions.SectionName));
 
 // CORS — Cors:AllowedOrigins 가 비어있으면 cross-origin 차단 (same-origin 만 허용).
 // VMS 데스크탑이 다른 호스트에서 API 호출시 appsettings 에 origin 등록.
@@ -329,10 +374,47 @@ using (var scope = app.Services.CreateScope())
             ""Role""        TEXT NOT NULL DEFAULT 'Pending',
             ""IsApproved""  INTEGER NOT NULL DEFAULT 0,
             ""CreatedAt""   TEXT NOT NULL,
-            ""ApprovedAt""  TEXT
+            ""ApprovedAt""  TEXT,
+            ""FailedLoginCount"" INTEGER NOT NULL DEFAULT 0,
+            ""LockoutUntil""     TEXT
         );");
     await db.Database.ExecuteSqlRawAsync(
         "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Users_Username\" ON \"Users\" (\"Username\");");
+
+    // GS 보안 — 계정 잠금 컬럼 (기존 DB idempotent 마이그레이션)
+    using (var cmdUser = conn.CreateCommand())
+    {
+        cmdUser.CommandText = "PRAGMA table_info(Users);";
+        var userColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var readerUser = await cmdUser.ExecuteReaderAsync())
+        {
+            while (await readerUser.ReadAsync())
+                userColumns.Add(readerUser.GetString(1));
+        }
+
+        if (!userColumns.Contains("FailedLoginCount"))
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE Users ADD COLUMN FailedLoginCount INTEGER NOT NULL DEFAULT 0;");
+        if (!userColumns.Contains("LockoutUntil"))
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE Users ADD COLUMN LockoutUntil TEXT;");
+    }
+
+    // GS 보안 — JWT refresh token 저장소 (해시만 보관, raw 미저장)
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""RefreshTokens"" (
+            ""Id""                  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""UserId""              INTEGER NOT NULL,
+            ""TokenHash""           TEXT NOT NULL,
+            ""ExpiresAt""           TEXT NOT NULL,
+            ""CreatedAt""           TEXT NOT NULL,
+            ""RevokedAt""           TEXT,
+            ""ReplacedByTokenHash"" TEXT
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RefreshTokens_TokenHash\" ON \"RefreshTokens\" (\"TokenHash\");");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_RefreshTokens_UserId\" ON \"RefreshTokens\" (\"UserId\");");
 
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""InspectionHistories"" (
@@ -1001,6 +1083,9 @@ app.UseAntiforgery();
 
 // CORS — UseAuthentication 직전이 권장 위치.
 app.UseCors(CorsPolicyVmsClients);
+
+// GS 보안 — 로그인 endpoint rate limiting (.RequireRateLimiting 부착 endpoint 만 제한).
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

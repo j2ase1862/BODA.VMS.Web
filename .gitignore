@@ -19,6 +19,9 @@ publish-test/
 *.db-shm
 *.db-wal
 
+## Serilog 일일 롤링 로그 (운영 로그 — 커밋 금지)
+Logs/
+
 ## OS files
 Thumbs.db
 Desktop.ini

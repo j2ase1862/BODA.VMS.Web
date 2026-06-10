@@ -31,10 +31,11 @@ public class AuthEndpointTests : IDisposable
     [Fact]
     public async Task POST_register_creates_user_with_Pending_role_and_bcrypt_hash()
     {
+        // 비밀번호는 KISA 복잡도 정책 충족 필요 (3종 조합 8자+)
         var dto = new RegisterRequest
         {
             Username = "register_test_user",
-            Password = "secret12",
+            Password = "Secret12!",
             DisplayName = "Register Test"
         };
         var response = await _client.PostAsJsonAsync("/api/auth/register", dto);
@@ -47,8 +48,8 @@ public class AuthEndpointTests : IDisposable
         stored.Role.Should().Be("Pending");
         stored.IsApproved.Should().BeFalse();
         // 평문 저장 금지 — BCrypt 해시 검증
-        stored.PasswordHash.Should().NotBe("secret12");
-        BCrypt.Net.BCrypt.Verify("secret12", stored.PasswordHash).Should().BeTrue();
+        stored.PasswordHash.Should().NotBe("Secret12!");
+        BCrypt.Net.BCrypt.Verify("Secret12!", stored.PasswordHash).Should().BeTrue();
     }
 
     [Fact]
@@ -102,6 +103,21 @@ public class AuthEndpointTests : IDisposable
             new LoginRequest { Username = "pending_user", Password = "secret12" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Failed_login_writes_auth_audit_log()
+    {
+        // GS 보안 — 인증 이벤트가 AuditLogs 에 기록되는지 full path 검증
+        var response = await _client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest { Username = "no_such_user", Password = "whatever1" });
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        using var db = _factory.CreateScopedDbContext();
+        var log = db.AuditLogs.Single(a => a.EntityName == "Auth");
+        log.Action.Should().Be(AuditAction.LoginFailed);
+        log.UserName.Should().Be("no_such_user");
     }
 
     // 참고: JWT 양성 시나리오 (유효 토큰 → 200) 는 TestHost 환경에서 토큰 발급/검증

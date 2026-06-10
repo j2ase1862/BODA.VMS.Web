@@ -42,6 +42,30 @@ public class RegisterRequestValidatorTests
             .WithErrorMessage("Password must be at least 8 characters");
     }
 
+    // KISA 복잡도: 3종 조합이면 8자+, 2종 조합이면 10자+
+    [Theory]
+    [InlineData("Abcdef1!")]      // 8자, 4종 (대/소/숫/특)
+    [InlineData("abcdefgh12")]    // 10자, 2종 (소/숫)
+    [InlineData("Abcdefg1")]      // 8자, 3종 (대/소/숫)
+    public void Password_meeting_complexity_passes(string password)
+    {
+        var dto = Valid();
+        dto.Password = password;
+        _validator.TestValidate(dto).ShouldNotHaveValidationErrorFor(x => x.Password);
+    }
+
+    [Theory]
+    [InlineData("abcdefg1")]      // 8자, 2종 — 10자 미만이라 부족
+    [InlineData("abcdefghij")]    // 10자, 1종 (소문자만)
+    [InlineData("12345678901")]   // 11자, 1종 (숫자만)
+    [InlineData("secret12")]      // 8자, 2종 — 과거 약한 패턴 차단 확인
+    public void Password_failing_complexity_fails(string password)
+    {
+        var dto = Valid();
+        dto.Password = password;
+        _validator.TestValidate(dto).ShouldHaveValidationErrorFor(x => x.Password);
+    }
+
     [Fact]
     public void DisplayName_required()
     {

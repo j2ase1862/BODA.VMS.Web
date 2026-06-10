@@ -9,10 +9,11 @@ public sealed class ResetPasswordRequestValidator : AbstractValidator<ResetPassw
     {
         RuleFor(x => x.UserId).GreaterThan(0).WithMessage("UserId must be > 0");
 
-        // GS baseline: 회원가입과 동일 정책 — 최소 8자.
+        // GS 보안: 회원가입과 동일 정책 — 최소 8자 + KISA 복잡도.
         RuleFor(x => x.NewPassword)
             .NotEmpty().WithMessage("NewPassword is required")
             .MinimumLength(8).WithMessage("NewPassword must be at least 8 characters")
-            .MaximumLength(200).WithMessage("NewPassword too long");
+            .MaximumLength(200).WithMessage("NewPassword too long")
+            .MustSatisfyPasswordComplexity();
     }
 }

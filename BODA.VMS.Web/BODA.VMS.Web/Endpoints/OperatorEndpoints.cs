@@ -12,7 +12,12 @@ public static class OperatorEndpoints
     public static void MapOperatorEndpoints(this WebApplication app)
     {
         // === 키오스크 (Anonymous — 현장 단말에서 직접 호출) ===
-        var kiosk = app.MapGroup("/api/kiosk").AllowAnonymous();
+        // GS 보안 — VMS 머신 endpoint(§5.1)와 동일하게 X-API-Key 호환 필터 부착해 비대칭 해소.
+        // 기본 호환 모드(ClientApiKey:Required=false)에서는 헤더 없어도 통과 → 현행 동작 무변경.
+        // Required=true 전환 시 머신/키오스크 양쪽이 일관되게 키를 요구.
+        var kiosk = app.MapGroup("/api/kiosk")
+            .AllowAnonymous()
+            .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
         // 현재 작업자 조회 (라인 인덱스 기준)
         kiosk.MapGet("/current/{clientIndex:int}", async (
@@ -28,17 +33,34 @@ public static class OperatorEndpoints
             KioskLoginRequest req,
             IOperatorService opSvc,
             IOperatorSessionService sessionSvc,
-            BodaVmsDbContext db) =>
+            BodaVmsDbContext db,
+            ICurrentUserService currentUser) =>
         {
             var client = await db.Clients.FirstOrDefaultAsync(c => c.ClientIndex == req.ClientIndex);
             if (client is null) return Results.NotFound($"Line {req.ClientIndex} not found");
 
             var op = await opSvc.AuthenticateAsync(req.EmployeeNumber, req.Pin);
-            if (op is null) return Results.Unauthorized();
+            if (op is null)
+            {
+                // GS 보안 — PIN 인증 실패 감사 기록 (brute-force 흔적 추적).
+                // 성공은 OperatorSessions 행 자체가 이력이라 별도 기록 불필요.
+                db.AuditLogs.Add(new AuditLog
+                {
+                    EntityName = "KioskAuth",
+                    Action = AuditAction.LoginFailed,
+                    Changes = $"line {req.ClientIndex}",
+                    Timestamp = DateTime.UtcNow,
+                    UserName = req.EmployeeNumber,
+                    IpAddress = currentUser.IpAddress
+                });
+                await db.SaveChangesAsync();
+                return Results.Unauthorized();
+            }
 
             var session = await sessionSvc.StartSessionAsync(client.Id, op.Id);
             return Results.Ok(session);
-        }).AddEndpointFilter<ValidationEndpointFilter<KioskLoginRequest>>();
+        }).AddEndpointFilter<ValidationEndpointFilter<KioskLoginRequest>>()
+          .RequireRateLimiting(LoginRateLimitOptions.PolicyName); // GS 보안 — PIN brute-force 방어
 
         // 로그아웃 (현재 작업자 세션 종료)
         kiosk.MapPost("/logout", async (
