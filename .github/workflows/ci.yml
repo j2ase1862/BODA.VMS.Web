@@ -46,8 +46,14 @@ jobs:
         run: dotnet build BODA.VMS.Web.slnx --no-restore --configuration Release
 
       - name: Test
-        # Serilog 파일 sink / DB 백업은 CI 부작용 방지 위해 비활성 (테스트도 자체 비활성하지만 이중 안전)
+        # 앱 부팅 가드(Jwt:Key 32자+ / Initial:AdminPassword 8자+)를 만족시키는 테스트 전용
+        # dummy 값. 로컬은 개발자 user-secrets 가 제공 — 일부 통합 테스트는 bare
+        # WebApplicationFactory 라 ambient 설정에 의존(IntegrationTestFactory 미사용).
+        # 실제 비밀이 아니며 일회성 CI 앱 부팅만 통과시킴.
+        # Serilog 파일 sink / DB 백업은 CI 디스크 부작용 방지 위해 비활성.
         env:
+          Jwt__Key: "ci-only-jwt-signing-key-not-a-secret-0123456789ABCDEF"
+          Initial__AdminPassword: "CiOnlyAdminPassword_123"
           SerilogObservability__Disabled: "true"
           DatabaseBackup__Enabled: "false"
         run: dotnet test BODA.VMS.Web.slnx --no-build --configuration Release --verbosity normal
