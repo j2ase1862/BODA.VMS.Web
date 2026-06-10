@@ -173,6 +173,10 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.Configure<AccountLockoutOptions>(
     builder.Configuration.GetSection(AccountLockoutOptions.SectionName));
 
+// GS 보안 — JWT refresh token: access token(8h) 만료 후 재로그인 없이 갱신 + 폐기(revocation).
+builder.Services.Configure<RefreshTokenOptions>(
+    builder.Configuration.GetSection(RefreshTokenOptions.SectionName));
+
 // CORS — Cors:AllowedOrigins 가 비어있으면 cross-origin 차단 (same-origin 만 허용).
 // VMS 데스크탑이 다른 호스트에서 API 호출시 appsettings 에 origin 등록.
 const string CorsPolicyVmsClients = "VmsClients";
@@ -395,6 +399,22 @@ using (var scope = app.Services.CreateScope())
             await db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE Users ADD COLUMN LockoutUntil TEXT;");
     }
+
+    // GS 보안 — JWT refresh token 저장소 (해시만 보관, raw 미저장)
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""RefreshTokens"" (
+            ""Id""                  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""UserId""              INTEGER NOT NULL,
+            ""TokenHash""           TEXT NOT NULL,
+            ""ExpiresAt""           TEXT NOT NULL,
+            ""CreatedAt""           TEXT NOT NULL,
+            ""RevokedAt""           TEXT,
+            ""ReplacedByTokenHash"" TEXT
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RefreshTokens_TokenHash\" ON \"RefreshTokens\" (\"TokenHash\");");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_RefreshTokens_UserId\" ON \"RefreshTokens\" (\"UserId\");");
 
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""InspectionHistories"" (

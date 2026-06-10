@@ -19,7 +19,7 @@ public class AuditLog
     [MaxLength(50)]
     public string? EntityId { get; set; }
 
-    /// <summary>Create / Update / Delete / LoginSuccess / LoginFailed / Lockout</summary>
+    /// <summary>Create / Update / Delete / LoginSuccess / LoginFailed / Lockout / TokenRefresh / Logout</summary>
     [Required, MaxLength(20)]
     public string Action { get; set; } = string.Empty;
 
@@ -47,4 +47,6 @@ public static class AuditAction
     public const string LoginSuccess = "LoginSuccess";
     public const string LoginFailed = "LoginFailed";
     public const string Lockout = "Lockout";
+    public const string TokenRefresh = "TokenRefresh";
+    public const string Logout = "Logout";
 }

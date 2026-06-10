@@ -20,6 +20,22 @@ public static class AuthEndpoints
         }).AddEndpointFilter<ValidationEndpointFilter<LoginRequest>>()
           .RequireRateLimiting(LoginRateLimitOptions.PolicyName); // GS 보안 — brute-force 방어
 
+        // GS 보안 — access token 갱신 (refresh token 로테이션). brute-force 방어 위해 rate limit.
+        group.MapPost("/refresh", async (RefreshRequest request, IAuthService authService) =>
+        {
+            var result = await authService.RefreshAsync(request.RefreshToken);
+            return result is null
+                ? Results.Unauthorized()
+                : Results.Ok(result);
+        }).RequireRateLimiting(LoginRateLimitOptions.PolicyName);
+
+        // GS 보안 — 로그아웃: refresh token 폐기 (서버측 revocation). 토큰 만료돼도 호출 가능하도록 익명.
+        group.MapPost("/logout", async (RefreshRequest request, IAuthService authService) =>
+        {
+            await authService.RevokeRefreshTokenAsync(request.RefreshToken);
+            return Results.Ok();
+        });
+
         group.MapPost("/register", async (RegisterRequest request, IAuthService authService) =>
         {
             var (success, message) = await authService.RegisterAsync(request);

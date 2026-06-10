@@ -26,9 +26,12 @@ public class AuthServiceTests
     }
 
     internal static AuthService CreateService(
-        BodaVmsDbContext db, AccountLockoutOptions? lockout = null)
+        BodaVmsDbContext db,
+        AccountLockoutOptions? lockout = null,
+        RefreshTokenOptions? refresh = null)
         => new(db, CreateJwtService(), new StubCurrentUser(),
-               Options.Create(lockout ?? new AccountLockoutOptions()));
+               Options.Create(lockout ?? new AccountLockoutOptions()),
+               Options.Create(refresh ?? new RefreshTokenOptions()));
 
     internal sealed class StubCurrentUser : ICurrentUserService
     {

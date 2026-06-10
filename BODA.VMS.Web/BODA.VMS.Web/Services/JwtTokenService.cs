@@ -14,7 +14,16 @@ public class JwtTokenService
         _config = config;
     }
 
+    /// <summary>access token 문자열만 반환 (하위 호환).</summary>
     public string GenerateToken(int userId, string username, string displayName, string role)
+        => GenerateAccessToken(userId, username, displayName, role).Token;
+
+    /// <summary>
+    /// access token + 만료 시각(UTC) 반환. refresh token 흐름에서 클라이언트가
+    /// AccessTokenExpiresAt 로 사전 갱신 타이밍을 판단하도록 만료 시각도 함께 노출.
+    /// </summary>
+    public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(
+        int userId, string username, string displayName, string role)
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
@@ -29,14 +38,15 @@ public class JwtTokenService
         };
 
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
+        var expiresAt = DateTime.UtcNow.AddMinutes(expireMinutes);
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expireMinutes),
+            expires: expiresAt,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
 }
