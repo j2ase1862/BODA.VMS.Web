@@ -1,15 +1,15 @@
 # BODA.VMS.Web GS 인증 Baseline — 취약점 감사 및 조치 보고서
 
-**문서 버전**: 1.2
-**작성일**: 2026-06-02 (v1.0) / 2026-06-04 (v1.1) / 2026-06-10 (v1.2)
-**대상**: BODA.VMS.Web v1.0 (Critical+High baseline) → v1.1 (잔여 7 항목) → v1.2 (인증 강화)
+**문서 버전**: 1.3
+**작성일**: 2026-06-02 (v1.0) / 2026-06-04 (v1.1) / 2026-06-10 (v1.2 + v1.3)
+**대상**: BODA.VMS.Web v1.0 (Critical+High baseline) → v1.1 (잔여 7 항목) → v1.2 (인증 강화) → v1.3 (후속 보안/운영)
 **기준**: 한국 TTA GS(Good Software) 인증, ISO/IEC 25023 (SQuaRE) 8 개 품질 특성
 
 ---
 
 ## 1. 개요
 
-BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 SQLite DB 공유) 의 GS 인증 신청 가능 baseline 을 구축하고, 후속으로 baseline 외 잔여 항목 + 인증(authn) 강화까지 모두 처리. 사전 감사로 식별한 **Critical 4 + High 4 + 잔여 7 + 인증 강화 6 = 총 21 항목** 모두 처리 완료.
+BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 SQLite DB 공유) 의 GS 인증 신청 가능 baseline 을 구축하고, 후속으로 baseline 외 잔여 항목 + 인증(authn) 강화 + 후속 보안/운영까지 모두 처리. 사전 감사로 식별한 **Critical 4 + High 4 + 잔여 7 + 인증 강화 6 + 후속 4 = 총 25 항목** 모두 처리 완료.
 
 | 카테고리 | 항목 수 | 완료 | 비고 |
 |----------|---------|------|------|
@@ -17,7 +17,8 @@ BODA.VMS.Web 솔루션(ASP.NET Core 8 + Blazor WebAssembly, VMS 데스크탑과 
 | High (지적 가능성) | 4 | ✅ 4/4 | v1.0 |
 | 잔여 (baseline 외, GS 강화) | 7 | ✅ 7/7 | v1.1 |
 | 인증 강화 (brute-force/패스워드/감사/CSP) | 6 | ✅ 6/6 | v1.2 |
-| **자동 테스트** | **443 통과 / 0 실패** | | 시작 9 → 종료 443 (49 배 증가) |
+| 후속 (refresh token/백업검증/X-API-Key/CI) | 4 | ✅ 4/4 | v1.3 |
+| **자동 테스트** | **466 통과 / 0 실패** | | 시작 9 → 종료 466 (52 배 증가) |
 
 본 문서는 각 항목의 **취약점 → 영향 → 조치 → 검증** 흐름을 기록.
 
@@ -454,18 +455,18 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 
 ---
 
-## 6. After — 갱신된 평가표 (v1.2)
+## 6. After — 갱신된 평가표 (v1.3)
 
-| 품질 특성 | Before | After v1.0 | After v1.1 | After v1.2 | 비고 |
-|-----------|--------|------------|------------|------------|------|
-| 기능 적합성 | 중 | 상 | 상+ | **상+** | + KISA 패스워드 복잡도 정책 |
-| 신뢰성 | 낮음 | 상 | 상+ | **상+** | + 인증 감사 로그 (성공/실패/잠금) |
-| **보안성** | 매우낮음 | 상 | 상+ | **최상** | + brute-force 다층 방어 + 열거 방지 + CSP 인라인 제거 |
-| 성능 효율성 | 중상 | 중상 | 중상 | 중상 | 무변경 (별도 영역) |
-| 호환성 | 중 | 상 | 상 | 상 | Swagger 그대로 |
-| 사용성 | 중상 | 중상 | 중상 | **중상+** | + 폰트 self-host (폐쇄망 오프라인 운영) |
-| 유지보수성 | 중 | 상 | 상+ | **상+** | + ClientService/ProductService + 인증 강화 (총 443 테스트) |
-| 이식성 | 중상 | 중상 | 중상 | 중상 | DEPLOYMENT_GUIDE 보강 그대로 |
+| 품질 특성 | Before | After v1.0 | After v1.1 | After v1.2 | After v1.3 | 비고 |
+|-----------|--------|------------|------------|------------|------------|------|
+| 기능 적합성 | 중 | 상 | 상+ | 상+ | **상+** | + KISA 패스워드 복잡도 정책 |
+| 신뢰성 | 낮음 | 상 | 상+ | 상+ | **최상** | + 인증 감사 + 백업 복구 자동 검증 |
+| **보안성** | 매우낮음 | 상 | 상+ | 최상 | **최상** | + JWT refresh/revocation + 키오스크 X-API-Key |
+| 성능 효율성 | 중상 | 중상 | 중상 | 중상 | 중상 | 무변경 (별도 영역) |
+| 호환성 | 중 | 상 | 상 | 상 | 상 | Swagger 그대로 |
+| 사용성 | 중상 | 중상 | 중상 | 중상+ | **상** | + refresh token 으로 8h+ 무중단 세션 |
+| 유지보수성 | 중 | 상 | 상+ | 상+ | **최상** | + CI/CD 자동 검증 (총 466 테스트) |
+| 이식성 | 중상 | 중상 | 중상 | 중상 | 중상 | DEPLOYMENT_GUIDE 보강 그대로 |
 
 ---
 
@@ -530,6 +531,15 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 | §10.5 | Kestrel 요청 본문 크기 상한 명시 (DoS) | 440 |
 | §10.6 | CSP 강화 — 인라인 스크립트 제거 + 폰트 self-host(오프라인) | **443** |
 
+### v1.3 — 후속 보안/운영 강화 (2026-06-10)
+
+| 항목 | 내용 | 누적 테스트 |
+|------|------|-------------|
+| §11.1 | JWT refresh token — 발급 / 로테이션 / 폐기(revocation) | 457 |
+| §11.2 | 백업 복구 검증 자동화 — integrity_check + 복구 라운드트립 | 461 |
+| §11.3 | 키오스크 X-API-Key 비대칭 해소 (호환 모드 필터) | 466 |
+| §11.4 | CI/CD — GitHub Actions (build + 전체 테스트) | **466** |
+
 ---
 
 ## 8. 후속 발전 영역 (인증 영향 없음, 점진 고려)
@@ -537,10 +547,10 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 v1.1 시점 GS 인증 신청에 추가 작업 불필요. 운영 안정성/관측성을 더 강화하고 싶다면:
 
 1. **OpenTelemetry / Application Insights** — Serilog 파일 도입(§5.6), 분산 트레이싱은 미도입. 마이크로서비스 확장 시 고려.
-2. **백업 복구 자동 검증** — 현재는 생성만(§5.7), 복구 리허설은 수동. 정기 restore-test job 추가 가능.
+2. ~~**백업 복구 자동 검증**~~ → **✅ 처리 완료** (v1.3 §11.2 — `integrity_check` 검증 + 복구 라운드트립 자동 테스트).
 3. ~~**Service 통합 테스트 확대** — ClientService / ProductService~~ → **✅ 처리 완료** (PR #36/#37, HttpMessageHandler stub 으로 IHttpClientFactory 의존 격리, 37 케이스).
-4. **모바일 키오스크 endpoint 인증 강화** — `/api/kiosk/login` 은 v1.2 §10.1 로 IP rate limit + PIN 실패 감사 적용. 나머지 `/api/kiosk` 그룹은 익명 유지 (UX/operator 흐름 영향 분석 필요).
-5. **CI/CD 파이프라인** — GitHub Actions / Azure Pipelines. 현재는 로컬 빌드/테스트 + 수동 배포.
+4. ~~**키오스크 endpoint X-API-Key 비대칭**~~ → **✅ 처리 완료** (v1.3 §11.3 — 키오스크 그룹에 호환 모드 필터 부착). 단, `/api/kiosk` 익명 접근 자체는 현장 UX 우선으로 유지.
+5. ~~**CI/CD 파이프라인**~~ → **✅ 처리 완료** (v1.3 §11.4 — GitHub Actions, push/PR 시 build + 전체 테스트).
 
 ---
 
@@ -630,6 +640,18 @@ v1.1 시점 GS 인증 신청에 추가 작업 불필요. 운영 안정성/관측
    ORDER BY Timestamp DESC;
    ```
 - **패스워드 정책** — KISA 복잡도(3종 8자+ / 2종 10자+)는 코드 상수(`PasswordPolicy`). 기존 계정 암호는 소급 적용 안 됨 — 차기 변경/재설정 시 적용
+
+### 9.6 JWT refresh token 운용 (v1.3 §11.1)
+
+- **수명** — access token 은 `Jwt:ExpireMinutes`(기본 480=8h), refresh token 은 `RefreshToken:ExpireDays`(기본 7). refresh 활성 시 8h 만료 후에도 7일간 재로그인 불필요:
+   ```powershell
+   [Environment]::SetEnvironmentVariable("RefreshToken__ExpireDays", "7", "Machine")
+   ```
+   - `ExpireDays=0` 이면 refresh 비활성(8h 단일 토큰 동작으로 회귀) — 현장 정책상 단일 토큰을 원하면 0 으로
+- **저장** — refresh token 은 DB(`RefreshTokens`)에 **SHA-256 해시만** 보관, raw 는 클라이언트에만 1 회 전달
+- **폐기(revocation)** — 로그아웃 시 `/api/auth/logout` 가 서버측 토큰 폐기. 로테이션으로 갱신마다 이전 토큰 자동 폐기(재사용 시 거부)
+- **계정 비활성화 시** — 미승인/잠금 전환된 사용자는 다음 refresh 시도에서 토큰이 자동 폐기되고 401
+- **만료 토큰 정리** — 현재는 폐기 표시만(감사 추적 보존). 대량 누적 시 `RevokedAt`/`ExpiresAt` 기준 주기 정리 job 을 후속 고려
 
 ---
 
@@ -735,7 +757,78 @@ v1.1 baseline 적용 후 인증(authentication) 경로를 OWASP A07(Identificati
 
 ---
 
-## 11. 참고 자료
+## 11. v1.3 — 후속 보안/운영 강화 (2026-06-10)
+
+v1.2 인증 강화 후 사전 감사로 남아 있던 잔여 갭 4 항목 처리 — JWT refresh, 백업 복구 검증, 키오스크 X-API-Key 비대칭, CI/CD. 동일 `feat/gs-auth-hardening` 브랜치.
+
+### 11.1 JWT refresh token 부재 (재로그인 강제 + 토큰 폐기 수단 없음)
+**취약점**
+- access token(8h 단일)만 발급 — 만료 시 전체 재로그인 강제
+- 발급된 토큰을 서버에서 무효화(revocation)할 수단이 전혀 없음 → 계정 탈취/권한 변경 시 토큰이 만료까지 유효
+
+**영향**
+- GS 보안성(OWASP A07) — 세션 무효화 부재 지적 가능
+- 8h 교대 근무를 넘기면 작업 중 강제 로그아웃 → 사용성 저하
+
+**조치**
+- `Data/Entities/RefreshToken.cs` — refresh token 저장소. raw 미저장, **SHA-256 해시만 보관**(`RefreshTokenHasher`), `RevokedAt`/`ReplacedByTokenHash` 로 폐기·로테이션 추적. `Program.cs` idempotent 테이블 생성 + UNIQUE(TokenHash) 인덱스
+- `RefreshTokenOptions`(기본 ExpireDays=7, 0 이하면 비활성) — access token(Jwt:ExpireMinutes) 만료 후 이 기간 동안 재로그인 없이 갱신
+- `AuthService`:
+  - 로그인 성공 시 access + refresh token 동시 발급, `LoginResponse` 에 `RefreshToken` + `AccessTokenExpiresAt` 추가
+  - `RefreshAsync` — **1 회용 로테이션**: 제출 토큰 검증(해시 조회, 만료/폐기 확인) → 기존 폐기 + 새 쌍 발급. 폐기된 토큰 재사용은 거부(탈취 흔적). 사용자 부적격(미승인/잠금/삭제) 시 토큰 폐기 + null
+  - `RevokeRefreshTokenAsync` — 로그아웃 시 서버측 폐기
+  - 모든 갱신/폐기를 AuditLogs(`TokenRefresh`/`Logout`)에 기록
+- `AuthEndpoints` — `POST /api/auth/refresh`(rate limit 부착, brute-force 방어) + `POST /api/auth/logout`(익명 — 만료 토큰도 폐기 가능)
+- **클라이언트(Blazor WASM)**: `AuthStateProvider` 가 access token 만료 감지 시 저장된 refresh token 으로 자동 갱신(동시 요청은 SemaphoreSlim 으로 직렬화), 로그아웃은 `/api/auth/logout` 호출로 서버 폐기 + 로컬 정리
+- access token 수명은 기존 8h 유지 — refresh 도입으로 향후 단축해도 UX 회귀 없이 안전
+
+**검증 (자동 테스트 14 케이스)**
+- ✅ AuthServiceRefreshTests 10: 발급, 로테이션, 폐기 토큰 재사용 거부, 만료/무효 거부, 부적격 사용자 폐기, 로그아웃 후 갱신 거부, ExpireDays=0 비활성
+- ✅ AuthRefreshEndpointTests 4: 로그인→refresh token 수신, 갱신 200, 무효 토큰 401, 로그아웃 후 갱신 401
+
+### 11.2 백업 복구 검증 부재 (생성만, 무결성·복원 보장 없음)
+**취약점**
+- v1.1 §5.7 백업은 **생성만** 자동화 — 백업 파일이 실제 복원 가능한지 검증 없음(침묵 손상 가능), 복구 절차는 수동 문서뿐
+
+**영향**
+- GS 신뢰성(복구성) — 백업 무결성 보장 부재. 손상된 백업이 retention 으로 정상 백업을 밀어낼 위험
+
+**조치**
+- `DatabaseBackupService.VerifyDatabaseIntegrityAsync` — `PRAGMA integrity_check`(ReadOnly) 로 백업/복구 파일 무결성 검증. 손상/비-DB 는 false
+- 매 백업 직후 자동 검증 — 실패 시 `LogError`(파일은 분석용 보존) → 침묵 손상 조기 탐지
+
+**검증 (자동 테스트 4 케이스)**
+- ✅ 정상 백업 integrity ok / 손상 파일·누락 파일 false
+- ✅ **복구 라운드트립**(문서 §9.3 절차): 백업 → 원본 손실 시뮬레이션 → 백업으로 복구 → 무결성 + 137 행 완전 보존 확인
+
+### 11.3 키오스크 X-API-Key 비대칭
+**취약점**
+- v1.1 §5.1 은 VMS 머신 endpoint(POST 5 + GET 6)에 X-API-Key 필터를 적용했으나 `/api/kiosk` 그룹은 미부착 — enforcement(`Required=true`) 시 머신은 막히고 키오스크는 열린 비대칭
+
+**조치**
+- `OperatorEndpoints` 키오스크 그룹에 `ClientApiKeyEndpointFilter` 부착 (그룹 레벨)
+- **호환 모드(기본)에서는 헤더 없이 통과** → 현행 키오스크 UX 무변경. Required=true 전환 시 머신/키오스크 일관되게 키 요구
+
+**검증 (자동 테스트 5 케이스)**
+- ✅ CompatMode: 헤더 없이 login/메타 통과
+- ✅ EnforceMode: 헤더 없음/오류 → 401, 정확한 키 → 통과
+
+### 11.4 CI/CD 파이프라인 부재
+**취약점**
+- 466 테스트가 있으나 자동 실행 체계 없음 — 수동 검증 의존(GS 유지보수성 평가 갭, §8.5 자가 인지)
+
+**조치**
+- `.github/workflows/ci.yml` — push(master/feat/fix/docs/test) + PR(master) 시 자동 실행
+- `windows-latest`(Windows 서비스 배포 제품과 동일 플랫폼), .NET 8(타깃/테스트 런타임) + .NET 10(.slnx 포맷) SDK, NuGet 캐시
+- restore → build(Release) → test(Release). Serilog/백업 sink 는 CI 부작용 방지 위해 환경변수로 비활성
+- 동일 브랜치 이전 실행 자동 취소(concurrency)
+
+**검증**
+- ✅ 로컬에서 동일 명령(Release build + test) 466 통과 확인 — CI 명령 동등성 검증
+
+---
+
+## 12. 참고 자료
 
 - ISO/IEC 25010:2011 — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models
 - ISO/IEC 25023:2016 — Measurement of system and software product quality
