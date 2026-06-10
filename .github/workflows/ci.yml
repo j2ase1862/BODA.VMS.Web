@@ -1,0 +1,53 @@
+name: CI
+
+# GS 유지보수성 — 빌드 + 전체 테스트 자동 실행 (수동 검증 의존 제거).
+# 제품이 Windows 서비스로 배포되므로 개발/운영과 동일한 windows-latest 에서 검증.
+
+on:
+  push:
+    branches: [master, "feat/**", "fix/**", "docs/**", "test/**"]
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+concurrency:
+  # 같은 브랜치/PR 의 이전 실행은 취소 — 최신 커밋만 검증
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # 8.0 = 앱 타깃(net8.0) 빌드 + 테스트 런타임,
+          # 10.0 = .slnx 솔루션 포맷 지원 SDK
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore BODA.VMS.Web.slnx
+
+      - name: Build
+        run: dotnet build BODA.VMS.Web.slnx --no-restore --configuration Release
+
+      - name: Test
+        # Serilog 파일 sink / DB 백업은 CI 부작용 방지 위해 비활성 (테스트도 자체 비활성하지만 이중 안전)
+        env:
+          SerilogObservability__Disabled: "true"
+          DatabaseBackup__Enabled: "false"
+        run: dotnet test BODA.VMS.Web.slnx --no-build --configuration Release --verbosity normal
