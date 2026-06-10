@@ -12,7 +12,12 @@ public static class OperatorEndpoints
     public static void MapOperatorEndpoints(this WebApplication app)
     {
         // === 키오스크 (Anonymous — 현장 단말에서 직접 호출) ===
-        var kiosk = app.MapGroup("/api/kiosk").AllowAnonymous();
+        // GS 보안 — VMS 머신 endpoint(§5.1)와 동일하게 X-API-Key 호환 필터 부착해 비대칭 해소.
+        // 기본 호환 모드(ClientApiKey:Required=false)에서는 헤더 없어도 통과 → 현행 동작 무변경.
+        // Required=true 전환 시 머신/키오스크 양쪽이 일관되게 키를 요구.
+        var kiosk = app.MapGroup("/api/kiosk")
+            .AllowAnonymous()
+            .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
         // 현재 작업자 조회 (라인 인덱스 기준)
         kiosk.MapGet("/current/{clientIndex:int}", async (
