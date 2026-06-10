@@ -8,7 +8,32 @@
    for automatic light/dark mode switching.
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500;700&display=swap');
+/* 오프라인 운영(GS 인증) — Google Fonts CDN 의존 제거.
+   variable font (.woff2) 단일 파일로 weight 300~800 커버. */
+@font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url('/fonts/Montserrat.woff2') format('woff2-variations'),
+         url('/fonts/Montserrat.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url('/fonts/Roboto.woff2') format('woff2-variations'),
+         url('/fonts/Roboto.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto Mono';
+    font-style: normal;
+    font-weight: 400 500;
+    font-display: swap;
+    src: url('/fonts/RobotoMono.woff2') format('woff2-variations'),
+         url('/fonts/RobotoMono.woff2') format('woff2');
+}
 
 :root {
     --vms-primary: #FF6724;
