@@ -45,6 +45,12 @@ public class ParameterResultUploadRequest
     public int? OperatorId { get; set; }
     public string? SerialNumber { get; set; }
 
+    /// <summary>
+    /// 이미지 업로드와 매칭하기 위한 상관 키. VMS 가 결과·이미지 두 업로드에 동일 값 전송.
+    /// nullable — 구버전 VMS 는 미전송(이미지 연동 비활성).
+    /// </summary>
+    public string? CorrelationKey { get; set; }
+
     // === Predictive_DefectRate_Plan §5.1 (V1/V2/V3) 예측 피처 ===
     // 모두 nullable — 구버전 VMS 클라이언트는 보내지 않으므로 NULL 허용.
     /// <summary>V2: 검사 1회 소요 시간(ms).</summary>
