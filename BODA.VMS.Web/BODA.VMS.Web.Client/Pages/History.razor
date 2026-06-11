@@ -106,7 +106,8 @@
                 </MudText>
             </MudTd>
             <MudTd Style="text-align: right;">
-                @if (!context.IsPass)
+                @* NG 는 항상, OK 는 업로드된 이미지가 있을 때만 상세(이미지 열람) 버튼 노출 *@
+                @if (!context.IsPass || !string.IsNullOrEmpty(context.ImagePath))
                 {
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
                                    Color="Color.Primary"

@@ -270,6 +270,10 @@ builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddHttpClient();
 builder.Services.Configure<VisionServerOptions>(
     builder.Configuration.GetSection(VisionServerOptions.SectionName));
+builder.Services.Configure<ImageStoreOptions>(
+    builder.Configuration.GetSection(ImageStoreOptions.SectionName));
+builder.Services.AddSingleton<IImageStoreService, ImageStoreService>();
+builder.Services.AddHostedService<ImageRetentionBackgroundService>();
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IRecipeParameterService, RecipeParameterService>();
 builder.Services.AddScoped<IHistoryService, HistoryService>();
@@ -579,6 +583,8 @@ using (var scope = app.Services.CreateScope())
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN OperatorId INTEGER;");
         if (!histColumns.Contains("SerialNumber"))
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN SerialNumber TEXT;");
+        if (!histColumns.Contains("CorrelationKey"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE InspectionHistories ADD COLUMN CorrelationKey TEXT;");
     }
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_InspectionHistories_WorkOrderId\" ON \"InspectionHistories\" (\"WorkOrderId\");");
@@ -1045,6 +1051,21 @@ app.UseSwaggerUI(opts =>
     opts.DocumentTitle = "BODA VMS Web API";
 });
 
+// 검사 이미지 서빙 (/images → 이미지 저장소 루트). 이미지는 불변이라 길게 캐시.
+{
+    var imageRoot = app.Services.GetRequiredService<IImageStoreService>().RootPath;
+    Directory.CreateDirectory(imageRoot);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(imageRoot),
+        RequestPath = "/images",
+        OnPrepareResponse = ctx =>
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=2592000, immutable";
+        }
+    });
+}
+
 // Static files with aggressive caching for WASM framework files
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -1095,6 +1116,7 @@ app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapClientEndpoints();
 app.MapInspectionItemEndpoints();
+app.MapInspectionImageEndpoints();
 app.MapHistoryEndpoints();
 app.MapSettingsEndpoints();
 app.MapProductEndpoints();

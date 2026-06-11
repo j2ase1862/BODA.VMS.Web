@@ -92,6 +92,7 @@ public static class InspectionItemEndpoints
                 IsPass = isPass,
                 NgCode = ngCodes.Any() ? string.Join(",", ngCodes) : null,
                 ToolResults = JsonSerializer.Serialize(toolResults),
+                CorrelationKey = request.CorrelationKey,
                 InspectedAt = inspectedAt,
                 WorkOrderId = request.WorkOrderId,
                 LotId = request.LotId,

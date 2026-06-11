@@ -27,10 +27,18 @@ public class InspectionHistory
     public string? ToolResults { get; set; }
 
     /// <summary>
-    /// Relative path to the NG image file.
+    /// Relative path to the inspection image file (e.g. /images/2026-06-11/NG/{key}.jpg).
+    /// VMS 이미지 업로드(/api/inspection-images)가 CorrelationKey 매칭으로 채운다.
     /// </summary>
     [MaxLength(500)]
     public string? ImagePath { get; set; }
+
+    /// <summary>
+    /// VMS 가 결과·이미지 두 업로드에 동일하게 싣는 상관 키
+    /// ({yyyyMMddHHmmssfff}|{camera}|{step}|{verdict}). 이미지↔레코드 순서무관 매칭용.
+    /// </summary>
+    [MaxLength(80)]
+    public string? CorrelationKey { get; set; }
 
     public DateTime InspectedAt { get; set; } = DateTime.UtcNow;
 
