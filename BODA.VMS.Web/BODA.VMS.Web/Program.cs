@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using BODA.VMS.Web.Components;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Data.Entities;
 using BODA.VMS.Web.Endpoints;
 using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Middleware;
@@ -293,6 +294,7 @@ builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IOperatorSessionService, OperatorSessionService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddHostedService<ClientMonitorService>();
 
 // DB 자동 온라인 백업 (GS 잔여 #7). SqliteConnection.BackupDatabase 사용 — 운영중 무중단.
@@ -687,6 +689,48 @@ using (var scope = app.Services.CreateScope())
         "CREATE INDEX IF NOT EXISTS \"IX_AlarmEvents_ClientId_OccurredAt\" ON \"AlarmEvents\" (\"ClientId\", \"OccurredAt\");");
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_AlarmEvents_State\" ON \"AlarmEvents\" (\"AcknowledgedAt\", \"ResolvedAt\");");
+
+    // 2-g-2. 스마트 글라스 입고 위치 조회 (PoC): WarehouseItems 테이블 + 바코드 인덱스 + 시드
+    // 데이터 출처는 PoC=BODA 소유(시드/CSV), 운영=고객사 ERP 동기화
+    // (docs/SmartGlass_InboundLocation_Design.md §8). 수기 CRUD(B안)는 만들지 않음.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""WarehouseItems"" (
+            ""Id""        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""Barcode""   TEXT NOT NULL,
+            ""Code""      TEXT NOT NULL,
+            ""Name""      TEXT NOT NULL,
+            ""Zone""      TEXT,
+            ""Rack""      TEXT,
+            ""Level""     TEXT,
+            ""Bin""       TEXT,
+            ""PosX""      REAL NOT NULL DEFAULT 0,
+            ""PosY""      REAL NOT NULL DEFAULT 0,
+            ""PosZ""      REAL NOT NULL DEFAULT 0,
+            ""IsActive""  INTEGER NOT NULL DEFAULT 1,
+            ""CreatedAt"" TEXT NOT NULL,
+            ""UpdatedAt"" TEXT
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_WarehouseItems_Barcode\" ON \"WarehouseItems\" (\"Barcode\");");
+
+    // PoC 시드 — 비어 있을 때만. (운영 ERP 동기화 도입 시 이 시드는 폐기, 스키마/엔드포인트는 유지)
+    if (!await db.WarehouseItems.AnyAsync())
+    {
+        var seedNow = DateTime.UtcNow;
+        db.WarehouseItems.AddRange(
+            new WarehouseItem { Barcode = "8801234567890", Code = "P-1001", Name = "알루미늄 브라켓 A",   Zone = "A", Rack = "01", Level = "2", Bin = "07", PosX = 1.0,  PosY = 2.0, PosZ = 0.5, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567891", Code = "P-1002", Name = "스테인리스 볼트 M6",  Zone = "A", Rack = "03", Level = "1", Bin = "12", PosX = 1.0,  PosY = 6.0, PosZ = 0.2, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567892", Code = "P-1003", Name = "고무 개스킷 50mm",    Zone = "B", Rack = "02", Level = "3", Bin = "04", PosX = 5.0,  PosY = 4.0, PosZ = 1.1, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567893", Code = "P-1004", Name = "센서 하우징 PCB",     Zone = "B", Rack = "05", Level = "2", Bin = "09", PosX = 5.0,  PosY = 9.0, PosZ = 0.8, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567894", Code = "P-1005", Name = "전원 케이블 2m",      Zone = "C", Rack = "01", Level = "1", Bin = "01", PosX = 9.0,  PosY = 2.0, PosZ = 0.3, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567895", Code = "P-1006", Name = "방열판 60x60",        Zone = "C", Rack = "04", Level = "4", Bin = "15", PosX = 9.0,  PosY = 8.0, PosZ = 1.6, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567896", Code = "P-1007", Name = "LED 모듈 화이트",     Zone = "A", Rack = "06", Level = "3", Bin = "11", PosX = 1.0,  PosY = 12.0, PosZ = 1.0, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567897", Code = "P-1008", Name = "커넥터 하우징 8핀",   Zone = "B", Rack = "01", Level = "1", Bin = "03", PosX = 5.0,  PosY = 2.0, PosZ = 0.2, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567898", Code = "P-1009", Name = "실링 테이프 롤",      Zone = "C", Rack = "07", Level = "2", Bin = "06", PosX = 9.0,  PosY = 14.0, PosZ = 0.6, CreatedAt = seedNow },
+            new WarehouseItem { Barcode = "8801234567899", Code = "P-1010", Name = "베어링 6204",         Zone = "A", Rack = "02", Level = "1", Bin = "05", PosX = 1.0,  PosY = 4.0, PosZ = 0.2, CreatedAt = seedNow }
+        );
+        await db.SaveChangesAsync();
+    }
 
     // 2-g. MES Phase 3 (AuditLog + Shift): Shifts, AuditLogs 테이블 + InspectionHistories.ShiftId 컬럼
     await db.Database.ExecuteSqlRawAsync(@"
@@ -1134,6 +1178,7 @@ app.MapOperatorEndpoints();
 app.MapMaintenanceEndpoints();
 app.MapSensorEndpoints();
 app.MapPredictionEndpoints();
+app.MapGlassEndpoints();
 
 // GS 인증 High — 헬스 체크 endpoint. 익명, DB 연결 + 등록된 모든 check 수행.
 // liveness probe(/health/live): 앱 살아있음 / readiness probe(/health): DB 준비됨.

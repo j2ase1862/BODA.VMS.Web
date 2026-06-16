@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>GLASS SPIKE — 입고 위치 조회 역량 검증</title>
+<!--
+  스마트 글라스(Moziware Cimo) 역량 검증용 스파이크.
+  목적: 코드 한 줄 본격 작성 전에 기기 임베디드 브라우저의 역량만 빠르게 가른다.
+  완전 정적(비-WASM, 백엔드 불필요) — glass 경량 페이지 아키텍처의 프로토타입도 겸한다.
+
+  검증 우선순위
+   ① 하드웨어 스캐너 → 웹 input 키보드-웨지 (이게 되면 카메라 걱정의 절반이 증발)
+   ② getUserMedia + 바코드 디코딩 (차선: BarcodeDetector → ZXing CDN 폴백)
+   ③ 화면 진단 로그 (기기엔 devtools가 없으므로 모든 결과를 화면에 띄움)
+   + "버튼 라벨 = 음성 명령" 동작 (RealWear/Infinity OS)
+
+  주의
+   - getUserMedia 는 보안 컨텍스트(HTTPS 또는 localhost) 필요. 자체서명 인증서면 기기에서 1회 신뢰 수락 필요.
+   - ZXing 폴백은 CDN 사용. 창고 오프라인망이면 로드 실패할 수 있음(로그에 표시) → 운영은 self-host.
+-->
+<style>
+  :root { --bg:#050810; --fg:#e8eef4; --accent:#7CFF6B; --warn:#ffa726; --bad:#ef5350; --dim:#8aa0b6; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+    -webkit-user-select:none; user-select:none;
+  }
+  header {
+    display:flex; align-items:center; gap:10px; padding:6px 12px;
+    border-bottom:1px solid #1a2538; font-size:13px; color:var(--dim);
+  }
+  header .title { font-weight:800; color:#4fc3f7; letter-spacing:1px; }
+  .badge { padding:1px 8px; border-radius:10px; font-family:monospace; font-size:12px; }
+  .badge.ok { background:rgba(124,255,107,.18); color:var(--accent); }
+  .badge.bad { background:rgba(239,83,80,.2); color:var(--bad); }
+
+  main { flex:1; display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding:8px; min-height:0; }
+  .col { display:flex; flex-direction:column; gap:8px; min-height:0; }
+
+  .barcode-box {
+    background:rgba(255,255,255,.04); border:2px solid #1a2538; border-radius:10px;
+    padding:10px 14px; text-align:center;
+  }
+  .barcode-box .label { font-size:12px; color:var(--dim); text-transform:uppercase; letter-spacing:2px; }
+  .barcode-box .value {
+    font-size:34px; font-weight:800; font-family:monospace; color:var(--accent);
+    word-break:break-all; line-height:1.1; margin-top:4px; min-height:38px;
+  }
+  .result-box {
+    background:rgba(124,255,107,.06); border:1px solid #244a26; border-radius:10px;
+    padding:10px 14px; text-align:center; min-height:54px;
+  }
+  .result-box .label { font-size:12px; color:var(--dim); letter-spacing:1px; }
+  .result-box .value { font-size:30px; font-weight:800; color:var(--fg); margin-top:2px; }
+
+  .btns { display:flex; flex-wrap:wrap; gap:8px; }
+  .voice-btn {
+    flex:1 1 40%; min-height:56px; font-size:22px; font-weight:800;
+    background:#10202f; color:var(--fg); border:2px solid #2a3f57; border-radius:10px;
+    cursor:pointer;
+  }
+  .voice-btn:active { background:#1a3550; }
+  .voice-btn.cam { border-color:#4fc3f7; }
+  .voice-btn.in  { border-color:var(--accent); }
+
+  .wedge {
+    background:rgba(255,167,38,.06); border:1px dashed #4a3a18; border-radius:10px; padding:8px 10px;
+  }
+  .wedge .label { font-size:12px; color:var(--warn); letter-spacing:1px; }
+  .wedge input {
+    width:100%; margin-top:6px; font-size:20px; font-family:monospace;
+    background:#0a1420; color:var(--fg); border:1px solid #2a3f57; border-radius:6px; padding:8px;
+  }
+  .hint { font-size:12px; color:var(--dim); margin-top:4px; }
+
+  video { width:100%; flex:1; min-height:0; background:#000; border-radius:10px; object-fit:cover; display:none; }
+  video.on { display:block; }
+
+  .log {
+    flex:1; min-height:0; overflow:auto; background:#04060c; border:1px solid #14202f; border-radius:10px;
+    padding:8px; font-family:monospace; font-size:12px; line-height:1.45;
+  }
+  .log .l { white-space:pre-wrap; word-break:break-all; border-bottom:1px solid #0d1622; padding:2px 0; }
+  .log .l.ok  { color:var(--accent); }
+  .log .l.warn{ color:var(--warn); }
+  .log .l.bad { color:var(--bad); }
+  .log .l.dim { color:var(--dim); }
+  .log-head { display:flex; justify-content:space-between; font-size:12px; color:var(--dim); }
+</style>
+</head>
+<body>
+  <header>
+    <span class="title">GLASS SPIKE</span>
+    <span id="loadInfo" class="dim"></span>
+    <span style="margin-left:auto"></span>
+    <span id="secBadge" class="badge">secure?</span>
+    <span id="camBadge" class="badge">cam?</span>
+    <span id="bdBadge" class="badge">detector?</span>
+  </header>
+
+  <main>
+    <!-- 좌: 흐름 (바코드 → 결과 → 음성버튼 → 웨지 → 카메라) -->
+    <div class="col">
+      <div class="barcode-box">
+        <div class="label">마지막 바코드</div>
+        <div id="barcode" class="value">—</div>
+      </div>
+
+      <div class="result-box">
+        <div class="label">입고 위치 (mock)</div>
+        <div id="location" class="value">—</div>
+      </div>
+
+      <!-- 버튼 라벨이 그대로 음성 명령이 됩니다 (RealWear/Infinity OS) -->
+      <div class="btns">
+        <button class="voice-btn cam" onclick="startCamera()">스캔</button>
+        <button class="voice-btn in" onclick="queryLocation('입고')">입고</button>
+        <button class="voice-btn in" onclick="queryLocation('입고제품')">입고제품</button>
+        <button class="voice-btn" onclick="runDiagnostics()">진단</button>
+      </div>
+
+      <div class="wedge">
+        <div class="label">① 하드웨어 스캐너 → 웨지 테스트</div>
+        <input id="wedge" placeholder="여기에 포커스 둔 채 기기 내장 스캐너로 스캔하세요" autocomplete="off" />
+        <div class="hint">스캐너가 값을 '키보드처럼' 넣어주면 이 입력란/마지막 바코드에 자동으로 찍힙니다. (포커스 밖이어도 전역 캡처 시도)</div>
+      </div>
+
+      <video id="preview" autoplay muted playsinline></video>
+    </div>
+
+    <!-- 우: 진단 로그 -->
+    <div class="col">
+      <div class="log-head">
+        <span>③ 진단 로그</span>
+        <button class="voice-btn" style="flex:0; min-height:0; font-size:13px; padding:2px 10px;" onclick="clearLog()">지우기</button>
+      </div>
+      <div id="log" class="log"></div>
+    </div>
+  </main>
+
+<script>
+"use strict";
+const T0 = performance.now();
+
+// ───────── 로그 ─────────
+const logEl = document.getElementById('log');
+function log(msg, cls='') {
+  const ts = (performance.now()/1000).toFixed(2).padStart(6,' ');
+  const d = document.createElement('div');
+  d.className = 'l ' + cls;
+  d.textContent = `[${ts}s] ${msg}`;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog(){ logEl.innerHTML=''; log('로그 초기화', 'dim'); }
+function badge(id, ok, text){
+  const e = document.getElementById(id);
+  e.className = 'badge ' + (ok ? 'ok' : 'bad');
+  e.textContent = text;
+}
+
+// ───────── 상태 ─────────
+let lastBarcode = null;
+function setBarcode(code, source){
+  lastBarcode = code;
+  document.getElementById('barcode').textContent = code;
+  document.getElementById('location').textContent = '—';
+  log(`✔ 바코드 인식 [${source}]: ${code}`, 'ok');
+}
+
+// ───────── ② 흐름: 위치 조회 (실제 /api/glass 호출) ─────────
+// PoC 백엔드(WarehouseItems 시드 + /api/glass/inbound-location)를 실제로 호출한다.
+// 시드 바코드 예: 8801234567890 ~ 8801234567899
+async function queryLocation(mode){
+  if(!lastBarcode){ log(`"${mode}" — 먼저 바코드를 스캔하세요`, 'warn'); return; }
+  const url = `/api/glass/inbound-location?barcode=${encodeURIComponent(lastBarcode)}&mode=${encodeURIComponent(mode)}`;
+  log(`"${mode}" → ${url}`, 'dim');
+  try{
+    const res = await fetch(url);
+    if(res.status === 404){ document.getElementById('location').textContent = '미등록'; log('✖ 404 — 등록되지 않은 바코드', 'bad'); return; }
+    if(!res.ok){ document.getElementById('location').textContent = '오류'; log('✖ HTTP '+res.status, 'bad'); return; }
+    const data = await res.json();
+    document.getElementById('location').textContent = data.locationText || '(위치 없음)';
+    window.lastCoord = data.coord || null;  // 2차(3D)용 좌표 보관
+    log(`✔ ${data.itemName} (${data.itemCode}) @ ${data.locationText}`, 'ok');
+  }catch(e){
+    document.getElementById('location').textContent = '연결 실패';
+    log('✖ fetch 실패: '+e.message, 'bad');
+  }
+}
+
+// ───────── ① 하드웨어 스캐너 → 키보드 웨지 ─────────
+// 모드 A: 포커스된 input 에 타이핑 후 Enter
+const wedge = document.getElementById('wedge');
+function focusWedge(){ try{ wedge.focus(); }catch(e){} }
+wedge.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    const v = wedge.value.trim();
+    if(v){ setBarcode(v, 'HW웨지/Enter'); wedge.value=''; }
+    e.preventDefault();
+  }
+});
+// 모드 B: 포커스 무관 전역 버스트 캡처 (스캐너는 사람보다 훨씬 빠르게 연속 입력)
+let buf = '', lastT = 0, burstTimer = null;
+window.addEventListener('keydown', (e)=>{
+  if(document.activeElement === wedge) return; // input 모드가 처리
+  const now = performance.now();
+  if(now - lastT > 100) buf = '';             // 100ms 이상 공백이면 새 입력으로 간주
+  lastT = now;
+  if(e.key === 'Enter'){
+    if(buf.length >= 3){ setBarcode(buf, 'HW웨지/전역'); }
+    buf = '';
+    return;
+  }
+  if(e.key.length === 1){ buf += e.key; }
+  clearTimeout(burstTimer);
+  burstTimer = setTimeout(()=>{ if(buf.length>=6){ setBarcode(buf,'HW웨지/전역-timeout'); buf=''; } }, 120);
+});
+
+// ───────── ② getUserMedia + 바코드 디코딩 ─────────
+let stream = null, scanning = false, detector = null, zxingReader = null;
+async function startCamera(){
+  const video = document.getElementById('preview');
+  log('카메라 시작 시도…', 'dim');
+  if(!window.isSecureContext){ log('✖ 보안 컨텍스트 아님 — getUserMedia 차단됨(HTTPS 필요)', 'bad'); return; }
+  if(!navigator.mediaDevices?.getUserMedia){ log('✖ getUserMedia 미지원 브라우저', 'bad'); return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+    video.srcObject = stream; video.classList.add('on');
+    log('✔ 카메라 미리보기 시작', 'ok');
+    startDecodeLoop(video);
+  }catch(err){
+    log('✖ 카메라 권한/획득 실패: ' + err.name + ' — ' + err.message, 'bad');
+  }
+}
+function stopCamera(){
+  scanning = false;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  const v=document.getElementById('preview'); v.classList.remove('on'); v.srcObject=null;
+}
+async function startDecodeLoop(video){
+  scanning = true;
+  // 우선: 네이티브 BarcodeDetector (무의존)
+  if('BarcodeDetector' in window){
+    try{
+      detector = detector || new window.BarcodeDetector();
+      log('디코더: 네이티브 BarcodeDetector 사용', 'dim');
+      const tick = async ()=>{
+        if(!scanning) return;
+        try{
+          const codes = await detector.detect(video);
+          if(codes && codes.length){ setBarcode(codes[0].rawValue, 'Camera/BarcodeDetector'); stopCamera(); return; }
+        }catch(e){ /* 프레임 미준비 등 무시 */ }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      return;
+    }catch(e){ log('BarcodeDetector 초기화 실패, ZXing 폴백 시도: '+e.message, 'warn'); }
+  }
+  // 폴백: ZXing (CDN)
+  try{
+    await loadZxing();
+    zxingReader = zxingReader || new window.ZXingBrowser.BrowserMultiFormatReader();
+    log('디코더: ZXing(CDN) 사용', 'dim');
+    await zxingReader.decodeFromVideoElement(video, (result)=>{
+      if(result){ setBarcode(result.getText(), 'Camera/ZXing'); try{zxingReader.reset();}catch(e){} stopCamera(); }
+    });
+  }catch(e){
+    log('✖ ZXing 로드/디코딩 실패(오프라인망?): '+e.message, 'bad');
+  }
+}
+function loadZxing(){
+  return new Promise((resolve, reject)=>{
+    if(window.ZXingBrowser) return resolve();
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js';
+    s.onload=resolve; s.onerror=()=>reject(new Error('CDN 로드 실패'));
+    document.head.appendChild(s);
+  });
+}
+
+// ───────── ③ 진단 ─────────
+function runDiagnostics(){
+  log('── 진단 시작 ──', 'dim');
+  const sec = window.isSecureContext;
+  badge('secBadge', sec, sec ? 'secure ✔' : 'INSECURE');
+  log((sec?'✔':'✖')+` isSecureContext=${sec}  (${location.protocol}//${location.host})`, sec?'ok':'bad');
+
+  const hasCam = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  badge('camBadge', hasCam, hasCam ? 'getUM ✔' : 'no getUM');
+  log((hasCam?'✔':'✖')+` getUserMedia 지원=${hasCam}`, hasCam?'ok':'bad');
+
+  const hasBD = ('BarcodeDetector' in window);
+  badge('bdBadge', hasBD, hasBD ? 'detector ✔' : 'no detector');
+  log((hasBD?'✔':'✖')+` 네이티브 BarcodeDetector=${hasBD}`, hasBD?'ok':'warn');
+  if(hasBD && window.BarcodeDetector.getSupportedFormats){
+    window.BarcodeDetector.getSupportedFormats().then(f=>log('   지원 포맷: '+f.join(', '), 'dim'));
+  }
+
+  log('화면(window.inner): '+window.innerWidth+'×'+window.innerHeight+'  / screen: '+screen.width+'×'+screen.height, 'dim');
+  log('첫 페인트까지(이 페이지): '+(performance.now()-T0).toFixed(1)+'ms  ← 비-WASM이라 즉시', 'ok');
+  log('UA: '+navigator.userAgent, 'dim');
+  log('── 진단 끝. 이제 ① 스캐너 스캔 또는 "스캔" 음성으로 카메라 테스트 ──', 'dim');
+}
+
+// ───────── 부팅 ─────────
+document.getElementById('loadInfo').textContent = '비-WASM 정적 · ' + new Date().toLocaleTimeString();
+window.addEventListener('load', ()=>{
+  log('페이지 로드 완료 (WASM 런타임 다운로드 없음)', 'ok');
+  runDiagnostics();
+  focusWedge();
+});
+// 웨지 입력란 포커스 유지 (음성 버튼 클릭 후에도 스캐너 입력 받도록)
+document.addEventListener('click', ()=> setTimeout(focusWedge, 50));
+</script>
+</body>
+</html>
