@@ -31,6 +31,7 @@ public class BodaVmsDbContext : DbContext
     public DbSet<MLModel> MLModels => Set<MLModel>();
     public DbSet<PredictionLog> PredictionLogs => Set<PredictionLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<WarehouseItem> WarehouseItems => Set<WarehouseItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -176,5 +177,9 @@ public class BodaVmsDbContext : DbContext
 
         modelBuilder.Entity<RefreshToken>()
             .HasIndex(t => t.UserId);
+
+        // 스마트 글라스 입고 위치 조회 — 바코드 조회 인덱스
+        modelBuilder.Entity<WarehouseItem>()
+            .HasIndex(w => w.Barcode);
     }
 }
