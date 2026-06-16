@@ -828,7 +828,30 @@ v1.2 인증 강화 후 사전 감사로 남아 있던 잔여 갭 4 항목 처리
 
 ---
 
-## 12. 참고 자료
+## 12. v1.4 — 설비 상태 시계열 무결성 강화 (2026-06-15)
+
+### 12.1 EquipmentStatusLog open 행 중복으로 안돈보드 크래시 + OEE/MTBF 이중 집계
+**취약점**
+- `EquipmentStatusLog` 는 ClientId 당 `EndedAt IS NULL`(open) 행이 1개라는 불변식을 전제하나, 이를 강제하는 DB 제약이 없었음
+- `EquipmentStatusService.RecordTransitionAsync` 는 락/유니크 제약 없이 "open 읽기 → 닫기 → 새 행 추가" 를 수행 — 크로스 프로세스 동시 기록(Vision Engine ↔ Web) 또는 과거 버전 흔적으로 한 ClientId 에 open 행이 2개 이상 잔존 가능
+- `AndonService.GetSnapshotAsync` 가 open 행을 `ToDictionary(e => e.ClientId)` 로 적재 → 중복 키 시 `ArgumentException: An item with the same key has already been added. Key: N` 으로 **안돈보드 전체가 다운**
+
+**영향**
+- GS 신뢰성(데이터 무결성) — 시계열 불변식 미강제. 안돈보드(운영 모니터링 핵심 화면) 가용성 저하
+- 잉여 open 행은 `OeeService`/`ReliabilityService` 가 `EndedAt IS NULL` 을 "지금까지" 로 계산 → 가동/다운타임 **이중 집계**로 OEE·MTBF 왜곡
+
+**조치**
+- `AndonService` — open 행을 ClientId 별로 묶어 `RecordTransitionAsync` 와 동일하게 "가장 최근 StartedAt" 행을 현재 상태로 선택 (중복 키 예외 제거, 표시 견고화)
+- `Program.cs` 부트스트랩 — 시작 시 ClientId 별 최신(Id 최대) open 행만 남기고 잉여 open 행을 0-duration(`EndedAt=StartedAt`)으로 닫는 **무결성 복구 UPDATE** + `UX_EquipmentStatusLogs_ClientId_Open` **partial unique index**(`WHERE EndedAt IS NULL`)로 재발 차단 (크로스 프로세스 보장)
+- `EquipmentStatusService.RecordTransitionAsync` — race 패자가 unique 위반(SQLITE_CONSTRAINT 19)으로 죽지 않고 `ChangeTracker.Clear()` 후 graceful 폴백(다음 모니터 주기에 수렴)
+
+**검증 (자동 테스트, 누적 467)**
+- ✅ AndonServiceTests: ClientId 에 open 행 2개여도 예외 없이 스냅샷 반환 + 최신(Running) 상태 선택, 예측 인프라 장애 시 insights 폴백
+- ✅ 기존 EquipmentStatusService 10 + 전체 467 통과 (회귀 없음)
+
+---
+
+## 13. 참고 자료
 
 - ISO/IEC 25010:2011 — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models
 - ISO/IEC 25023:2016 — Measurement of system and software product quality
