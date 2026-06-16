@@ -662,6 +662,22 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_EquipmentStatusLogs_ClientId_EndedAt\" ON \"EquipmentStatusLogs\" (\"ClientId\", \"EndedAt\");");
 
+    // 2-f-1. 무결성 복구 + 강제: ClientId당 open 행(EndedAt IS NULL)은 1개여야 한다.
+    // 과거 버전/크로스 프로세스 race 로 잉여 open 행이 남으면 안돈보드 ToDictionary 가
+    // "same key" 예외로 죽고 OEE/MTBF 가 이중 집계됨. 가장 최근(Id 최대) open 행만 남기고
+    // 나머지는 0-duration(EndedAt=StartedAt)으로 닫은 뒤, partial unique index 로 재발 차단.
+    await db.Database.ExecuteSqlRawAsync(@"
+        UPDATE ""EquipmentStatusLogs""
+        SET ""EndedAt"" = ""StartedAt""
+        WHERE ""EndedAt"" IS NULL
+          AND ""Id"" NOT IN (
+              SELECT MAX(""Id"") FROM ""EquipmentStatusLogs""
+              WHERE ""EndedAt"" IS NULL
+              GROUP BY ""ClientId""
+          );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"UX_EquipmentStatusLogs_ClientId_Open\" ON \"EquipmentStatusLogs\" (\"ClientId\") WHERE \"EndedAt\" IS NULL;");
+
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""AlarmEvents"" (
             ""Id""                  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

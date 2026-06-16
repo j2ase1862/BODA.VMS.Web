@@ -39,8 +39,24 @@ public class EquipmentStatusService : IEquipmentStatusService
             Reason = reason
         });
 
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsOpenRowUniqueViolation(ex))
+        {
+            // 크로스 프로세스 race 패자: 다른 writer 가 먼저 open 행을 만들어
+            // UX_EquipmentStatusLogs_ClientId_Open 유니크 제약에 걸린 경우.
+            // 현재 상태는 이미 다른 writer 가 기록했고, 다음 모니터 주기(수 초)에
+            // 재평가되어 수렴하므로 이 전이는 안전하게 버린다.
+            _db.ChangeTracker.Clear();
+        }
     }
+
+    /// <summary>SQLite UNIQUE 제약(EndedAt IS NULL partial index) 위반 여부.</summary>
+    private static bool IsOpenRowUniqueViolation(DbUpdateException ex) =>
+        ex.InnerException is Microsoft.Data.Sqlite.SqliteException sqlite
+        && sqlite.SqliteErrorCode == 19; // SQLITE_CONSTRAINT
 
     public async Task<EquipmentStatusLogDto?> GetCurrentAsync(int clientId)
     {

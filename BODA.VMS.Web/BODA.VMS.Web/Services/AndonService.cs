@@ -33,10 +33,16 @@ public class AndonService : IAndonService
 
         var clientIds = clients.Select(c => c.Id).ToList();
 
-        // 현재 상태 (open log) 일괄 조회 — ClientId당 EndedAt이 null인 row
-        var currentStatuses = await _db.EquipmentStatusLogs
-            .Where(e => clientIds.Contains(e.ClientId) && e.EndedAt == null)
-            .ToDictionaryAsync(e => e.ClientId, e => e);
+        // 현재 상태 (open log) 일괄 조회 — ClientId당 EndedAt이 null인 row.
+        // 동시성/과거 버그로 한 ClientId에 open 행이 2개 이상 남아 있을 수 있으므로
+        // (RecordTransitionAsync가 락 없이 close+add 하면 race 시 잉여 open 행 발생),
+        // ToDictionary 키 충돌로 안돈보드가 죽지 않도록 ClientId별로 묶어
+        // RecordTransitionAsync와 동일하게 "가장 최근 StartedAt" open 행을 현재 상태로 본다.
+        var currentStatuses = (await _db.EquipmentStatusLogs
+                .Where(e => clientIds.Contains(e.ClientId) && e.EndedAt == null)
+                .ToListAsync())
+            .GroupBy(e => e.ClientId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.StartedAt).First());
 
         // 오늘 검사 집계 (Client별)
         var todayInspections = await _db.InspectionHistories
