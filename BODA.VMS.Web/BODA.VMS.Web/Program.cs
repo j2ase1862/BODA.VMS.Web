@@ -743,7 +743,9 @@ using (var scope = app.Services.CreateScope())
             new WarehouseItem { Barcode = "8801234567896", Code = "P-1007", Name = "LED 모듈 화이트",     Zone = "A", Rack = "06", Level = "3", Bin = "11", PosX = 1.0,  PosY = 12.0, PosZ = 1.0, CreatedAt = seedNow },
             new WarehouseItem { Barcode = "8801234567897", Code = "P-1008", Name = "커넥터 하우징 8핀",   Zone = "B", Rack = "01", Level = "1", Bin = "03", PosX = 5.0,  PosY = 2.0, PosZ = 0.2, CreatedAt = seedNow },
             new WarehouseItem { Barcode = "8801234567898", Code = "P-1009", Name = "실링 테이프 롤",      Zone = "C", Rack = "07", Level = "2", Bin = "06", PosX = 9.0,  PosY = 14.0, PosZ = 0.6, CreatedAt = seedNow },
-            new WarehouseItem { Barcode = "8801234567899", Code = "P-1010", Name = "베어링 6204",         Zone = "A", Rack = "02", Level = "1", Bin = "05", PosX = 1.0,  PosY = 4.0, PosZ = 0.2, CreatedAt = seedNow }
+            new WarehouseItem { Barcode = "8801234567899", Code = "P-1010", Name = "베어링 6204",         Zone = "A", Rack = "02", Level = "1", Bin = "05", PosX = 1.0,  PosY = 4.0, PosZ = 0.2, CreatedAt = seedNow },
+            // 실기 시연용 실제 제품 바코드 — 임시 위치(검수대). 신규 DB에만 시드됨; 라이브는 관리 화면에서 등록.
+            new WarehouseItem { Barcode = "8801116012435", Code = "TEMP-001", Name = "임시 등록 제품",     Zone = "임시", Rack = "검수", Level = "1", Bin = "01", PosX = 0.0, PosY = 0.0, PosZ = 0.0, CreatedAt = seedNow }
         );
         await db.SaveChangesAsync();
     }
@@ -1195,6 +1197,7 @@ app.MapMaintenanceEndpoints();
 app.MapSensorEndpoints();
 app.MapPredictionEndpoints();
 app.MapGlassEndpoints();
+app.MapWarehouseEndpoints();   // 입고 위치 마스터 관리(등록/수정) — 로그인 필요
 
 // GS 인증 High — 헬스 체크 endpoint. 익명, DB 연결 + 등록된 모든 check 수행.
 // liveness probe(/health/live): 앱 살아있음 / readiness probe(/health): DB 준비됨.

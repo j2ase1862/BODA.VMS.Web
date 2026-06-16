@@ -1,0 +1,200 @@
+@page "/warehouse-items"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.warehouseItems"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.warehouseItems"]</MudText>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
+              Filter="new Func<WarehouseItemDto, bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Class="vms-panel-header">@L["warehouse.header"]</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
+                @L.Format("warehouse.totalCountFmt", _items.Count)
+            </MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="@(L["warehouse.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
+                          Style="max-width: 260px;" />
+            <MudSwitch T="bool" Value="_showInactive" ValueChanged="OnShowInactiveChanged"
+                       Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                               Variant="Variant.Filled" Size="Size.Small"
+                               OnClick="OpenCreateDialog" Class="vms-btn">
+                        @L["warehouse.btnCreate"]
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>@L["warehouse.colBarcode"]</MudTh>
+            <MudTh>@L["warehouse.colCode"]</MudTh>
+            <MudTh>@L["warehouse.colName"]</MudTh>
+            <MudTh>@L["warehouse.colLocation"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><span class="vms-mono" style="font-weight: 700;">@context.Barcode</span></MudTd>
+            <MudTd><span class="vms-mono">@context.Code</span></MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.LocationText))
+                {
+                    <span class="vms-mono" style="font-weight: 700; color: var(--mud-palette-warning);">@context.LocationText</span>
+                }
+                else { <span style="color: var(--vms-text-secondary);">—</span> }
+            </MudTd>
+            <MudTd>
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align: right; white-space: nowrap;">
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized Context="auth1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="auth2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteItem(context))" />
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.QrCode2" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">@L["warehouse.noItems"]</MudText>
+                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
+                    @L["warehouse.noItemsHint"]
+                </MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<WarehouseItemDto> _items = new();
+    private bool _loading;
+    private bool _showInactive;
+    private string _search = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _items = await Api.GetAsync<List<WarehouseItemDto>>(
+            $"/api/warehouse-items?includeInactive={_showInactive}") ?? new();
+        _loading = false;
+    }
+
+    private async Task OnShowInactiveChanged(bool value)
+    {
+        _showInactive = value;
+        await Load();
+    }
+
+    private bool FilterFunc(WarehouseItemDto w)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return w.Barcode.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || w.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || w.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || w.LocationText.Contains(_search, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<WarehouseItemFormDialog>
+        {
+            { x => x.Model, new WarehouseItemDto() },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<WarehouseItemFormDialog>(L["warehouse.createTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (WarehouseItemDto)result.Data!;
+                await Api.PostAsync<WarehouseItemDto, WarehouseItemDto>("/api/warehouse-items", dto);
+                Snackbar.Add(L.Format("warehouse.createdFmt", dto.Barcode), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(WarehouseItemDto src)
+    {
+        var copy = new WarehouseItemDto
+        {
+            Id = src.Id, Barcode = src.Barcode, Code = src.Code, Name = src.Name,
+            Zone = src.Zone, Rack = src.Rack, Level = src.Level, Bin = src.Bin,
+            PosX = src.PosX, PosY = src.PosY, PosZ = src.PosZ, IsActive = src.IsActive
+        };
+        var parameters = new DialogParameters<WarehouseItemFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<WarehouseItemFormDialog>(
+            L.Format("warehouse.editTitleFmt", src.Barcode), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (WarehouseItemDto)result.Data!;
+                await Api.PutAsync<WarehouseItemDto, WarehouseItemDto>($"/api/warehouse-items/{src.Id}", dto);
+                Snackbar.Add(L.Format("warehouse.updatedFmt", dto.Barcode), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(WarehouseItemDto w)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("warehouse.confirmDeleteFmt", w.Barcode), L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.DeleteAsync($"/api/warehouse-items/{w.Id}");
+            Snackbar.Add(L.Format("warehouse.deletedFmt", w.Barcode), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+}

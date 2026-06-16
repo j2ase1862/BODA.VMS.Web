@@ -1,0 +1,67 @@
+@inject ILocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="Model.Barcode" Label="@(L["dialog.warehouseFieldBarcode"])"
+                          Variant="Variant.Outlined" Class="mb-4" Required="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.QrCode2"
+                          HelperText="@(L["dialog.warehouseFieldBarcodeHint"])" />
+
+            <div class="d-flex" style="gap:12px;">
+                <MudTextField @bind-Value="Model.Code" Label="@(L["dialog.warehouseFieldCode"])"
+                              Variant="Variant.Outlined" Class="mb-4" Required="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Tag" />
+                <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.warehouseFieldName"])"
+                              Variant="Variant.Outlined" Class="mb-4" Required="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Inventory2" />
+            </div>
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["dialog.warehouseSectionLocation"]</MudText>
+            <div class="d-flex" style="gap:12px;">
+                <MudTextField @bind-Value="Model.Zone" Label="@(L["dialog.warehouseFieldZone"])" Variant="Variant.Outlined" Class="mb-2" />
+                <MudTextField @bind-Value="Model.Rack" Label="@(L["dialog.warehouseFieldRack"])" Variant="Variant.Outlined" Class="mb-2" />
+                <MudTextField @bind-Value="Model.Level" Label="@(L["dialog.warehouseFieldLevel"])" Variant="Variant.Outlined" Class="mb-2" />
+                <MudTextField @bind-Value="Model.Bin" Label="@(L["dialog.warehouseFieldBin"])" Variant="Variant.Outlined" Class="mb-2" />
+            </div>
+            <MudText Typo="Typo.caption" Class="mb-4" Style="color: var(--vms-text-secondary);">
+                @L["dialog.warehousePreview"]:
+                <span class="vms-mono" style="font-weight:700; color: var(--mud-palette-warning);">@PreviewLocation()</span>
+            </MudText>
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["dialog.warehouseSectionCoord"]</MudText>
+            <div class="d-flex" style="gap:12px;">
+                <MudNumericField @bind-Value="Model.PosX" Label="X" Variant="Variant.Outlined" Class="mb-2" />
+                <MudNumericField @bind-Value="Model.PosY" Label="Y" Variant="Variant.Outlined" Class="mb-2" />
+                <MudNumericField @bind-Value="Model.PosZ" Label="Z" Variant="Variant.Outlined" Class="mb-2" />
+            </div>
+
+            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" Class="mt-2" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? L["action.update"] : L["action.create"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public WarehouseItemDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private string PreviewLocation()
+    {
+        var parts = new[] { Model.Zone, Model.Rack, Model.Level, Model.Bin }
+            .Where(s => !string.IsNullOrWhiteSpace(s));
+        var s = string.Join("-", parts);
+        return string.IsNullOrEmpty(s) ? "—" : s;
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}
