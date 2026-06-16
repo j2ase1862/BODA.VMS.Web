@@ -168,6 +168,31 @@ Get-EventLog -LogName Application -Newest 5 -EntryType Error -ErrorAction Silent
 - 변경한 페이지 진입 (예: `/forecast`, `/maintenance`, …)
 - VMS 클라이언트가 heartbeat 보내는지 (`/clients` 페이지 online 점)
 
+### Step 5 — Cloudflare 캐시 퍼지 (Blazor 클라이언트 변경 시 권장)
+
+**언제:** Blazor WASM 클라이언트(`BODA.VMS.Web.Client`)가 재빌드된 배포라면 권장. 클라이언트가 바뀌면 `blazor.boot.json` + 해시된 `_framework/*.dll`/`.wasm` 이 바뀌는데, robocopy `/MIR` 이 옛 해시 파일을 지우므로 — Cloudflare가 옛 `blazor.boot.json` 을 캐시하고 있으면 **재방문 사용자가 사라진 dll(404)을 요청해 앱 로딩이 깨질 수 있음.**
+
+**왜 보통은 안 깨졌나:** 기본 Cloudflare 캐시는 `.json/.dll/.wasm` 을 캐시하지 않음. 그래서 **"Cache Everything" 페이지 규칙이 없으면** 안전. 단 그 규칙 유무와 무관하게 **배포 후 한 번 퍼지**해두면 확실함.
+
+**방법 (택1):**
+- 대시보드: Cloudflare → `boda-vms.com` → **Caching → Configuration → Purge Everything**
+- 또는 부분 퍼지(부하 적음): Custom Purge 로 다음 URL
+  - `https://boda-vms.com/`
+  - `https://boda-vms.com/_framework/blazor.boot.json`
+- 또는 API (토큰 보유 시):
+  ```powershell
+  # $env:CF_ZONE_ID, $env:CF_API_TOKEN 사전 설정 (토큰은 노출 금지)
+  Invoke-RestMethod -Method Post `
+    -Uri "https://api.cloudflare.com/client/v4/zones/$($env:CF_ZONE_ID)/purge_cache" `
+    -Headers @{ Authorization = "Bearer $($env:CF_API_TOKEN)" } `
+    -ContentType "application/json" `
+    -Body '{"purge_everything":true}'
+  ```
+
+**검증:** 시크릿(incognito) 창으로 `https://boda-vms.com/login` 재접속 → 새 빌드가 로딩되고 로그인 정상.
+
+> 서버 측(서비스/Tunnel)은 손댈 것 없음. `cloudflared` 는 그대로 두면 origin 재시작 후 자동 재연결됨.
+
 ---
 
 ## 4. 롤백 (실패 시 즉시 실행)
@@ -298,6 +323,7 @@ Start-Service BodaVmsWeb
 | 날짜 | 변경 | 작성자 |
 |---|---|---|
 | 2026-05-26 | 초안 — 예측 인프라 v1 배포 시 실제 절차 정착 | Claude Code 세션 |
+| 2026-06-16 | §3 Step 5(Cloudflare 캐시 퍼지) 신설 + 체크리스트 보강 — 안돈 수정 + 스마트글라스 PoC 배포 시 | Claude Code 세션 |
 
 ---
 
@@ -314,7 +340,8 @@ Start-Service BodaVmsWeb
 - [ ] `Stop-Service` → `robocopy` → `Start-Service` 성공 (§3 Step 3)
 - [ ] `http://localhost:5292/` → 200
 - [ ] `https://boda-vms.com/` → 200
-- [ ] 브라우저에서 admin 로그인 OK
+- [ ] (Blazor 클라이언트 변경 시) Cloudflare 캐시 퍼지 (§3 Step 5)
+- [ ] 브라우저(시크릿)에서 admin 로그인 OK
 - [ ] 변경한 페이지 정상 동작
 - [ ] (필요 시) VMS 클라이언트 heartbeat 정상
 
