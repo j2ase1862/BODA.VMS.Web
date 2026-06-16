@@ -174,22 +174,44 @@ Get-EventLog -LogName Application -Newest 5 -EntryType Error -ErrorAction Silent
 
 **왜 보통은 안 깨졌나:** 기본 Cloudflare 캐시는 `.json/.dll/.wasm` 을 캐시하지 않음. 그래서 **"Cache Everything" 페이지 규칙이 없으면** 안전. 단 그 규칙 유무와 무관하게 **배포 후 한 번 퍼지**해두면 확실함.
 
-**방법 (택1):**
-- 대시보드: Cloudflare → `boda-vms.com` → **Caching → Configuration → Purge Everything**
-- 또는 부분 퍼지(부하 적음): Custom Purge 로 다음 URL
-  - `https://boda-vms.com/`
-  - `https://boda-vms.com/_framework/blazor.boot.json`
-- 또는 API (토큰 보유 시):
-  ```powershell
-  # $env:CF_ZONE_ID, $env:CF_API_TOKEN 사전 설정 (토큰은 노출 금지)
-  Invoke-RestMethod -Method Post `
-    -Uri "https://api.cloudflare.com/client/v4/zones/$($env:CF_ZONE_ID)/purge_cache" `
-    -Headers @{ Authorization = "Bearer $($env:CF_API_TOKEN)" } `
-    -ContentType "application/json" `
-    -Body '{"purge_everything":true}'
-  ```
+#### 5-A. 캐시 퍼지 — 대시보드 (가장 흔한 방법)
 
-**검증:** 시크릿(incognito) 창으로 `https://boda-vms.com/login` 재접속 → 새 빌드가 로딩되고 로그인 정상.
+1. **[dash.cloudflare.com](https://dash.cloudflare.com)** 로그인
+2. 계정 선택 → 도메인 목록에서 **`boda-vms.com`** 클릭
+3. 왼쪽 사이드바 → **Caching** → **Configuration**
+4. "Purge Cache" 영역에서 택1:
+   - **간단/확실:** **Purge Everything** 버튼 → 확인 팝업에서 **Purge Everything** 다시 클릭
+   - **부분만(부하 적음):** **Custom Purge** → "URL" 선택 → 아래 입력 후 Purge
+     ```
+     https://boda-vms.com/
+     https://boda-vms.com/_framework/blazor.boot.json
+     ```
+5. **~30초** 전파 대기
+
+**또는 API** (토큰 보유 시 — 자동화):
+```powershell
+# $env:CF_ZONE_ID, $env:CF_API_TOKEN 사전 설정 (토큰은 노출 금지)
+Invoke-RestMethod -Method Post `
+  -Uri "https://api.cloudflare.com/client/v4/zones/$($env:CF_ZONE_ID)/purge_cache" `
+  -Headers @{ Authorization = "Bearer $($env:CF_API_TOKEN)" } `
+  -ContentType "application/json" `
+  -Body '{"purge_everything":true}'
+```
+
+#### 5-B. 브라우저 최종 확인 (시크릿 창 — 브라우저 로컬 캐시까지 배제)
+
+> 시크릿/InPrivate 창을 쓰는 이유: 브라우저 로컬 캐시까지 배제해야 "진짜 새 빌드가 로딩되는지" 정확히 보임.
+
+1. `https://boda-vms.com/login` → **admin 로그인**
+2. `/andon` 진입 → 예외 없이 안돈보드 표시 (크래시 회귀 확인)
+3. `/clients` → 클라이언트 **실시간 점(online)** 동작 ← SignalR(WebSocket)이 Cloudflare 통과하는지 검증
+4. 변경한 페이지 정상 동작 (해당 배포 범위)
+
+#### 5-C. (선택) "Cache Everything" 규칙 확인 — 매번 퍼지해야 하나?
+
+Cloudflare → **Rules → Page Rules** (또는 **Caching → Cache Rules**) 에서 `boda-vms.com/*` 에 **"Cache Everything"** 이 걸려 있는지 확인:
+- **있으면:** Blazor 클라이언트 바뀔 때마다 5-A 퍼지 **필수**
+- **없으면(기본):** `.json/.dll/.wasm` 미캐시라 사실상 퍼지 없이도 안전
 
 > 서버 측(서비스/Tunnel)은 손댈 것 없음. `cloudflared` 는 그대로 두면 origin 재시작 후 자동 재연결됨.
 
