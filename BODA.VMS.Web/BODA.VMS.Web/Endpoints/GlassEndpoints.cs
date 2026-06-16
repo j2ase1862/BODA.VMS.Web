@@ -23,5 +23,14 @@ public static class GlassEndpoints
                 ? Results.NotFound(new { message = "등록되지 않은 바코드" })
                 : Results.Ok(loc);
         });
+
+        // GET /api/glass/pick-list?orderNo=...  — 출고 주문 기반 피킹 목록(읽기 가이드)
+        group.MapGet("/pick-list", async (string orderNo, IOutboundService svc) =>
+        {
+            var pick = await svc.GetPickListAsync(orderNo);
+            return pick is null
+                ? Results.NotFound(new { message = "등록되지 않은 주문번호" })
+                : Results.Ok(pick);
+        });
     }
 }

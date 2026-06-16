@@ -1,0 +1,204 @@
+@page "/outbound-orders"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject ILocalizer L
+
+<PageTitle>@L["page.outboundOrders"] - BODA VMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.outboundOrders"]</MudText>
+
+<div class="vms-table">
+    <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
+              Filter="new Func<OutboundOrderDto, bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Class="vms-panel-header">@L["outbound.header"]</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
+                @L.Format("outbound.totalCountFmt", _items.Count)
+            </MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="@(L["outbound.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
+                          Style="max-width: 260px;" />
+            <AuthorizeView Roles="Admin,User">
+                <Authorized>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                               Variant="Variant.Filled" Size="Size.Small"
+                               OnClick="OpenCreateDialog" Class="vms-btn">
+                        @L["outbound.btnCreate"]
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>@L["outbound.colOrderNo"]</MudTh>
+            <MudTh>@L["outbound.colCustomer"]</MudTh>
+            <MudTh>@L["outbound.colDestination"]</MudTh>
+            <MudTh>@L["outbound.colLines"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><span class="vms-mono" style="font-weight: 700;">@context.OrderNo</span></MudTd>
+            <MudTd>@(string.IsNullOrEmpty(context.CustomerName) ? "—" : context.CustomerName)</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Destination))
+                {
+                    <span class="vms-mono" style="color: var(--mud-palette-warning);">@context.Destination</span>
+                }
+                else { <span style="color: var(--vms-text-secondary);">—</span> }
+            </MudTd>
+            <MudTd>@L.Format("outbound.lineCountFmt", context.LineCount)</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@StatusColor(context.Status)">
+                    @StatusLabel(context.Status)
+                </MudChip>
+            </MudTd>
+            <MudTd Style="text-align: right; white-space: nowrap;">
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized Context="auth1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="auth2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Color="Color.Error" OnClick="@(() => DeleteItem(context))" />
+                    </Authorized>
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div class="pa-8 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Large"
+                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                <MudText Style="color: var(--vms-text-secondary);">@L["outbound.noItems"]</MudText>
+                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
+                    @L["outbound.noItemsHint"]
+                </MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</div>
+
+@code {
+    private List<OutboundOrderDto> _items = new();
+    private bool _loading;
+    private string _search = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _items = await Api.GetAsync<List<OutboundOrderDto>>("/api/outbound-orders") ?? new();
+        _loading = false;
+    }
+
+    private bool FilterFunc(OutboundOrderDto o)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return o.OrderNo.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (o.CustomerName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (o.Destination?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<OutboundOrderFormDialog>
+        {
+            { x => x.Model, new OutboundOrderDto() },
+            { x => x.IsEdit, false }
+        };
+        var dialog = await Dialog.ShowAsync<OutboundOrderFormDialog>(L["outbound.createTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (OutboundOrderDto)result.Data!;
+                await Api.PostAsync<OutboundOrderDto, OutboundOrderDto>("/api/outbound-orders", dto);
+                Snackbar.Add(L.Format("outbound.createdFmt", dto.OrderNo), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(OutboundOrderDto src)
+    {
+        // 깊은 복사 (취소 시 원본 보존)
+        var copy = new OutboundOrderDto
+        {
+            Id = src.Id, OrderNo = src.OrderNo, CustomerName = src.CustomerName,
+            ShipTo = src.ShipTo, Destination = src.Destination, Status = src.Status,
+            Lines = src.Lines.Select(l => new OutboundOrderLineDto
+            {
+                Id = l.Id, Barcode = l.Barcode, ItemCode = l.ItemCode,
+                ItemName = l.ItemName, Qty = l.Qty, PickedQty = l.PickedQty
+            }).ToList()
+        };
+        var parameters = new DialogParameters<OutboundOrderFormDialog>
+        {
+            { x => x.Model, copy },
+            { x => x.IsEdit, true }
+        };
+        var dialog = await Dialog.ShowAsync<OutboundOrderFormDialog>(
+            L.Format("outbound.editTitleFmt", src.OrderNo), parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            try
+            {
+                var dto = (OutboundOrderDto)result.Data!;
+                await Api.PutAsync<OutboundOrderDto, OutboundOrderDto>($"/api/outbound-orders/{src.Id}", dto);
+                Snackbar.Add(L.Format("outbound.updatedFmt", dto.OrderNo), Severity.Success);
+                await Load();
+            }
+            catch (HttpRequestException ex)
+            {
+                Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(OutboundOrderDto o)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
+            L.Format("outbound.confirmDeleteFmt", o.OrderNo), L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await Api.DeleteAsync($"/api/outbound-orders/{o.Id}");
+            Snackbar.Add(L.Format("outbound.deletedFmt", o.OrderNo), Severity.Warning);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+    }
+
+    private string StatusLabel(string s) => s switch
+    {
+        "Pending" => L["outbound.statusPending"],
+        "Picking" => L["outbound.statusPicking"],
+        "Done"    => L["outbound.statusDone"],
+        _ => s
+    };
+
+    private static Color StatusColor(string s) => s switch
+    {
+        "Pending" => Color.Default,
+        "Picking" => Color.Info,
+        "Done"    => Color.Success,
+        _ => Color.Default
+    };
+}

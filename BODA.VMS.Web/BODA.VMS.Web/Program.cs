@@ -295,6 +295,7 @@ builder.Services.AddScoped<IOperatorSessionService, OperatorSessionService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IReliabilityService, ReliabilityService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IOutboundService, OutboundService>();
 builder.Services.AddHostedService<ClientMonitorService>();
 
 // DB 자동 온라인 백업 (GS 잔여 #7). SqliteConnection.BackupDatabase 사용 — 운영중 무중단.
@@ -750,6 +751,53 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
 
+    // 2-g-3. 스마트 글라스 출고 피킹 (PoC): OutboundOrders/Lines 테이블 + 인덱스 + 시드
+    // 출고는 오더 기반 — 주문 헤더에 목적지(도크/레인), 라인에 품목·수량. 피킹 위치는 WarehouseItem 재사용.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""OutboundOrders"" (
+            ""Id""           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""OrderNo""      TEXT NOT NULL,
+            ""CustomerName"" TEXT,
+            ""ShipTo""       TEXT,
+            ""Destination""  TEXT,
+            ""Status""       TEXT NOT NULL DEFAULT 'Pending',
+            ""CreatedAt""    TEXT NOT NULL,
+            ""UpdatedAt""    TEXT
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_OutboundOrders_OrderNo\" ON \"OutboundOrders\" (\"OrderNo\");");
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""OutboundOrderLines"" (
+            ""Id""        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""OrderId""   INTEGER NOT NULL,
+            ""Barcode""   TEXT NOT NULL,
+            ""ItemCode""  TEXT NOT NULL DEFAULT '',
+            ""ItemName""  TEXT NOT NULL DEFAULT '',
+            ""Qty""       INTEGER NOT NULL DEFAULT 0,
+            ""PickedQty"" INTEGER NOT NULL DEFAULT 0,
+            ""Seq""       INTEGER NOT NULL DEFAULT 0
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_OutboundOrderLines_OrderId\" ON \"OutboundOrderLines\" (\"OrderId\");");
+
+    if (!await db.OutboundOrders.AnyAsync())
+    {
+        var outSeedNow = DateTime.UtcNow;
+        var o1 = new OutboundOrder { OrderNo = "SO-2026-001", CustomerName = "가나상사", ShipTo = "서울 강남구", Destination = "3번 도크 / 출고대 B", Status = "Pending", CreatedAt = outSeedNow };
+        var o2 = new OutboundOrder { OrderNo = "SO-2026-002", CustomerName = "대한물산", ShipTo = "부산 사상구", Destination = "1번 도크 / 출고대 A", Status = "Pending", CreatedAt = outSeedNow };
+        db.OutboundOrders.AddRange(o1, o2);
+        await db.SaveChangesAsync();
+
+        db.OutboundOrderLines.AddRange(
+            new OutboundOrderLine { OrderId = o1.Id, Barcode = "8801234567890", ItemCode = "P-1001", ItemName = "알루미늄 브라켓 A",  Qty = 3, Seq = 1 },
+            new OutboundOrderLine { OrderId = o1.Id, Barcode = "8801234567892", ItemCode = "P-1003", ItemName = "고무 개스킷 50mm",   Qty = 2, Seq = 2 },
+            new OutboundOrderLine { OrderId = o1.Id, Barcode = "8801234567896", ItemCode = "P-1007", ItemName = "LED 모듈 화이트",    Qty = 1, Seq = 3 },
+            new OutboundOrderLine { OrderId = o2.Id, Barcode = "8801234567891", ItemCode = "P-1002", ItemName = "스테인리스 볼트 M6", Qty = 5, Seq = 1 },
+            new OutboundOrderLine { OrderId = o2.Id, Barcode = "8801234567899", ItemCode = "P-1010", ItemName = "베어링 6204",        Qty = 4, Seq = 2 }
+        );
+        await db.SaveChangesAsync();
+    }
+
     // 2-g. MES Phase 3 (AuditLog + Shift): Shifts, AuditLogs 테이블 + InspectionHistories.ShiftId 컬럼
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""Shifts"" (
@@ -1198,6 +1246,7 @@ app.MapSensorEndpoints();
 app.MapPredictionEndpoints();
 app.MapGlassEndpoints();
 app.MapWarehouseEndpoints();   // 입고 위치 마스터 관리(등록/수정) — 로그인 필요
+app.MapOutboundEndpoints();    // 출고 오더 관리(등록/수정) — 로그인 필요
 
 // GS 인증 High — 헬스 체크 endpoint. 익명, DB 연결 + 등록된 모든 check 수행.
 // liveness probe(/health/live): 앱 살아있음 / readiness probe(/health): DB 준비됨.
