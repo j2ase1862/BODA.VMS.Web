@@ -1,0 +1,79 @@
+@inject ILocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <div class="d-flex" style="gap:12px;">
+                <MudTextField @bind-Value="Model.OrderNo" Label="@(L["dialog.outboundFieldOrderNo"])"
+                              Variant="Variant.Outlined" Class="mb-3" Required="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Receipt"
+                              HelperText="@(L["dialog.outboundFieldOrderNoHint"])" />
+                <MudSelect T="string" @bind-Value="Model.Status" Label="@(L["dialog.outboundFieldStatus"])"
+                           Variant="Variant.Outlined" Class="mb-3" Style="max-width: 160px;">
+                    <MudSelectItem T="string" Value="@("Pending")">@L["outbound.statusPending"]</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Picking")">@L["outbound.statusPicking"]</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Done")">@L["outbound.statusDone"]</MudSelectItem>
+                </MudSelect>
+            </div>
+
+            <div class="d-flex" style="gap:12px;">
+                <MudTextField @bind-Value="Model.CustomerName" Label="@(L["dialog.outboundFieldCustomer"])"
+                              Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="Model.ShipTo" Label="@(L["dialog.outboundFieldShipTo"])"
+                              Variant="Variant.Outlined" Class="mb-3" />
+            </div>
+
+            <MudTextField @bind-Value="Model.Destination" Label="@(L["dialog.outboundFieldDestination"])"
+                          Variant="Variant.Outlined" Class="mb-4"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LocalShipping"
+                          HelperText="@(L["dialog.outboundFieldDestinationHint"])" />
+
+            <div class="d-flex align-center mb-2">
+                <MudText Typo="Typo.subtitle2">@L["dialog.outboundSectionLines"]</MudText>
+                <MudSpacer />
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                           Variant="Variant.Outlined" OnClick="AddLine">@L["dialog.outboundAddLine"]</MudButton>
+            </div>
+
+            @foreach (var line in Model.Lines)
+            {
+                <div class="d-flex align-center" style="gap:8px;" @key="line">
+                    <MudTextField @bind-Value="line.Barcode" Label="@(L["dialog.outboundLineBarcode"])"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                    <MudTextField @bind-Value="line.ItemName" Label="@(L["dialog.outboundLineItem"])"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
+                                  HelperText="@(L["dialog.outboundLineItemHint"])" />
+                    <MudNumericField @bind-Value="line.Qty" Label="@(L["dialog.outboundLineQty"])" Min="1"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
+                                     Style="max-width: 90px;" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => RemoveLine(line))" />
+                </div>
+            }
+            @if (Model.Lines.Count == 0)
+            {
+                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);">@L["dialog.outboundNoLines"]</MudText>
+            }
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
+            @(IsEdit ? L["action.update"] : L["action.create"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public OutboundOrderDto Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private void AddLine() => Model.Lines.Add(new OutboundOrderLineDto());
+    private void RemoveLine(OutboundOrderLineDto l) => Model.Lines.Remove(l);
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Model));
+    private void Cancel() => MudDialog.Cancel();
+}
