@@ -59,6 +59,75 @@ public class OutboundService : IOutboundService
         };
     }
 
+    public async Task<PickConfirmResult?> ConfirmPickAsync(string orderNo, string barcode, int qty = 1)
+    {
+        if (string.IsNullOrWhiteSpace(orderNo) || string.IsNullOrWhiteSpace(barcode))
+            return null;
+
+        var order = await _db.OutboundOrders.FirstOrDefaultAsync(o => o.OrderNo == orderNo.Trim());
+        if (order is null) return null;
+
+        var code = barcode.Trim();
+        var step = qty <= 0 ? 1 : qty;
+
+        var lines = await _db.OutboundOrderLines
+            .Where(l => l.OrderId == order.Id)
+            .OrderBy(l => l.Seq).ThenBy(l => l.Id)
+            .ToListAsync();
+
+        var matching = lines.Where(l => l.Barcode == code).ToList();
+        var result = new PickConfirmResult();
+
+        if (matching.Count == 0)
+        {
+            result.Matched = false;
+            result.Message = "이 주문에 없는 품목입니다";
+        }
+        else
+        {
+            // 미완료(부족) 라인 우선 — 같은 바코드가 여러 줄이면 순서대로.
+            var target = matching.FirstOrDefault(l => l.PickedQty < l.Qty);
+            if (target is null)
+            {
+                result.AlreadyComplete = true;
+                result.Message = "이미 전량 피킹된 품목입니다";
+            }
+            else
+            {
+                var remaining = target.Qty - target.PickedQty;
+                target.PickedQty += Math.Min(step, remaining);
+                order.Status = "Picking";
+                order.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+
+                result.Matched = true;
+                result.Message = target.PickedQty >= target.Qty
+                    ? $"{target.ItemName} 완료 ({target.PickedQty}/{target.Qty})"
+                    : $"{target.ItemName} {target.PickedQty}/{target.Qty}";
+            }
+        }
+
+        // 갱신된 상태 재조회
+        result.PickList = (await GetPickListAsync(order.OrderNo))!;
+        result.AllPicked = result.PickList.Lines.Count > 0
+            && result.PickList.Lines.All(l => l.PickedQty >= l.Qty);
+        return result;
+    }
+
+    public async Task<PickListDto?> ConfirmShipAsync(string orderNo)
+    {
+        if (string.IsNullOrWhiteSpace(orderNo)) return null;
+
+        var order = await _db.OutboundOrders.FirstOrDefaultAsync(o => o.OrderNo == orderNo.Trim());
+        if (order is null) return null;
+
+        order.Status = "Done";
+        order.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return await GetPickListAsync(order.OrderNo);
+    }
+
     // === 관리 ===
 
     public async Task<List<OutboundOrderDto>> GetAllAsync()
