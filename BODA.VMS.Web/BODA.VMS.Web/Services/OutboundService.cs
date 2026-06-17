@@ -1,6 +1,8 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
+using BODA.VMS.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Services;
@@ -8,10 +10,20 @@ namespace BODA.VMS.Web.Services;
 public class OutboundService : IOutboundService
 {
     private readonly BodaVmsDbContext _db;
+    private readonly IHubContext<VmsHub> _hub;
 
-    public OutboundService(BodaVmsDbContext db)
+    public OutboundService(BodaVmsDbContext db, IHubContext<VmsHub> hub)
     {
         _db = db;
+        _hub = hub;
+    }
+
+    /// <summary>변경된 오더를 관리 화면에 실시간 푸시(글라스 피킹/출하확정 즉시 반영).</summary>
+    private async Task BroadcastChangedAsync(int orderId)
+    {
+        var dto = await GetByIdAsync(orderId);
+        if (dto is not null)
+            await _hub.Clients.All.SendAsync("OutboundOrderChanged", dto);
     }
 
     // === 글라스 피킹 (읽기 가이드) ===
@@ -99,6 +111,7 @@ public class OutboundService : IOutboundService
                 order.Status = "Picking";
                 order.UpdatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
+                await BroadcastChangedAsync(order.Id);
 
                 result.Matched = true;
                 result.Message = target.PickedQty >= target.Qty
@@ -124,6 +137,7 @@ public class OutboundService : IOutboundService
         order.Status = "Done";
         order.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        await BroadcastChangedAsync(order.Id);
 
         return await GetPickListAsync(order.OrderNo);
     }
@@ -173,6 +187,7 @@ public class OutboundService : IOutboundService
         await _db.SaveChangesAsync();
 
         await ReplaceLinesAsync(order.Id, dto.Lines);
+        await BroadcastChangedAsync(order.Id);
         return (await GetByIdAsync(order.Id))!;
     }
 
@@ -194,6 +209,7 @@ public class OutboundService : IOutboundService
         await _db.SaveChangesAsync();
 
         await ReplaceLinesAsync(id, dto.Lines);
+        await BroadcastChangedAsync(id);
         return await GetByIdAsync(id);
     }
 
@@ -206,6 +222,7 @@ public class OutboundService : IOutboundService
         _db.OutboundOrderLines.RemoveRange(lines);
         _db.OutboundOrders.Remove(order);
         await _db.SaveChangesAsync();
+        await _hub.Clients.All.SendAsync("OutboundOrderDeleted", id);
         return true;
     }
 

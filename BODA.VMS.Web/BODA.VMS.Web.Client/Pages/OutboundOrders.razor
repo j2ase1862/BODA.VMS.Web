@@ -1,9 +1,11 @@
 @page "/outbound-orders"
 @attribute [Authorize]
+@implements IDisposable
 @inject ApiClient Api
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 @inject ILocalizer L
+@inject SignalRService SignalR
 
 <PageTitle>@L["page.outboundOrders"] - BODA VMS</PageTitle>
 
@@ -89,7 +91,32 @@
     private bool _loading;
     private string _search = string.Empty;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        // 실시간: 글라스 피킹/출하확정 등 변경을 즉시 반영(새로고침 불필요)
+        SignalR.OnOutboundOrderChanged += OnOrderChanged;
+        SignalR.OnOutboundOrderDeleted += OnOrderDeleted;
+        await Load();
+    }
+
+    private async void OnOrderChanged(OutboundOrderDto dto) => await InvokeAsync(() =>
+    {
+        var i = _items.FindIndex(o => o.Id == dto.Id);
+        if (i >= 0) _items[i] = dto; else _items.Insert(0, dto);
+        StateHasChanged();
+    });
+
+    private async void OnOrderDeleted(int id) => await InvokeAsync(() =>
+    {
+        _items.RemoveAll(o => o.Id == id);
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        SignalR.OnOutboundOrderChanged -= OnOrderChanged;
+        SignalR.OnOutboundOrderDeleted -= OnOrderDeleted;
+    }
 
     private async Task Load()
     {
