@@ -25,6 +25,10 @@ public static class GlassEndpoints
                 : Results.Ok(loc);
         });
 
+        // GET /api/glass/orders?status=...  — 글라스 출고 목록(기본 활성 주문)
+        group.MapGet("/orders", async (string? status, IOutboundService svc) =>
+            Results.Ok(await svc.GetGlassOrdersAsync(status)));
+
         // GET /api/glass/pick-list?orderNo=...  — 출고 주문 기반 피킹 목록(읽기 가이드)
         group.MapGet("/pick-list", async (string orderNo, IOutboundService svc) =>
         {

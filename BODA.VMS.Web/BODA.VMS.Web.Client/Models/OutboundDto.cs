@@ -6,6 +6,16 @@ namespace BODA.VMS.Web.Client.Models;
 //  글라스 피킹(읽기 가이드) 응답 DTO — /api/glass/pick-list
 // =====================================================================
 
+/// <summary>글라스 출고 목록용 경량 DTO — /api/glass/orders. 라인 상세 없이 요약만.</summary>
+public class GlassOrderDto
+{
+    public string OrderNo { get; set; } = string.Empty;
+    public string? CustomerName { get; set; }
+    public string? Destination { get; set; }
+    public int LineCount { get; set; }
+    public string Status { get; set; } = "Pending";
+}
+
 /// <summary>글라스가 받는 피킹 목록. 주문 1건 + 집어야 할 라인들 + 완료 후 출고 목적지.</summary>
 public class PickListDto
 {

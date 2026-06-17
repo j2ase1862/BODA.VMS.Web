@@ -28,6 +28,33 @@ public class OutboundService : IOutboundService
 
     // === 글라스 피킹 (읽기 가이드) ===
 
+    public async Task<List<GlassOrderDto>> GetGlassOrdersAsync(string? status = null)
+    {
+        var query = _db.OutboundOrders.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(o => o.Status == status);
+        else
+            query = query.Where(o => o.Status != "Done");   // 기본: 활성(대기/피킹중)
+
+        // 상태 우선순위(피킹중 먼저) → 주문번호
+        var orders = await query.OrderBy(o => o.Status).ThenBy(o => o.OrderNo).Take(50).ToListAsync();
+        var ids = orders.Select(o => o.Id).ToList();
+        var counts = (await _db.OutboundOrderLines
+                .Where(l => ids.Contains(l.OrderId))
+                .ToListAsync())
+            .GroupBy(l => l.OrderId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return orders.Select(o => new GlassOrderDto
+        {
+            OrderNo      = o.OrderNo,
+            CustomerName = o.CustomerName,
+            Destination  = o.Destination,
+            LineCount    = counts.GetValueOrDefault(o.Id),
+            Status       = o.Status
+        }).ToList();
+    }
+
     public async Task<PickListDto?> GetPickListAsync(string orderNo)
     {
         if (string.IsNullOrWhiteSpace(orderNo))
