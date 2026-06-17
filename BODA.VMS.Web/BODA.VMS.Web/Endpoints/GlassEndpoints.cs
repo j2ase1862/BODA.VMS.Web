@@ -1,3 +1,4 @@
+using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
 
@@ -28,6 +29,24 @@ public static class GlassEndpoints
         group.MapGet("/pick-list", async (string orderNo, IOutboundService svc) =>
         {
             var pick = await svc.GetPickListAsync(orderNo);
+            return pick is null
+                ? Results.NotFound(new { message = "등록되지 않은 주문번호" })
+                : Results.Ok(pick);
+        });
+
+        // POST /api/glass/pick-confirm  — 스캔 검증 피킹 확정(2차)
+        group.MapPost("/pick-confirm", async (PickConfirmRequest req, IOutboundService svc) =>
+        {
+            var result = await svc.ConfirmPickAsync(req.OrderNo, req.Barcode, req.Qty);
+            return result is null
+                ? Results.NotFound(new { message = "등록되지 않은 주문번호" })
+                : Results.Ok(result);
+        });
+
+        // POST /api/glass/ship-confirm  — 출하 확정(2차)
+        group.MapPost("/ship-confirm", async (PickConfirmRequest req, IOutboundService svc) =>
+        {
+            var pick = await svc.ConfirmShipAsync(req.OrderNo);
             return pick is null
                 ? Results.NotFound(new { message = "등록되지 않은 주문번호" })
                 : Results.Ok(pick);

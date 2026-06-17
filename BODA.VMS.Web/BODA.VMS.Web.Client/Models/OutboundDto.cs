@@ -35,6 +35,36 @@ public class PickLineDto
 }
 
 // =====================================================================
+//  글라스 피킹 확정 / 출하 확정 (2차) — /api/glass/pick-confirm, /ship-confirm
+// =====================================================================
+
+/// <summary>스캔 검증 피킹 확정 요청 — 스캔 1회 = qty 1 기본.</summary>
+public class PickConfirmRequest
+{
+    public string OrderNo { get; set; } = string.Empty;
+    public string Barcode { get; set; } = string.Empty;
+    public int Qty { get; set; } = 1;
+}
+
+/// <summary>피킹 확정 결과 — 글라스가 피드백 + 상태 갱신에 사용.</summary>
+public class PickConfirmResult
+{
+    /// <summary>스캔한 바코드가 이 주문의 미완료 라인과 일치해 수량이 증가했는가.</summary>
+    public bool Matched { get; set; }
+
+    /// <summary>이미 전량 피킹된 라인을 또 스캔했는가(일치하나 증가 없음).</summary>
+    public bool AlreadyComplete { get; set; }
+
+    /// <summary>모든 라인 피킹 완료.</summary>
+    public bool AllPicked { get; set; }
+
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>갱신된 피킹 목록(pickedQty 반영).</summary>
+    public PickListDto PickList { get; set; } = new();
+}
+
+// =====================================================================
 //  관리(등록/수정) DTO — /api/outbound-orders
 // =====================================================================
 

@@ -9,6 +9,15 @@ public interface IOutboundService
     /// <summary>주문번호로 피킹 목록 조회(피킹 위치는 WarehouseItem에서 조인). 없으면 null.</summary>
     Task<PickListDto?> GetPickListAsync(string orderNo);
 
+    /// <summary>
+    /// 스캔 검증 피킹 확정(2차). 스캔한 바코드가 주문의 미완료 라인과 일치하면 pickedQty 증가,
+    /// 주문 상태를 Picking 으로. 주문이 없으면 null.
+    /// </summary>
+    Task<PickConfirmResult?> ConfirmPickAsync(string orderNo, string barcode, int qty = 1);
+
+    /// <summary>출하 확정(2차) — 주문 상태를 Done 으로. 갱신된 피킹 목록 반환. 주문 없으면 null.</summary>
+    Task<PickListDto?> ConfirmShipAsync(string orderNo);
+
     // === 출고 오더 관리(등록/수정) ===
 
     Task<List<OutboundOrderDto>> GetAllAsync();
