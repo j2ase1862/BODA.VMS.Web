@@ -6,6 +6,9 @@ public interface IOutboundService
 {
     // === 글라스 피킹 (읽기 가이드) ===
 
+    /// <summary>글라스 출고 목록 — 기본은 활성(미완료) 주문, status 지정 시 해당 상태만. 경량 요약.</summary>
+    Task<List<GlassOrderDto>> GetGlassOrdersAsync(string? status = null);
+
     /// <summary>주문번호로 피킹 목록 조회(피킹 위치는 WarehouseItem에서 조인). 없으면 null.</summary>
     Task<PickListDto?> GetPickListAsync(string orderNo);
 
