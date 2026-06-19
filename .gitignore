@@ -37,3 +37,6 @@ Desktop.ini
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+
+## 로컬 배포 로그
+deploy-live.log
