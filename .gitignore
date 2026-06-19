@@ -40,3 +40,4 @@ __pycache__/
 
 ## 로컬 배포 로그
 deploy-live.log
+deploy-live.ps1
