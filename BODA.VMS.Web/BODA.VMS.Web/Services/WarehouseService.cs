@@ -1,6 +1,8 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
+using BODA.VMS.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Services;
@@ -8,10 +10,12 @@ namespace BODA.VMS.Web.Services;
 public class WarehouseService : IWarehouseService
 {
     private readonly BodaVmsDbContext _db;
+    private readonly IHubContext<VmsHub> _hub;
 
-    public WarehouseService(BodaVmsDbContext db)
+    public WarehouseService(BodaVmsDbContext db, IHubContext<VmsHub> hub)
     {
         _db = db;
+        _hub = hub;
     }
 
     public async Task<InboundLocationDto?> GetInboundLocationAsync(string barcode, string? mode = null)
@@ -37,6 +41,56 @@ public class WarehouseService : IWarehouseService
             LocationText = string.Join("-", parts),
             Coord        = new Coord3D { X = item.PosX, Y = item.PosY, Z = item.PosZ }
         };
+    }
+
+    public async Task<InboundConfirmResult?> ConfirmInboundAsync(string barcode, int qty = 1)
+    {
+        if (string.IsNullOrWhiteSpace(barcode))
+            return null;
+
+        var code = barcode.Trim();
+        var item = await _db.WarehouseItems
+            .FirstOrDefaultAsync(i => i.Barcode == code && i.IsActive);
+        if (item is null)
+            return null;
+
+        var step = qty <= 0 ? 1 : qty;
+        var now = DateTime.UtcNow;
+        item.StockQty += step;
+        item.LastInboundAt = now;
+
+        var loc = string.Join("-", new[] { item.Zone, item.Rack, item.Level, item.Bin }
+            .Where(s => !string.IsNullOrEmpty(s)));
+
+        _db.InboundReceipts.Add(new InboundReceipt
+        {
+            Barcode      = item.Barcode,
+            ItemCode     = item.Code,
+            ItemName     = item.Name,
+            LocationText = loc,
+            Qty          = step,
+            StockAfter   = item.StockQty,
+            ConfirmedAt  = now
+        });
+        await _db.SaveChangesAsync();
+
+        var result = new InboundConfirmResult
+        {
+            Confirmed       = true,
+            WarehouseItemId = item.Id,
+            Barcode         = item.Barcode,
+            ItemCode        = item.Code,
+            ItemName        = item.Name,
+            LocationText    = loc,
+            Qty             = step,
+            StockAfter      = item.StockQty,
+            ConfirmedAt     = now,
+            Message         = $"{item.Name} 입고 확정 (재고 {item.StockQty})"
+        };
+
+        // 관리 화면 실시간 반영(글라스 입고 확정 즉시) — 출고의 OutboundOrderChanged 와 대칭.
+        await _hub.Clients.All.SendAsync("InboundConfirmed", result);
+        return result;
     }
 
     // === 입고 위치 마스터 관리(등록/수정) ===
@@ -131,11 +185,13 @@ public class WarehouseService : IWarehouseService
         Rack      = e.Rack,
         Level     = e.Level,
         Bin       = e.Bin,
-        PosX      = e.PosX,
-        PosY      = e.PosY,
-        PosZ      = e.PosZ,
-        IsActive  = e.IsActive,
-        CreatedAt = e.CreatedAt,
-        UpdatedAt = e.UpdatedAt
+        PosX          = e.PosX,
+        PosY          = e.PosY,
+        PosZ          = e.PosZ,
+        IsActive      = e.IsActive,
+        StockQty      = e.StockQty,
+        LastInboundAt = e.LastInboundAt,
+        CreatedAt     = e.CreatedAt,
+        UpdatedAt     = e.UpdatedAt
     };
 }

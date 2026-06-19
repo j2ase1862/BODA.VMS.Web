@@ -730,6 +730,34 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_WarehouseItems_Barcode\" ON \"WarehouseItems\" (\"Barcode\");");
 
+    // 입고 확정(적치): 기존 DB 호환 — 재고/최근입고 컬럼이 없으면 추가(이미 있으면 무시).
+    foreach (var alter in new[]
+    {
+        "ALTER TABLE \"WarehouseItems\" ADD COLUMN \"StockQty\" INTEGER NOT NULL DEFAULT 0;",
+        "ALTER TABLE \"WarehouseItems\" ADD COLUMN \"LastInboundAt\" TEXT;"
+    })
+    {
+        try { await db.Database.ExecuteSqlRawAsync(alter); }
+        catch { /* duplicate column — 이미 마이그레이션됨 */ }
+    }
+
+    // 입고 확정 이력 테이블 + 시각/바코드 인덱스
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""InboundReceipts"" (
+            ""Id""           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""Barcode""      TEXT NOT NULL,
+            ""ItemCode""     TEXT NOT NULL DEFAULT '',
+            ""ItemName""     TEXT NOT NULL DEFAULT '',
+            ""LocationText"" TEXT NOT NULL DEFAULT '',
+            ""Qty""          INTEGER NOT NULL DEFAULT 0,
+            ""StockAfter""   INTEGER NOT NULL DEFAULT 0,
+            ""ConfirmedAt""  TEXT NOT NULL
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_InboundReceipts_ConfirmedAt\" ON \"InboundReceipts\" (\"ConfirmedAt\");");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE INDEX IF NOT EXISTS \"IX_InboundReceipts_Barcode\" ON \"InboundReceipts\" (\"Barcode\");");
+
     // PoC 시드 — 비어 있을 때만. (운영 ERP 동기화 도입 시 이 시드는 폐기, 스키마/엔드포인트는 유지)
     if (!await db.WarehouseItems.AnyAsync())
     {

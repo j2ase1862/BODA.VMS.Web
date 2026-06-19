@@ -25,6 +25,15 @@ public static class GlassEndpoints
                 : Results.Ok(loc);
         });
 
+        // POST /api/glass/inbound-confirm  — 입고(적치) 확정: 재고 누적 + 이력 + 실시간 반영
+        group.MapPost("/inbound-confirm", async (InboundConfirmRequest req, IWarehouseService svc) =>
+        {
+            var result = await svc.ConfirmInboundAsync(req.Barcode, req.Qty);
+            return result is null
+                ? Results.NotFound(new { message = "등록되지 않은 바코드" })
+                : Results.Ok(result);
+        });
+
         // GET /api/glass/orders?status=...  — 글라스 출고 목록(기본 활성 주문)
         group.MapGet("/orders", async (string? status, IOutboundService svc) =>
             Results.Ok(await svc.GetGlassOrdersAsync(status)));

@@ -502,6 +502,7 @@
     "colCode": "품목 코드",
     "colName": "품목명",
     "colLocation": "입고 위치",
+    "colStock": "재고",
     "btnCreate": "바코드 등록",
     "createTitle": "입고 위치 등록",
     "editTitleFmt": "입고 위치 수정 — {0}",
@@ -509,6 +510,7 @@
     "createdFmt": "'{0}' 등록 완료",
     "updatedFmt": "'{0}' 수정 완료",
     "deletedFmt": "'{0}' 삭제됨",
+    "inboundConfirmedFmt": "입고 확정: {0} · 재고 {1}",
     "noItems": "등록된 입고 위치가 없습니다",
     "noItemsHint": "‘바코드 등록’ 버튼으로 추가하세요"
   },

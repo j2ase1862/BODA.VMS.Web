@@ -1,9 +1,11 @@
 @page "/warehouse-items"
 @attribute [Authorize]
+@implements IDisposable
 @inject ApiClient Api
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 @inject ILocalizer L
+@inject SignalRService SignalR
 
 <PageTitle>@L["page.warehouseItems"] - BODA VMS</PageTitle>
 
@@ -39,6 +41,7 @@
             <MudTh>@L["warehouse.colCode"]</MudTh>
             <MudTh>@L["warehouse.colName"]</MudTh>
             <MudTh>@L["warehouse.colLocation"]</MudTh>
+            <MudTh Style="text-align: right;">@L["warehouse.colStock"]</MudTh>
             <MudTh>@L["common.status"]</MudTh>
             <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
         </HeaderContent>
@@ -52,6 +55,11 @@
                     <span class="vms-mono" style="font-weight: 700; color: var(--mud-palette-warning);">@context.LocationText</span>
                 }
                 else { <span style="color: var(--vms-text-secondary);">—</span> }
+            </MudTd>
+            <MudTd Style="text-align: right;">
+                <span class="vms-mono" style="font-weight: 700;@(context.StockQty > 0 ? " color: var(--mud-palette-success);" : " color: var(--vms-text-secondary);")">
+                    @context.StockQty
+                </span>
             </MudTd>
             <MudTd>
                 @if (context.IsActive)
@@ -98,7 +106,26 @@
     private bool _showInactive;
     private string _search = string.Empty;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        // 실시간: 글라스 '입고 확정' 시 해당 품목 재고를 즉시 반영(새로고침 불필요)
+        SignalR.OnInboundConfirmed += OnInboundConfirmed;
+        await Load();
+    }
+
+    private async void OnInboundConfirmed(InboundConfirmResult r) => await InvokeAsync(() =>
+    {
+        var item = _items.FirstOrDefault(w => w.Id == r.WarehouseItemId);
+        if (item is not null)
+        {
+            item.StockQty = r.StockAfter;
+            item.LastInboundAt = r.ConfirmedAt;
+        }
+        Snackbar.Add(L.Format("warehouse.inboundConfirmedFmt", r.ItemName, r.StockAfter), Severity.Success);
+        StateHasChanged();
+    });
+
+    public void Dispose() => SignalR.OnInboundConfirmed -= OnInboundConfirmed;
 
     private async Task Load()
     {

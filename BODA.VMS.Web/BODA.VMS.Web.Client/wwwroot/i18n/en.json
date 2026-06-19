@@ -502,6 +502,7 @@
     "colCode": "Item Code",
     "colName": "Item Name",
     "colLocation": "Location",
+    "colStock": "Stock",
     "btnCreate": "Register Barcode",
     "createTitle": "Register Inbound Location",
     "editTitleFmt": "Edit Inbound Location — {0}",
@@ -509,6 +510,7 @@
     "createdFmt": "'{0}' registered",
     "updatedFmt": "'{0}' updated",
     "deletedFmt": "'{0}' deleted",
+    "inboundConfirmedFmt": "Inbound confirmed: {0} · stock {1}",
     "noItems": "No inbound locations registered",
     "noItemsHint": "Use the 'Register Barcode' button to add one"
   },
