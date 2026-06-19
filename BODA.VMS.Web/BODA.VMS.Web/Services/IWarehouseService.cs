@@ -10,6 +10,12 @@ public interface IWarehouseService
     /// </summary>
     Task<InboundLocationDto?> GetInboundLocationAsync(string barcode, string? mode = null);
 
+    /// <summary>
+    /// 글라스 입고(적치) 확정 — 재고 누적 + 입고 이력 기록 + 관리 화면 실시간 푸시.
+    /// 등록되지 않았거나 비활성 바코드면 null.
+    /// </summary>
+    Task<InboundConfirmResult?> ConfirmInboundAsync(string barcode, int qty = 1);
+
     // === 입고 위치 마스터 관리(등록/수정) — 관리 화면용 ===
 
     /// <summary>전체 목록. includeInactive=false면 활성 항목만.</summary>

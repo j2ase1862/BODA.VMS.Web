@@ -32,6 +32,7 @@ public class BodaVmsDbContext : DbContext
     public DbSet<PredictionLog> PredictionLogs => Set<PredictionLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<WarehouseItem> WarehouseItems => Set<WarehouseItem>();
+    public DbSet<InboundReceipt> InboundReceipts => Set<InboundReceipt>();
     public DbSet<OutboundOrder> OutboundOrders => Set<OutboundOrder>();
     public DbSet<OutboundOrderLine> OutboundOrderLines => Set<OutboundOrderLine>();
 
@@ -183,6 +184,12 @@ public class BodaVmsDbContext : DbContext
         // 스마트 글라스 입고 위치 조회 — 바코드 조회 인덱스
         modelBuilder.Entity<WarehouseItem>()
             .HasIndex(w => w.Barcode);
+
+        // 스마트 글라스 입고 확정 이력 — 시각/바코드 조회 인덱스
+        modelBuilder.Entity<InboundReceipt>()
+            .HasIndex(r => r.ConfirmedAt);
+        modelBuilder.Entity<InboundReceipt>()
+            .HasIndex(r => r.Barcode);
 
         // 스마트 글라스 출고 피킹 — 주문번호 고유 + 라인 주문 조회 인덱스
         modelBuilder.Entity<OutboundOrder>()

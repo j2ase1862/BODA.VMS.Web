@@ -18,6 +18,7 @@ public class SignalRService : IAsyncDisposable
     public event Action<OperatorSessionDto>? OnOperatorSessionEnded;
     public event Action<OutboundOrderDto>? OnOutboundOrderChanged;
     public event Action<int>? OnOutboundOrderDeleted;
+    public event Action<InboundConfirmResult>? OnInboundConfirmed;
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
     public SignalRService(NavigationManager navigation, AuthStateProvider authProvider)
@@ -64,6 +65,9 @@ public class SignalRService : IAsyncDisposable
 
         _hub.On<int>("OutboundOrderDeleted", (id) =>
             OnOutboundOrderDeleted?.Invoke(id));
+
+        _hub.On<InboundConfirmResult>("InboundConfirmed", (result) =>
+            OnInboundConfirmed?.Invoke(result));
 
         try
         {

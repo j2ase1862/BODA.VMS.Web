@@ -38,6 +38,13 @@ public class WarehouseItem
 
     public bool IsActive { get; set; } = true;
 
+    // === 입고(적치) 확정 — 글라스 '입고 확정' 누적. 운영 시 ERP/WMS 재고로 대체. ===
+    /// <summary>현재 보관 재고 수량(입고 확정 누적).</summary>
+    public int StockQty { get; set; }
+
+    /// <summary>최근 입고 확정 시각.</summary>
+    public DateTime? LastInboundAt { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 }

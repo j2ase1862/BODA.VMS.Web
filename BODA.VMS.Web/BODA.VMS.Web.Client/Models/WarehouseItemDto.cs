@@ -37,6 +37,12 @@ public class WarehouseItemDto
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>현재 보관 재고(입고 확정 누적). 글라스 '입고 확정'으로 증가.</summary>
+    public int StockQty { get; set; }
+
+    /// <summary>최근 입고 확정 시각.</summary>
+    public DateTime? LastInboundAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
