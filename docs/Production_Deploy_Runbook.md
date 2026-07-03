@@ -170,6 +170,11 @@ Get-EventLog -LogName Application -Newest 5 -EntryType Error -ErrorAction Silent
 
 ### Step 5 — Cloudflare 캐시 퍼지 (Blazor 클라이언트 변경 시 권장)
 
+> **⚠ 담당 분리 (중요):** 캐시 퍼지는 **계정 소유자(운영자)가 Cloudflare 대시보드에서 직접 수행**합니다.
+> Claude Code 세션은 Cloudflare 자격증명을 갖지 않으므로 **Step 1~4(빌드·배포·스모크테스트)까지만 수행**하고,
+> 이 Step 5는 **운영자에게 넘겨** 수동 퍼지를 요청합니다. 세션에서 자동화하지 않습니다.
+> (Blazor WASM 클라이언트가 재빌드된 배포일 때만 실제로 필요 — 서버 전용 변경이면 생략 가능.)
+
 **언제:** Blazor WASM 클라이언트(`BODA.VMS.Web.Client`)가 재빌드된 배포라면 권장. 클라이언트가 바뀌면 `blazor.boot.json` + 해시된 `_framework/*.dll`/`.wasm` 이 바뀌는데, robocopy `/MIR` 이 옛 해시 파일을 지우므로 — Cloudflare가 옛 `blazor.boot.json` 을 캐시하고 있으면 **재방문 사용자가 사라진 dll(404)을 요청해 앱 로딩이 깨질 수 있음.**
 
 **왜 보통은 안 깨졌나:** 기본 Cloudflare 캐시는 `.json/.dll/.wasm` 을 캐시하지 않음. 그래서 **"Cache Everything" 페이지 규칙이 없으면** 안전. 단 그 규칙 유무와 무관하게 **배포 후 한 번 퍼지**해두면 확실함.
