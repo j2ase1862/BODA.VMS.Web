@@ -730,15 +730,23 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_WarehouseItems_Barcode\" ON \"WarehouseItems\" (\"Barcode\");");
 
-    // 입고 확정(적치): 기존 DB 호환 — 재고/최근입고 컬럼이 없으면 추가(이미 있으면 무시).
-    foreach (var alter in new[]
+    // 입고 확정(적치): 기존 DB 호환 — 재고/최근입고 컬럼이 없으면 추가(이미 있으면 건너뜀).
+    // 예외 기반 흐름 제어(try/catch on duplicate column) 대신 존재 여부를 먼저 확인한다:
+    // 디버거 first-chance 멈춤을 없애고, duplicate 외의 진짜 오류를 삼키지 않기 위함.
+    using (var cmdWi = conn.CreateCommand())
     {
-        "ALTER TABLE \"WarehouseItems\" ADD COLUMN \"StockQty\" INTEGER NOT NULL DEFAULT 0;",
-        "ALTER TABLE \"WarehouseItems\" ADD COLUMN \"LastInboundAt\" TEXT;"
-    })
-    {
-        try { await db.Database.ExecuteSqlRawAsync(alter); }
-        catch { /* duplicate column — 이미 마이그레이션됨 */ }
+        cmdWi.CommandText = "PRAGMA table_info(WarehouseItems);";
+        var wiColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var readerWi = await cmdWi.ExecuteReaderAsync())
+        {
+            while (await readerWi.ReadAsync())
+                wiColumns.Add(readerWi.GetString(1));
+        }
+
+        if (!wiColumns.Contains("StockQty"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"WarehouseItems\" ADD COLUMN \"StockQty\" INTEGER NOT NULL DEFAULT 0;");
+        if (!wiColumns.Contains("LastInboundAt"))
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"WarehouseItems\" ADD COLUMN \"LastInboundAt\" TEXT;");
     }
 
     // 입고 확정 이력 테이블 + 시각/바코드 인덱스

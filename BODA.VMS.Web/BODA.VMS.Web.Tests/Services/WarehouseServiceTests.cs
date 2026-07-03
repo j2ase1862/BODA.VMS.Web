@@ -1,5 +1,6 @@
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
+using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Services;
 using BODA.VMS.Web.Tests.Helpers;
 using FluentAssertions;
@@ -28,7 +29,7 @@ public class WarehouseServiceTests
             Zone = "A", Rack = "01", Level = "2", Bin = "07",
             PosX = 1.0, PosY = 2.0, PosZ = 0.5, IsActive = true, CreatedAt = DateTime.UtcNow
         });
-        var svc = new WarehouseService(ctx.Db);
+        var svc = new WarehouseService(ctx.Db, new NoopHubContext<VmsHub>());
 
         var loc = await svc.GetInboundLocationAsync("8801234567890", "입고");
 
@@ -46,7 +47,7 @@ public class WarehouseServiceTests
     public async Task GetInboundLocationAsync_unknown_barcode_returns_null()
     {
         using var ctx = new InMemorySqliteDbContext();
-        var svc = new WarehouseService(ctx.Db);
+        var svc = new WarehouseService(ctx.Db, new NoopHubContext<VmsHub>());
 
         var loc = await svc.GetInboundLocationAsync("0000000000000");
 
@@ -63,7 +64,7 @@ public class WarehouseServiceTests
             Zone = "B", Rack = "02", Level = "1", Bin = "03",
             IsActive = false, CreatedAt = DateTime.UtcNow
         });
-        var svc = new WarehouseService(ctx.Db);
+        var svc = new WarehouseService(ctx.Db, new NoopHubContext<VmsHub>());
 
         var loc = await svc.GetInboundLocationAsync("8801234567891");
 
@@ -77,7 +78,7 @@ public class WarehouseServiceTests
     public async Task GetInboundLocationAsync_blank_barcode_returns_null(string? barcode)
     {
         using var ctx = new InMemorySqliteDbContext();
-        var svc = new WarehouseService(ctx.Db);
+        var svc = new WarehouseService(ctx.Db, new NoopHubContext<VmsHub>());
 
         var loc = await svc.GetInboundLocationAsync(barcode!);
 
@@ -94,7 +95,7 @@ public class WarehouseServiceTests
             Zone = "C", Rack = null, Level = "", Bin = "04",
             IsActive = true, CreatedAt = DateTime.UtcNow
         });
-        var svc = new WarehouseService(ctx.Db);
+        var svc = new WarehouseService(ctx.Db, new NoopHubContext<VmsHub>());
 
         var loc = await svc.GetInboundLocationAsync("8801234567892");
 
