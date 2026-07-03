@@ -157,6 +157,10 @@ public static class ClientEndpoints
                 var result = await clientService.CreateClientAsync(dto);
                 return Results.Created($"/api/clients/{result.Id}", result);
             }
+            catch (DuplicateClientIndexException ex)
+            {
+                return Results.Conflict(ex.Message);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to create client '{Name}'", dto.Name);
@@ -167,8 +171,15 @@ public static class ClientEndpoints
 
         group.MapPut("/{id:int}", async (int id, ClientDto dto, IClientService clientService) =>
         {
-            var result = await clientService.UpdateClientAsync(id, dto);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            try
+            {
+                var result = await clientService.UpdateClientAsync(id, dto);
+                return result is null ? Results.NotFound() : Results.Ok(result);
+            }
+            catch (DuplicateClientIndexException ex)
+            {
+                return Results.Conflict(ex.Message);
+            }
         }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
           .AddEndpointFilter<ValidationEndpointFilter<ClientDto>>();
 

@@ -80,6 +80,10 @@ public class ClientService : IClientService
 
     public async Task<ClientDto> CreateClientAsync(ClientDto dto)
     {
+        // ClientIndex 는 설비 PC ↔ 서버 레코드를 잇는 유일 키 — 중복 금지.
+        if (await _db.Clients.AnyAsync(c => c.ClientIndex == dto.ClientIndex))
+            throw new DuplicateClientIndexException(dto.ClientIndex);
+
         Data.Entities.VisionClient entity;
 
         if (IsVisionServerEnabled)
@@ -129,6 +133,10 @@ public class ClientService : IClientService
     {
         var entity = await _db.Clients.FindAsync(id);
         if (entity is null) return null;
+
+        // 다른 클라이언트가 이미 쓰는 ClientIndex 로는 변경 불가 (자기 자신은 제외).
+        if (await _db.Clients.AnyAsync(c => c.ClientIndex == dto.ClientIndex && c.Id != id))
+            throw new DuplicateClientIndexException(dto.ClientIndex);
 
         if (IsVisionServerEnabled)
             await UpdateClientOnVisionServerAsync(id, dto);

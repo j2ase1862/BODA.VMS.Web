@@ -115,6 +115,59 @@ public class ClientServiceTests
     }
 
     [Fact]
+    public async Task CreateClientAsync_throws_when_clientIndex_duplicate()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "L1", IpAddress = "10.0.0.1", ClientIndex = 3 });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        var act = async () => await svc.CreateClientAsync(new ClientDto
+        {
+            Name = "Dup", IpAddress = "10.0.0.9", ClientIndex = 3, IsActive = true
+        });
+
+        await act.Should().ThrowAsync<DuplicateClientIndexException>();
+        (await ctx.Db.Clients.CountAsync()).Should().Be(1); // 생성되지 않음
+    }
+
+    [Fact]
+    public async Task UpdateClientAsync_throws_when_clientIndex_collides_with_other()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "L1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        ctx.Db.Clients.Add(new VisionClient { Id = 2, Name = "L2", IpAddress = "10.0.0.2", ClientIndex = 2 });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        // 2번 클라이언트를 이미 1번이 쓰는 Index=1 로 변경 시도 → 충돌
+        var act = async () => await svc.UpdateClientAsync(2, new ClientDto
+        {
+            Name = "L2", IpAddress = "10.0.0.2", ClientIndex = 1, IsActive = true
+        });
+
+        await act.Should().ThrowAsync<DuplicateClientIndexException>();
+    }
+
+    [Fact]
+    public async Task UpdateClientAsync_allows_keeping_own_clientIndex()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "L1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        // 자기 자신의 Index 를 그대로 두고 이름만 변경 — 충돌로 오탐하면 안 됨
+        var updated = await svc.UpdateClientAsync(1, new ClientDto
+        {
+            Name = "Renamed", IpAddress = "10.0.0.1", ClientIndex = 1, IsActive = true
+        });
+
+        updated.Should().NotBeNull();
+        updated!.Name.Should().Be("Renamed");
+    }
+
+    [Fact]
     public async Task UpdateClientAsync_modifies_fields()
     {
         using var ctx = new InMemorySqliteDbContext();

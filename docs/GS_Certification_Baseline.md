@@ -540,6 +540,15 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 | §11.3 | 키오스크 X-API-Key 비대칭 해소 (호환 모드 필터) | 466 |
 | §11.4 | CI/CD — GitHub Actions (build + 전체 테스트) | **466** |
 
+### v1.4 — 설비 클라이언트 연동 정합성 (2026-07-03)
+
+| 항목 | 내용 | 테스트 |
+|------|------|--------|
+| §12.x | **ClientIndex 유일성 검증** — 관리자 클라이언트 생성/수정 시 중복 인덱스를 `ClientService`에서 차단(`DuplicateClientIndexException` → 409 Conflict). `ClientIndex`는 설비 PC ↔ 서버 레코드를 잇는 유일 키이므로 중복 시 heartbeat/키오스크 로그인이 엉뚱한 레코드에 매핑되는 무결성 오류 방지. 범위 검증(0~99)은 기존 FluentValidation 유지. self-register는 인덱스로 조회하므로 영향 없음. | +3 |
+
+> 배포 참고: 설비 PC(BODA.VMS.Client) 설치·연동 절차는 클라이언트 리포의
+> `docs/설비PC_설정_가이드.md` 참조.
+
 ---
 
 ## 8. 후속 발전 영역 (인증 영향 없음, 점진 고려)
