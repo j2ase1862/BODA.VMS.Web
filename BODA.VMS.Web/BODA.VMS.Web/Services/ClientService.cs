@@ -160,6 +160,13 @@ public class ClientService : IClientService
         var entity = await _db.Clients.FindAsync(id);
         if (entity is null) return false;
 
+        // 자식 테이블 FK 가 모두 ON DELETE 없이 선언되어 있어(NO ACTION) 자식 행이 있으면
+        // SQLite Error 19 로 실패한다. VisionServer 삭제 호출 전에 도메인 예외로 차단해야
+        // 두 시스템 간 정합성이 깨지지 않는다. 이력 데이터는 보존 대상 — 비활성화를 안내.
+        var dependencies = await GetClientDependenciesAsync(id);
+        if (dependencies.Count > 0)
+            throw new ClientHasDependenciesException(entity.Name, dependencies);
+
         if (IsVisionServerEnabled)
             await DeleteClientFromVisionServerAsync(id);
 
@@ -167,6 +174,28 @@ public class ClientService : IClientService
         _db.Clients.Remove(entity);
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    /// <summary>
+    /// Clients("Id") 를 FK 로 참조하는 테이블들 + 레시피(웹 소유 데이터)에서
+    /// 해당 클라이언트의 자식 행 존재 여부를 검사하고, 존재하는 데이터 종류 목록을 반환한다.
+    /// </summary>
+    private async Task<List<string>> GetClientDependenciesAsync(int clientId)
+    {
+        var dependencies = new List<string>();
+
+        if (await _db.InspectionHistories.AnyAsync(h => h.ClientId == clientId)) dependencies.Add("검사 이력");
+        if (await _db.WorkOrders.AnyAsync(w => w.ClientId == clientId)) dependencies.Add("작업지시");
+        if (await _db.Recipes.AnyAsync(r => r.ClientId == clientId)) dependencies.Add("레시피");
+        if (await _db.EquipmentStatusLogs.AnyAsync(e => e.ClientId == clientId)) dependencies.Add("설비 상태 로그");
+        if (await _db.AlarmEvents.AnyAsync(a => a.ClientId == clientId)) dependencies.Add("알람 이력");
+        if (await _db.OperatorSessions.AnyAsync(s => s.ClientId == clientId)) dependencies.Add("작업자 세션");
+        if (await _db.MaintenanceSchedules.AnyAsync(m => m.ClientId == clientId)) dependencies.Add("보전 일정");
+        if (await _db.MaintenanceRecords.AnyAsync(m => m.ClientId == clientId)) dependencies.Add("보전 이력");
+        if (await _db.SensorReadings.AnyAsync(s => s.ClientId == clientId)) dependencies.Add("센서 데이터");
+        if (await _db.PredictionLogs.AnyAsync(p => p.ClientId == clientId)) dependencies.Add("예측 로그");
+
+        return dependencies;
     }
 
     public async Task<List<RecipeDto>> GetRecipesByClientIdAsync(int clientId)

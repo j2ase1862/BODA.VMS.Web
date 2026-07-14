@@ -545,6 +545,7 @@ v1.0 baseline 적용 후 GS 인증 신청은 가능했으나 다음 7 항목이 
 | 항목 | 내용 | 테스트 |
 |------|------|--------|
 | §12.x | **ClientIndex 유일성 검증** — 관리자 클라이언트 생성/수정 시 중복 인덱스를 `ClientService`에서 차단(`DuplicateClientIndexException` → 409 Conflict). `ClientIndex`는 설비 PC ↔ 서버 레코드를 잇는 유일 키이므로 중복 시 heartbeat/키오스크 로그인이 엉뚱한 레코드에 매핑되는 무결성 오류 방지. 범위 검증(0~99)은 기존 FluentValidation 유지. self-register는 인덱스로 조회하므로 영향 없음. | +3 |
+| §12.x | **클라이언트 삭제 무결성 보호** (2026-07-14) — 검사 이력·작업지시·레시피 등 자식 데이터가 있는 클라이언트 삭제 시 기존에는 SQLite FK 오류(Error 19)가 500으로 노출. `ClientService.DeleteClientAsync`에서 자식 10종(검사 이력/작업지시/레시피/설비 상태 로그/알람/작업자 세션/보전 일정·이력/센서/예측)을 사전 검사해 `ClientHasDependenciesException` → 409 Conflict 로 차단하고 비활성화(soft-delete)를 안내. VisionServer 삭제 호출 전에 차단하므로 두 시스템 간 정합성 유지. 추적성 데이터는 삭제 불가(보존). | +3 |
 
 > 배포 참고: 설비 PC(BODA.VMS.Client) 설치·연동 절차는 클라이언트 리포의
 > `docs/설비PC_설정_가이드.md` 참조.

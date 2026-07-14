@@ -46,6 +46,12 @@ public class ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>DELETE 후 응답을 그대로 반환 — 409 등 본문 메시지를 호출부에서 직접 처리할 때 사용.</summary>
+    public async Task<HttpResponseMessage> DeleteWithResponseAsync(string url)
+    {
+        return await _http.DeleteAsync(url);
+    }
+
     public async Task<HttpResponseMessage> GetResponseAsync(string url)
     {
         return await _http.GetAsync(url);

@@ -215,7 +215,16 @@
 
         try
         {
-            await Api.DeleteAsync($"/api/clients/{client.Id}");
+            var response = await Api.DeleteWithResponseAsync($"/api/clients/{client.Id}");
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                // 이력 데이터가 있는 클라이언트 — 서버가 보낸 상세 사유(데이터 종류 목록)를 그대로 안내
+                var reason = await response.Content.ReadFromJsonAsync<string>();
+                Snackbar.Add(string.IsNullOrEmpty(reason)
+                    ? L["client.snackbarDeleteBlocked"] : reason, Severity.Warning);
+                return;
+            }
+            response.EnsureSuccessStatusCode();
             Snackbar.Add(L["client.snackbarDeleted"], Severity.Warning);
             await LoadClients();
         }

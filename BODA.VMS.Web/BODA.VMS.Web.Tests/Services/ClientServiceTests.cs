@@ -220,6 +220,55 @@ public class ClientServiceTests
     }
 
     [Fact]
+    public async Task DeleteClientAsync_throws_when_inspection_history_exists()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "Line-1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        ctx.Db.InspectionHistories.Add(new InspectionHistory { ClientId = 1, IsPass = true });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        var act = () => svc.DeleteClientAsync(1);
+
+        var ex = (await act.Should().ThrowAsync<ClientHasDependenciesException>()).Which;
+        ex.Dependencies.Should().Contain("검사 이력");
+        ex.Message.Should().Contain("비활성화");                    // 소프트 삭제 안내 포함
+        (await ctx.Db.Clients.CountAsync()).Should().Be(1);        // 삭제되지 않음
+    }
+
+    [Fact]
+    public async Task DeleteClientAsync_throws_when_recipe_exists()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "Line-1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        ctx.Db.Recipes.Add(new Recipe { Id = 10, Name = "R-1", ClientId = 1, RecipeIndex = 1 });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        var act = () => svc.DeleteClientAsync(1);
+
+        var ex = (await act.Should().ThrowAsync<ClientHasDependenciesException>()).Which;
+        ex.Dependencies.Should().Equal("레시피");
+        (await ctx.Db.Clients.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task DeleteClientAsync_lists_all_dependency_kinds()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "Line-1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        ctx.Db.InspectionHistories.Add(new InspectionHistory { ClientId = 1, IsPass = false });
+        ctx.Db.EquipmentStatusLogs.Add(new EquipmentStatusLog { ClientId = 1, Status = "Idle", StartedAt = DateTime.UtcNow });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        var act = () => svc.DeleteClientAsync(1);
+
+        var ex = (await act.Should().ThrowAsync<ClientHasDependenciesException>()).Which;
+        ex.Dependencies.Should().Equal("검사 이력", "설비 상태 로그");
+    }
+
+    [Fact]
     public async Task GetRecipesByClientIdAsync_filters_and_orders_by_recipeIndex()
     {
         using var ctx = new InMemorySqliteDbContext();

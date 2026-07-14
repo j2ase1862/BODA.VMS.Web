@@ -492,6 +492,7 @@
     "snackbarCreateFailedFmt": "등록 실패: {0}",
     "snackbarUpdateFailedFmt": "수정 실패: {0}",
     "snackbarDeleteFailedFmt": "삭제 실패: {0}",
+    "snackbarDeleteBlocked": "연결된 데이터(검사 이력 등)가 있어 삭제할 수 없습니다. 대신 비활성화를 사용하세요.",
     "lastSeen": "마지막 통신"
   },
   "warehouse": {

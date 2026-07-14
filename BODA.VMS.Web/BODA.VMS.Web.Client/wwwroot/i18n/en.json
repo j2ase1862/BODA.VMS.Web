@@ -492,6 +492,7 @@
     "snackbarCreateFailedFmt": "Create failed: {0}",
     "snackbarUpdateFailedFmt": "Update failed: {0}",
     "snackbarDeleteFailedFmt": "Delete failed: {0}",
+    "snackbarDeleteBlocked": "This client has linked data (inspection history, etc.) and cannot be deleted. Deactivate it instead.",
     "lastSeen": "Last seen"
   },
   "warehouse": {

@@ -189,8 +189,15 @@ public static class ClientEndpoints
 
         group.MapDelete("/{id:int}", async (int id, IClientService clientService) =>
         {
-            var success = await clientService.DeleteClientAsync(id);
-            return success ? Results.Ok() : Results.NotFound();
+            try
+            {
+                var success = await clientService.DeleteClientAsync(id);
+                return success ? Results.Ok() : Results.NotFound();
+            }
+            catch (ClientHasDependenciesException ex)
+            {
+                return Results.Conflict(ex.Message);
+            }
         }).RequireAuthorization(policy => policy.RequireRole("Admin"));
 
         group.MapGet("/{id:int}/recipes", async (int id, IClientService clientService) =>
