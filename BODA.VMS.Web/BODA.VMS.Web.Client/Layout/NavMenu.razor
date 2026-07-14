@@ -36,10 +36,12 @@
                     Icon="@Icons.Material.Filled.ShowChart" OnClick="HandleClick">@L["menu.spc"]</MudNavLink>
         <MudNavLink Href="/defect-codes"
                     Icon="@Icons.Material.Filled.BugReport" OnClick="HandleClick">@L["menu.defectCodes"]</MudNavLink>
+        @* GS 인증 범위 제외 — 입고/재고(/warehouse-items), 출고(/outbound-orders) 메뉴 비활성화
         <MudNavLink Href="/warehouse-items"
                     Icon="@Icons.Material.Filled.QrCode2" OnClick="HandleClick">@L["menu.warehouseItems"]</MudNavLink>
         <MudNavLink Href="/outbound-orders"
                     Icon="@Icons.Material.Filled.LocalShipping" OnClick="HandleClick">@L["menu.outboundOrders"]</MudNavLink>
+        *@
         <MudNavLink Href="/shift-report"
                     Icon="@Icons.Material.Filled.Schedule" OnClick="HandleClick">@L["menu.shiftReport"]</MudNavLink>
         <MudNavLink Href="/reports"
