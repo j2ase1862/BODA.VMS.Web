@@ -89,6 +89,30 @@ public class HeartbeatEndpointTests : IDisposable
         var clients = db.Clients.Where(c => c.ClientIndex == 51).ToList();
         clients.Should().HaveCount(1, "이유: 같은 ClientIndex 재요청은 멱등 — 1 row 만 존재");
         clients[0].Name.Should().Be("Line 51", "이유: 멱등이라 두번째 호출의 새 값으로 update 하지 않음");
+        clients[0].Id.Should().BeGreaterThan(0,
+            "이유: Id 는 ValueGeneratedNever — 서버가 직접 발급해야 함. 0 이면 RecipeDto 검증(ClientId > 0) 400 유발");
+    }
+
+    [Fact]
+    public async Task POST_register_two_distinct_indexes_assigns_unique_positive_ids()
+    {
+        // Id 미발급 회귀 방지: 과거 Id=0 으로 INSERT 되어 두번째 등록이 PK 충돌(500) 났음
+        var r1 = await _client.PostAsJsonAsync(
+            "/api/clients/register",
+            new { ClientIndex = 53, Name = "Line 53" });
+        r1.IsSuccessStatusCode.Should().BeTrue();
+
+        var r2 = await _client.PostAsJsonAsync(
+            "/api/clients/register",
+            new { ClientIndex = 54, Name = "Line 54" });
+        r2.IsSuccessStatusCode.Should().BeTrue();
+
+        using var db = _factory.CreateScopedDbContext();
+        var c53 = db.Clients.Single(c => c.ClientIndex == 53);
+        var c54 = db.Clients.Single(c => c.ClientIndex == 54);
+        c53.Id.Should().BeGreaterThan(0);
+        c54.Id.Should().BeGreaterThan(0);
+        c54.Id.Should().NotBe(c53.Id, "이유: 클라이언트마다 고유 Id 발급");
     }
 
     [Fact]

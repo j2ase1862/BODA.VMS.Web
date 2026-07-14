@@ -78,8 +78,12 @@ public static class ClientEndpoints
                 });
             }
 
+            // VisionClient.Id 는 ValueGeneratedNever — Web이 직접 발급 (CreateClientAsync 와 동일 규칙).
+            // 누락 시 Id=0 으로 INSERT 되어 RecipeDto 검증(ClientId > 0) 400 + 후속 등록 PK 충돌.
+            var nextId = (await db.Clients.MaxAsync(c => (int?)c.Id) ?? 0) + 1;
             var client = new BODA.VMS.Web.Data.Entities.VisionClient
             {
+                Id = nextId,
                 ClientIndex = request.ClientIndex,
                 Name = string.IsNullOrWhiteSpace(request.Name)
                     ? $"Client #{request.ClientIndex:D2}"
