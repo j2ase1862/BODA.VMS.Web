@@ -41,3 +41,6 @@ __pycache__/
 ## 로컬 배포 로그
 deploy-live.log
 deploy-live.ps1
+
+# 오프라인 설치 GUI 빌드 산출물 (Build-InstallGui.ps1 로 재생성)
+deploy/Install-Web-Gui.exe
