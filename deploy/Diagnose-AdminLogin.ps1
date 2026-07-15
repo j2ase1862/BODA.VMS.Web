@@ -109,7 +109,7 @@ Write-Host "===== 비밀번호를 알 수 없을 때 복구 (DB 보존) =====" -
 Write-Host @"
   권장: 같은 폴더의 Reset-AdminPassword.cmd 를 더블클릭 → 새 비밀번호만 입력하면
         설정 기록 → 서비스 재시작 → 로그인 확인까지 자동 (명령어 입력 불필요).
-        (서버가 Initial:ForceAdminPasswordReset 를 지원하는 v1.2+ 필요)
+        (Initial:ForceAdminPasswordReset 지원 게시본 필요 — 2026-07-15 PR #44 이후 빌드)
 
   수동 (구버전 서버 — 별도 계정으로 우회):
   1. Stop-Service BodaVmsWeb

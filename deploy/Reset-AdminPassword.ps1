@@ -17,8 +17,8 @@
     4. 성공 시 ForceAdminPasswordReset 플래그 자동 제거 (켜둔 채 두면
        매 부팅마다 재적용되어 이후 UI 에서 바꾼 비밀번호가 되돌아감)
 
-  요구사항: v1.2+ 서버 (Initial:ForceAdminPasswordReset 지원). DB 는 건드리지
-  않으므로 운영 데이터 무손실.
+  요구사항: Initial:ForceAdminPasswordReset 를 지원하는 서버 게시본
+  (2026-07-15 PR #44 이후 빌드). DB 는 건드리지 않으므로 운영 데이터 무손실.
 
 .EXAMPLE
   .\Reset-AdminPassword.ps1                       # 대화식 (권장)
