@@ -402,6 +402,9 @@
             try
             {
                 var dto = (RecipeDto)result.Data!;
+                // 서버 검증(RecipeDtoValidator)이 body 의 ClientId > 0 을 요구 —
+                // 다이얼로그는 이름/설명만 채우므로 선택된 라인 ID 를 여기서 주입.
+                dto.ClientId = _selectedClientId.Value;
                 var created = await Api.PostAsync<RecipeDto, RecipeDto>(
                     $"/api/clients/{_selectedClientId.Value}/recipes", dto);
                 Snackbar.Add(L.Format("inspection.recipeCreatedFmt", created?.Name ?? ""), Severity.Success);
