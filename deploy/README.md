@@ -41,6 +41,16 @@ cd D:\Project\BODA.VMS.Web\deploy
 Remove-Item "$env:LOCALAPPDATA\BODA\VMS" -Recurse
 ```
 
+## admin 비밀번호 분실 / 로그인 401
+
+**`Reset-AdminPassword.cmd` 더블클릭** → UAC 승인 → 새 비밀번호 입력. 끝.
+설정 기록 → 서비스 재시작 → 잠금 해제 → 새 비밀번호 로그인 확인까지 자동으로
+진행되며 운영 DB 는 보존된다 (감사 로그에 `AdminPasswordReset` 기록).
+
+원인 진단이 먼저 필요하면 `Diagnose-AdminLogin.ps1` (DB 감사 로그로 401 사유 특정).
+배경: `Initial.AdminPassword` 는 첫 부팅 시드에만 쓰이므로, 계정이 생긴 뒤
+설정 파일을 고쳐도 비밀번호는 바뀌지 않는다 — 그때 이 도구를 쓴다.
+
 ## 트러블슈팅
 
 **서비스가 시작 안 됨**: Event Viewer → Application → BODA-VMS-Web 로그 확인.

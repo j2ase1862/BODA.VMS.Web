@@ -105,8 +105,13 @@ if ($TestLogin) {
 
 # ----- 복구 절차 안내 -----
 Write-Host ""
-Write-Host "===== 비밀번호를 알 수 없을 때 최후 복구 (DB 보존) =====" -ForegroundColor Cyan
+Write-Host "===== 비밀번호를 알 수 없을 때 복구 (DB 보존) =====" -ForegroundColor Cyan
 Write-Host @"
+  권장: 같은 폴더의 Reset-AdminPassword.cmd 를 더블클릭 → 새 비밀번호만 입력하면
+        설정 기록 → 서비스 재시작 → 로그인 확인까지 자동 (명령어 입력 불필요).
+        (서버가 Initial:ForceAdminPasswordReset 를 지원하는 v1.2+ 필요)
+
+  수동 (구버전 서버 — 별도 계정으로 우회):
   1. Stop-Service BodaVmsWeb
   2. $prodConfig 의 Initial 섹션을 다음으로 교체:
        "Initial": { "AdminUsername": "admin2", "AdminPassword": "<12자 이상 새 비밀번호>" }
