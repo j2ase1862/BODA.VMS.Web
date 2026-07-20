@@ -37,12 +37,9 @@ public class RecipeParameterDtoValidatorTests
     }
 
     [Theory]
+    [InlineData("Pattern")]
+    [InlineData("Blob")]
     [InlineData("Dimension")]
-    [InlineData("Angle")]
-    [InlineData("Count")]
-    [InlineData("Area")]
-    [InlineData("Color")]
-    [InlineData("Other")]
     public void Allowed_categories_pass(string category)
     {
         var dto = Valid();
@@ -50,12 +47,34 @@ public class RecipeParameterDtoValidatorTests
         _validator.TestValidate(dto).ShouldNotHaveAnyValidationErrors();
     }
 
-    [Fact]
-    public void Unknown_category_fails()
+    // "Angle" 등 구 목록은 UI(다이얼로그/프리셋)에서 만들 수 없는 값 —
+    // 허용 목록이 UI 체계(Pattern/Blob/Dimension)와 어긋나면 안 된다는 회귀 방지
+    [Theory]
+    [InlineData("Unknown")]
+    [InlineData("Angle")]
+    [InlineData("Count")]
+    [InlineData("Area")]
+    [InlineData("Color")]
+    [InlineData("Other")]
+    [InlineData("")]
+    public void Category_outside_ui_taxonomy_fails(string category)
     {
         var dto = Valid();
-        dto.Category = "Unknown";
+        dto.Category = category;
         _validator.TestValidate(dto).ShouldHaveValidationErrorFor(x => x.Category);
+    }
+
+    // 프리셋 일괄 추가(/api/parameters/batch)가 쓰는 카테고리 전체가 검증기를
+    // 통과해야 함 — 400 회귀(2026-07-20 현장 보고)의 직접 재현 케이스
+    [Fact]
+    public void All_preset_group_categories_are_allowed()
+    {
+        foreach (var group in ParameterPresetGroup.PresetGroups)
+        {
+            var dto = Valid();
+            dto.Category = group.Category;
+            _validator.TestValidate(dto).ShouldNotHaveAnyValidationErrors();
+        }
     }
 
     [Fact]
