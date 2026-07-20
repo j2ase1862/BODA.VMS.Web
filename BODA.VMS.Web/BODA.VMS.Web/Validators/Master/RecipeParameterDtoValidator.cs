@@ -5,8 +5,10 @@ namespace BODA.VMS.Web.Validators.Master;
 
 public sealed class RecipeParameterDtoValidator : AbstractValidator<RecipeParameterDto>
 {
+    // UI 체계와 반드시 일치해야 함: InspectionItemFormDialog 카테고리 선택지 +
+    // ParameterPresetGroup.PresetGroups (Pattern Tool / Blob Tool / Dimension Tool)
     private static readonly string[] AllowedCategories =
-        { "Dimension", "Angle", "Count", "Area", "Color", "Other" };
+        { "Pattern", "Blob", "Dimension" };
 
     public RecipeParameterDtoValidator()
     {
