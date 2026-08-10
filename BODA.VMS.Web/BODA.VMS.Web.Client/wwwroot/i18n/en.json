@@ -735,6 +735,7 @@
     "confirmDeleteRecipeTitle": "Confirm Delete",
     "confirmDeleteRecipeFmt": "Delete recipe '{0}' and all its parameters?\nThis action cannot be undone.",
     "recipeDeletedFmt": "Recipe '{0}' deleted",
+    "recipeDeleteBlocked": "Cannot delete: work orders reference this recipe.",
     "presetAddedFmt": "{0}: {1} parameters added (Code {2}~{3})"
   },
   "shiftReport": {

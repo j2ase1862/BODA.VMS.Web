@@ -383,8 +383,29 @@ public class ClientService : IClientService
 
     public async Task<bool> DeleteRecipeAsync(int recipeId)
     {
+        var entity = await _db.Recipes.FindAsync(recipeId);
+        if (entity is null) return false;
+
+        // WorkOrders.RecipeId FK 가 ON DELETE 없이 선언되어(NO ACTION) 참조 행이 있으면
+        // SQLite Error 19 로 실패한다. VisionServer 삭제 호출 전에 도메인 예외로 차단해야
+        // 두 시스템 간 정합성이 깨지지 않는다. (DeleteClientAsync 와 동일 패턴)
+        var workOrderCount = await _db.WorkOrders.CountAsync(w => w.RecipeId == recipeId);
+        if (workOrderCount > 0)
+            throw new RecipeHasDependenciesException(entity.Name,
+                new[] { $"작업지시 {workOrderCount}건" });
+
         if (IsVisionServerEnabled)
             await DeleteRecipeFromVisionServerAsync(recipeId);
+
+        // 제품 기본 레시피 매핑은 선택 값 — 참조만 해제하고 삭제를 막지 않는다
+        var products = await _db.Products
+            .Where(p => p.DefaultRecipeId == recipeId)
+            .ToListAsync();
+        foreach (var product in products)
+        {
+            product.DefaultRecipeId = null;
+            product.UpdatedAt = DateTime.UtcNow;
+        }
 
         // Web DB에서 관련 파라미터 삭제
         var parameters = await _db.RecipeParameters
@@ -392,9 +413,6 @@ public class ClientService : IClientService
             .ToListAsync();
         _db.RecipeParameters.RemoveRange(parameters);
 
-        // 3. Recipe 삭제
-        var entity = await _db.Recipes.FindAsync(recipeId);
-        if (entity is null) return false;
         _db.Recipes.Remove(entity);
 
         await _db.SaveChangesAsync();

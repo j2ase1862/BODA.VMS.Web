@@ -440,7 +440,16 @@
 
         try
         {
-            await Api.DeleteAsync($"/api/clients/recipes/{_selectedRecipeId.Value}");
+            var response = await Api.DeleteWithResponseAsync($"/api/clients/recipes/{_selectedRecipeId.Value}");
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                // 작업지시가 참조 중인 레시피 — 서버가 보낸 상세 사유를 그대로 안내
+                var reason = await response.Content.ReadFromJsonAsync<string>();
+                Snackbar.Add(string.IsNullOrEmpty(reason)
+                    ? L["inspection.recipeDeleteBlocked"] : reason, Severity.Warning);
+                return;
+            }
+            response.EnsureSuccessStatusCode();
             Snackbar.Add(L.Format("inspection.recipeDeletedFmt", recipe?.Name ?? ""), Severity.Warning);
             _selectedRecipeId = null;
             _params = new();
