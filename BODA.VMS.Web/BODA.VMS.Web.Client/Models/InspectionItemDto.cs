@@ -102,8 +102,9 @@ public class ParameterPresetGroup
             GroupName = "Blob Tool", Category = "Blob",
             Entries = new()
             {
-                // VMS BlobTool 판정 연동 형태(기준값 ± 공차)와 1:1 대응 — VMS PR #293.
-                // 구 Min/Max(범위형)는 VMS 쪽 연동 대상이 없어 폐기.
+                // VMS BlobTool 연동 콤보 7종(Threshold + 면적 3 + 개수 3)과 1:1 대응
+                // — VMS PR #293(면적)·#294(개수 공차). 구 Min/Max(범위형)는 폐기.
+                new() { DescriptionTemplate = "Threshold",             Unit = "level" },
                 new() { DescriptionTemplate = "Total Area Reference",  Unit = "px" },
                 new() { DescriptionTemplate = "Total Area Upper Tol",  Unit = "px" },
                 new() { DescriptionTemplate = "Total Area Lower Tol",  Unit = "px" },

@@ -231,8 +231,15 @@ public static class ClientEndpoints
             int recipeId,
             IClientService clientService) =>
         {
-            var success = await clientService.DeleteRecipeAsync(recipeId);
-            return success ? Results.Ok() : Results.NotFound();
+            try
+            {
+                var success = await clientService.DeleteRecipeAsync(recipeId);
+                return success ? Results.Ok() : Results.NotFound();
+            }
+            catch (RecipeHasDependenciesException ex)
+            {
+                return Results.Conflict(ex.Message);
+            }
         }).RequireAuthorization(policy => policy.RequireRole("Admin"));
     }
 }

@@ -735,6 +735,7 @@
     "confirmDeleteRecipeTitle": "삭제 확인",
     "confirmDeleteRecipeFmt": "레시피 '{0}'와 모든 파라미터를 삭제하시겠습니까?\n되돌릴 수 없습니다.",
     "recipeDeletedFmt": "레시피 '{0}' 삭제됨",
+    "recipeDeleteBlocked": "레시피를 참조하는 작업지시가 있어 삭제할 수 없습니다.",
     "presetAddedFmt": "{0}: {1}개 파라미터 추가됨 (코드 {2}~{3})"
   },
   "shiftReport": {

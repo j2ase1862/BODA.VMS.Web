@@ -327,4 +327,43 @@ public class ClientServiceTests
         var svc = BuildService(ctx);
         (await svc.DeleteRecipeAsync(9999)).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task DeleteRecipeAsync_throws_when_work_order_references_recipe()
+    {
+        // WorkOrders.RecipeId FK 는 NO ACTION — 사전 차단 없으면 SQLite Error 19 가
+        // /Error 재실행 경로를 타고 405 로 보이는 현장 증상 재현 (2026-08-11)
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "L1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        ctx.Db.Recipes.Add(new Recipe { Id = 10, Name = "R-A1", ClientId = 1 });
+        ctx.Db.Products.Add(new Product { Id = 1, Code = "PRD-1", Name = "P" });
+        ctx.Db.WorkOrders.Add(new WorkOrder { OrderNo = "WO-1", ProductId = 1, ClientId = 1, RecipeId = 10 });
+        ctx.Db.WorkOrders.Add(new WorkOrder { OrderNo = "WO-2", ProductId = 1, ClientId = 1, RecipeId = 10 });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        var act = () => svc.DeleteRecipeAsync(10);
+
+        var ex = (await act.Should().ThrowAsync<RecipeHasDependenciesException>()).Which;
+        ex.Dependencies.Should().Equal("작업지시 2건");
+        ex.Message.Should().Contain("R-A1");
+        (await ctx.Db.Recipes.CountAsync()).Should().Be(1);   // 삭제되지 않음
+    }
+
+    [Fact]
+    public async Task DeleteRecipeAsync_clears_product_default_recipe_and_deletes()
+    {
+        // 제품 기본 레시피 매핑(선택 값)은 삭제를 막지 않고 참조만 해제
+        using var ctx = new InMemorySqliteDbContext();
+        ctx.Db.Clients.Add(new VisionClient { Id = 1, Name = "L1", IpAddress = "10.0.0.1", ClientIndex = 1 });
+        ctx.Db.Recipes.Add(new Recipe { Id = 10, Name = "R", ClientId = 1 });
+        ctx.Db.Products.Add(new Product { Id = 1, Code = "PRD-1", Name = "P", DefaultRecipeId = 10 });
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = BuildService(ctx);
+        (await svc.DeleteRecipeAsync(10)).Should().BeTrue();
+
+        (await ctx.Db.Recipes.CountAsync()).Should().Be(0);
+        (await ctx.Db.Products.SingleAsync(p => p.Id == 1)).DefaultRecipeId.Should().BeNull();
+    }
 }
