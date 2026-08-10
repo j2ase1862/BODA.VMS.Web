@@ -102,8 +102,11 @@ public class ParameterPresetGroup
             GroupName = "Blob Tool", Category = "Blob",
             Entries = new()
             {
-                new() { DescriptionTemplate = "Total Area Min",        Unit = "px" },
-                new() { DescriptionTemplate = "Total Area Max",        Unit = "px" },
+                // VMS BlobTool 판정 연동 형태(기준값 ± 공차)와 1:1 대응 — VMS PR #293.
+                // 구 Min/Max(범위형)는 VMS 쪽 연동 대상이 없어 폐기.
+                new() { DescriptionTemplate = "Total Area Reference",  Unit = "px" },
+                new() { DescriptionTemplate = "Total Area Upper Tol",  Unit = "px" },
+                new() { DescriptionTemplate = "Total Area Lower Tol",  Unit = "px" },
                 new() { DescriptionTemplate = "Blob Count Reference",  Unit = "ea" },
                 new() { DescriptionTemplate = "Blob Count Upper Tol",  Unit = "ea" },
                 new() { DescriptionTemplate = "Blob Count Lower Tol",  Unit = "ea" },
