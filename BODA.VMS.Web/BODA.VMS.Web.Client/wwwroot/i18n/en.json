@@ -579,6 +579,7 @@
     "recipeFieldDescription": "Description",
     "recipeFieldDescriptionPlaceholder": "Product model description",
     "recipeAlertInfo": "Recipe ID is assigned automatically by the server. Configure vision logic (camera/tools/steps) in VisionSetup after creation.",
+    "recipeTargetClientFmt": "Target line: {0} — this recipe is delivered only to that line's VMS. For another line, cancel and switch the line selector first.",
     "workorderFieldOrderNo": "Order No",
     "workorderFieldOrderNoHint": "Auto-numbered (WO-YYYYMMDD-NNN)",
     "workorderFieldProduct": "Product",

@@ -395,7 +395,14 @@
     {
         if (!_selectedClientId.HasValue) return;
 
-        var dialog = await Dialog.ShowAsync<RecipeFormDialog>(L["inspection.newRecipeTitle"]);
+        // 대상 라인을 다이얼로그에 명시 — VMS 는 자기 ClientIndex 의 레시피만 내려받는다
+        var targetClient = _clients.FirstOrDefault(c => c.Id == _selectedClientId.Value);
+        var parameters = new DialogParameters<RecipeFormDialog>
+        {
+            { x => x.TargetClientLabel,
+              targetClient is null ? null : $"#{targetClient.ClientIndex:D2} — {targetClient.Name}" }
+        };
+        var dialog = await Dialog.ShowAsync<RecipeFormDialog>(L["inspection.newRecipeTitle"], parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {

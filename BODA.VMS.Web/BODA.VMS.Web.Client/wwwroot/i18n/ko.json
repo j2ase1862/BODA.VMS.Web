@@ -579,6 +579,7 @@
     "recipeFieldDescription": "설명",
     "recipeFieldDescriptionPlaceholder": "제품 모델 설명",
     "recipeAlertInfo": "레시피 ID는 서버에서 자동 발급됩니다. 생성 후 VisionSetup에서 비전 로직(카메라/툴/스텝)을 구성하세요.",
+    "recipeTargetClientFmt": "대상 라인: {0} — 이 레시피는 해당 라인의 VMS 에만 내려갑니다. 다른 라인용이면 취소 후 상단에서 라인을 먼저 바꾸세요.",
     "workorderFieldOrderNo": "지시 번호",
     "workorderFieldOrderNoHint": "자동 채번 (WO-YYYYMMDD-NNN)",
     "workorderFieldProduct": "제품",
