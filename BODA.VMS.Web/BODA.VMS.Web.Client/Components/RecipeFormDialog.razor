@@ -3,6 +3,15 @@
 
 <MudDialog>
     <DialogContent>
+        @* 대상 라인 명시 — VMS 는 자기 ClientIndex 의 레시피만 내려받으므로, 다른
+           라인을 선택한 채 만들면 현장에서 "만들었는데 VMS 에 안 보임"이 된다 (2026-08-10) *@
+        @if (!string.IsNullOrEmpty(TargetClientLabel))
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Dense="true" Class="mb-4">
+                @L.Format("dialog.recipeTargetClientFmt", TargetClientLabel)
+            </MudAlert>
+        }
+
         <MudTextField @bind-Value="Name" Label="@(L["dialog.recipeFieldName"])"
                       Variant="Variant.Outlined" Class="mb-4"
                       Placeholder="S25_BackGlass, APPLE_I15_CASE"
@@ -31,6 +40,10 @@
 @code {
     [CascadingParameter]
     private MudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>레시피가 내려갈 대상 라인 표기 (예: "#02 — OP102"). null 이면 표시 생략.</summary>
+    [Parameter]
+    public string? TargetClientLabel { get; set; }
 
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
