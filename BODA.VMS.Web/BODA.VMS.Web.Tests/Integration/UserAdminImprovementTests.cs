@@ -148,6 +148,53 @@ public class UserAdminImprovementTests : IDisposable
         resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    // ── 사용자 삭제 (2026-08-11 추가) ──
+
+    [Fact]
+    public async Task DeleteUser_removes_user()
+    {
+        await SeedUserAsync("del_boss", "Admin");
+        var targetId = await SeedUserAsync("del_target", "User");
+        var token = await LoginAsync("del_boss");
+
+        var resp = await _client.SendAsync(Authed(HttpMethod.Delete,
+            $"/api/admin/users/{targetId}", token));
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var db = _factory.CreateScopedDbContext();
+        db.Users.Any(u => u.Id == targetId).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteUser_self_blocked_with_409()
+    {
+        var selfId = await SeedUserAsync("del_self", "Admin");
+        var token = await LoginAsync("del_self");
+
+        var resp = await _client.SendAsync(Authed(HttpMethod.Delete,
+            $"/api/admin/users/{selfId}", token));
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task DeleteUser_builtin_admin_blocked_with_409()
+    {
+        await SeedUserAsync("del_boss2", "Admin");
+        var token = await LoginAsync("del_boss2");
+
+        int builtinAdminId;
+        using (var db = _factory.CreateScopedDbContext())
+            builtinAdminId = db.Users.Single(u => u.Username == "admin").Id;
+
+        var resp = await _client.SendAsync(Authed(HttpMethod.Delete,
+            $"/api/admin/users/{builtinAdminId}", token));
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        using var db2 = _factory.CreateScopedDbContext();
+        db2.Users.Any(u => u.Username == "admin").Should().BeTrue("이유: 최초 admin 계정 삭제 차단");
+    }
+
     // ── ③ 검사 기준값 Guest 비노출 ──
 
     [Fact]

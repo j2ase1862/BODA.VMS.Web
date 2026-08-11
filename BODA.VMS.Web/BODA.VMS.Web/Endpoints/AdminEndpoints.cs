@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
@@ -40,6 +41,23 @@ public static class AdminEndpoints
             var success = await userService.ResetPasswordAsync(request.UserId, request.NewPassword);
             return success ? Results.Ok() : Results.NotFound();
         }).AddEndpointFilter<ValidationEndpointFilter<ResetPasswordRequest>>();
+
+        // 사용자 삭제 (2026-08-11) — 자기 자신·최초 admin·마지막 Admin 은 409 로 차단
+        group.MapDelete("/users/{userId:int}", async (
+            int userId,
+            ClaimsPrincipal principal,
+            IUserManagementService userService) =>
+        {
+            var actingIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (actingIdClaim is null || !int.TryParse(actingIdClaim, out var actingId))
+                return Results.Unauthorized();
+
+            var (success, error) = await userService.DeleteUserAsync(userId, actingId);
+            if (success) return Results.Ok();
+            return error == "User not found"
+                ? Results.NotFound()
+                : Results.Conflict(new { message = error });
+        });
 
         // 승인된 사용자 역할 변경 (2026-08-11) — 마지막 Admin 강등은 서비스가 차단(409)
         group.MapPut("/users/{userId:int}/role", async (
