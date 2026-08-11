@@ -33,7 +33,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 운영 게시 폴더 | `C:\WINDOWS\system32\publish\` |
+| 운영 게시 폴더 | `C:\Deploy\BodaVmsWeb\` |
 | 운영 DB 경로 | `C:\ProgramData\BODA\VMS\BodaVision.db` |
 | 운영 서비스 이름 | `BodaVmsWeb` |
 | Kestrel 포트 | `5292` (HTTP, localhost only — Cloudflare가 TLS 종단) |
@@ -46,15 +46,15 @@
 - HTTPS 인증서는 Cloudflare 자동 처리 → **갱신 신경 안 써도 됨**
 - Kestrel은 `http://0.0.0.0:5292`만 → 로컬 PC 안에서만 노출
 
-### 1.3 ⚠ 알려진 비표준
-운영 게시 폴더가 `C:\WINDOWS\system32\publish\`에 있습니다(과거 publish.ps1을 관리자 PowerShell의 기본 위치에서 실행한 잔재). **동작은 정상이지만 권장 위치는 아닙니다.** 시간 날 때 §7 절차로 `C:\Deploy\BodaVmsWeb`로 이전 권장.
+### 1.3 게시 폴더 이전 이력
+과거 운영 게시 폴더는 `C:\WINDOWS\system32\publish\`였으나(publish.ps1을 관리자 PS 기본 위치에서 실행한 잔재), §7 절차로 **`C:\Deploy\BodaVmsWeb`로 이전 완료** (서비스 binPath 확인 2026-08-11). 구 `system32\publish` 폴더는 아직 남아 있음 — 며칠 검증 후 삭제 가능 (§7 마지막 단계).
 
 ---
 
 ## 2. 사전 점검 (배포 전 5분)
 
 ### 2.1 권한 확인
-배포에는 **관리자 권한 PowerShell이 필수**입니다 (system32 쓰기 + Stop-Service).
+배포에는 **관리자 권한 PowerShell이 필수**입니다 (서비스 Stop/Start + `C:\Deploy` 쓰기).
 
 ```powershell
 ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -97,7 +97,7 @@ dotnet publish .\BODA.VMS.Web\BODA.VMS.Web\BODA.VMS.Web.csproj `
 - 약 2~3분 소요. 워닝은 OK, 에러는 NG.
 - 산출물: `D:\Project\BODA.VMS.Web\publish\` (~150MB)
 
-### Step 2 — 백업 (관리자 권한 권장 — system32 읽기 일관성)
+### Step 2 — 백업
 
 ```powershell
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -108,10 +108,11 @@ New-Item -ItemType Directory -Force -Path "$backup\old-publish" | Out-Null
 Copy-Item "C:\ProgramData\BODA\VMS\BodaVision.db*" $backup -Force
 
 # Production 설정 (JWT Key 등 운영값 보존 — 가장 중요)
-Copy-Item "C:\WINDOWS\system32\publish\appsettings.Production.json" $backup -Force
+Copy-Item "C:\Deploy\BodaVmsWeb\appsettings.Production.json" $backup -Force
 
-# 현재 운영 게시 폴더 전체 (롤백용)
-Copy-Item "C:\WINDOWS\system32\publish\*" "$backup\old-publish\" -Recurse -Force
+# 현재 운영 게시 폴더 전체 (롤백용 — 주의: Step 3의 /MIR 이 Logs 도 밀어내므로
+# 과거 서비스 로그는 이 백업의 old-publish\Logs 에만 남는다)
+Copy-Item "C:\Deploy\BodaVmsWeb\*" "$backup\old-publish\" -Recurse -Force
 
 Write-Host "백업 위치: $backup" -ForegroundColor Cyan
 $global:LastBackup = $backup    # 같은 세션 내 롤백용 변수
@@ -121,7 +122,7 @@ $global:LastBackup = $backup    # 같은 세션 내 롤백용 변수
 
 ```powershell
 $publishDir = "D:\Project\BODA.VMS.Web\publish"
-$prodDir    = "C:\WINDOWS\system32\publish"
+$prodDir    = "C:\Deploy\BodaVmsWeb"
 
 # 1) 서비스 중지
 Stop-Service BodaVmsWeb
@@ -231,7 +232,7 @@ $backup = $global:LastBackup    # 또는 직접 "C:\Backup\BodaVms-..." 입력
 Stop-Service BodaVmsWeb -ErrorAction SilentlyContinue
 
 # 이전 게시본 통째로 되돌리기
-robocopy "$backup\old-publish" "C:\WINDOWS\system32\publish" /MIR /NJH /NJS /NDL /NFL /NP
+robocopy "$backup\old-publish" "C:\Deploy\BodaVmsWeb" /MIR /NJH /NJS /NDL /NFL /NP
 
 # DB도 함께 (DB 마이그레이션이 데이터 손상 일으킨 경우만 — 보통 불필요)
 # Copy-Item "$backup\BodaVision.db*" "C:\ProgramData\BODA\VMS\" -Force
@@ -251,7 +252,7 @@ DB는 **마이그레이션이 idempotent**(`CREATE TABLE IF NOT EXISTS`, `ALTER 
 → **관리자 권한 PowerShell이 아님.** §2.1로 돌아가 확인.
 
 ### 5.2 `robocopy`: "ERROR 5 Access is denied"
-→ 같은 원인. system32 쓰기 권한 부족.
+→ 같은 원인. 게시 폴더 쓰기 권한 부족 (관리자 PS 확인).
 
 ### 5.3 빌드는 됐는데 서비스 시작 후 즉시 멈춤
 이벤트 뷰어 → Windows 로그 → 응용 프로그램에서 `.NET Runtime` 또는 `BodaVmsWeb` 소스 확인. 직전에 한 변경 중 다음을 의심:
@@ -293,9 +294,9 @@ git push origin master
 
 ---
 
-## 7. (옵션) system32 → 정돈된 위치로 이전
+## 7. (완료됨) system32 → 정돈된 위치로 이전
 
-`C:\WINDOWS\system32\publish\` 는 비표준. 다음 정기 배포 때 한 번에 이전 가능.
+**2026-08-11 기준 이전 완료** — 서비스 binPath = `C:\Deploy\BodaVmsWeb\BODA.VMS.Web.exe`. 아래 절차는 이력 참고용. 남은 것: 구 `C:\WINDOWS\system32\publish` 폴더 삭제 (마지막 단계, 검증 후).
 
 ```powershell
 # === 관리자 PS ===
