@@ -89,6 +89,28 @@ public class UserManagementService : IUserManagementService
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error)> DeleteUserAsync(int userId, int actingUserId)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return (false, "User not found");
+        if (userId == actingUserId)
+            return (false, "자기 자신은 삭제할 수 없습니다");
+        if (user.Username == "admin")
+            return (false, "최초 admin 계정은 삭제할 수 없습니다");
+
+        // 마지막 Admin 삭제 차단 — 승인/권한 관리 불능 상태 방지 (ChangeRoleAsync 와 동일 원칙)
+        if (user.Role == "Admin" && user.IsApproved)
+        {
+            var adminCount = await _db.Users.CountAsync(u => u.Role == "Admin" && u.IsApproved);
+            if (adminCount <= 1)
+                return (false, "마지막 Admin 계정은 삭제할 수 없습니다");
+        }
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<bool> ResetPasswordAsync(int userId, string newPassword)
     {
         var user = await _db.Users.FindAsync(userId);

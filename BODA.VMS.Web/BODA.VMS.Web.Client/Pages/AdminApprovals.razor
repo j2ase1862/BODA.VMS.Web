@@ -148,7 +148,13 @@
                         {
                             <MudIconButton Icon="@Icons.Material.Filled.LockReset" Size="Size.Small"
                                            Color="Color.Default"
+                                           Title="@(L["approval.tooltipResetPassword"])"
                                            OnClick="@(() => ResetPassword(context))" />
+                            @* 사용자 삭제 (2026-08-11) — 자기 자신·마지막 Admin 은 서버가 409 로 차단 *@
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Small"
+                                           Color="Color.Error"
+                                           Title="@(L["approval.tooltipDeleteUser"])"
+                                           OnClick="@(() => DeleteUser(context))" />
                         }
                     </MudTd>
                 </RowTemplate>
@@ -217,6 +223,33 @@
             }
             catch { }
             Snackbar.Add(reason ?? L["approval.snackbarRoleChangeFailed"], Severity.Warning);
+        }
+    }
+
+    private async Task DeleteUser(UserDto user)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["approval.deleteUserTitle"],
+            L.Format("approval.confirmDeleteUserFmt", user.Username, user.DisplayName),
+            L["action.delete"], L["action.cancel"]);
+        if (confirmed != true) return;
+
+        var response = await Api.DeleteWithResponseAsync($"/api/admin/users/{user.Id}");
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add(L.Format("approval.snackbarUserDeletedFmt", user.Username), Severity.Warning);
+            await LoadData();
+        }
+        else
+        {
+            // 409(자기 자신/마지막 Admin 등)의 서버 사유를 그대로 안내
+            string? reason = null;
+            try
+            {
+                var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                if (body.TryGetProperty("message", out var m)) reason = m.GetString();
+            }
+            catch { }
+            Snackbar.Add(reason ?? L["approval.snackbarUserDeleteFailed"], Severity.Warning);
         }
     }
 
