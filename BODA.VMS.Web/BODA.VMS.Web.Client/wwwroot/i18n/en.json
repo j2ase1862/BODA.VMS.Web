@@ -71,6 +71,7 @@
     "settings": "System Settings",
     "login": "Login",
     "register": "Register",
+    "changePassword": "Change Password",
     "kiosk": "Kiosk"
   },
   "action": {
@@ -777,8 +778,10 @@
     "snackbarApprovedFmt": "{0} approved as {1}",
     "snackbarRejectedFmt": "{0} rejected",
     "resetPasswordTitle": "Reset Password",
-    "resetPasswordConfirmFmt": "Reset {0}'s password to the default (1234)?",
-    "snackbarResetDone": "Password has been reset",
+    "resetPasswordConfirmFmt": "Reset {0}'s password?\nA temporary password will be issued, and the user must change it at next login.",
+    "tempPasswordMsgFmt": "Temporary password for '{0}':\n\n{1}\n\nWrite it down and hand it to the user now — it will not be shown again.\nThe user must change it at next login.",
+    "snackbarResetDone": "Temporary password issued",
+    "snackbarResetFailed": "Failed to reset password",
     "tooltipResetPassword": "Reset password",
     "tooltipDeleteUser": "Delete user",
     "deleteUserTitle": "Delete User",
@@ -789,6 +792,20 @@
     "confirmChangeRoleFmt": "Change role of '{0}' from {1} to {2}?",
     "snackbarRoleChangedFmt": "'{0}' role changed to {1}",
     "snackbarRoleChangeFailed": "Failed to change role"
+  },
+  "changePassword": {
+    "sectionTitle": "Change Password",
+    "intro": "If you signed in with a temporary password, you must change it before using other pages.",
+    "fieldCurrent": "Current Password",
+    "fieldNew": "New Password",
+    "fieldConfirm": "Confirm New Password",
+    "policyHint": "8+ chars with upper/lower/digit/special (3 types), or 10+ chars (2 types)",
+    "btnSubmit": "Change Password",
+    "errRequired": "Enter your current and new passwords",
+    "errMismatch": "New password and confirmation do not match",
+    "errPolicy": "New password does not meet the policy (3 types with 8+ chars / 2 types with 10+ chars)",
+    "snackbarDone": "Password changed successfully",
+    "snackbarFailed": "Failed to change password. Please try again."
   },
   "audit": {
     "alertInfo": "21 CFR Part 11 / EU GMP Annex 11 compliance — master/settings change log. Immutable.",

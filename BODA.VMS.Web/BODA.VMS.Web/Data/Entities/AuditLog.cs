@@ -49,4 +49,5 @@ public static class AuditAction
     public const string Lockout = "Lockout";
     public const string TokenRefresh = "TokenRefresh";
     public const string Logout = "Logout";
+    public const string PasswordChanged = "PasswordChanged";
 }

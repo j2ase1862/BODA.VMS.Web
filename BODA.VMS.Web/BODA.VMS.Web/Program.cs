@@ -406,6 +406,10 @@ using (var scope = app.Services.CreateScope())
         if (!userColumns.Contains("LockoutUntil"))
             await db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE Users ADD COLUMN LockoutUntil TEXT;");
+        // 임시 비밀번호 발급 시 다음 로그인에서 변경 강제 (2026-08-11)
+        if (!userColumns.Contains("MustChangePassword"))
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE Users ADD COLUMN MustChangePassword INTEGER NOT NULL DEFAULT 0;");
     }
 
     // GS 보안 — JWT refresh token 저장소 (해시만 보관, raw 미저장)
