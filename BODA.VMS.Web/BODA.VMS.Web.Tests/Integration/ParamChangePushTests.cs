@@ -29,7 +29,7 @@ public class ParamChangePushTests : IDisposable
                 Username = "push_user",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("secret12"),
                 DisplayName = "Push User",
-                Role = "User",
+                Role = "Admin",   // 파라미터 생성은 Admin 전용 (2026-08-11 정책)
                 IsApproved = true
             });
             db.Clients.Add(new VisionClient { Id = 1, Name = "L1", IpAddress = "127.0.0.1", ClientIndex = 1 });

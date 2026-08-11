@@ -42,7 +42,8 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="2" sm="2" Class="d-flex align-center justify-center">
-            <AuthorizeView Roles="Admin,User">
+            @* 생성/수정/삭제는 Admin 전용 — User 는 조회만 (2026-08-11 정책) *@
+            <AuthorizeView Roles="Admin">
                 <Authorized>
                     <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
                                    Size="Size.Medium"
@@ -64,7 +65,7 @@
         <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); opacity: 0.7;" Class="mb-4">
             @L["inspection.noRecipesHint"]
         </MudText>
-        <AuthorizeView Roles="Admin,User">
+        <AuthorizeView Roles="Admin">
             <Authorized>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
@@ -99,7 +100,7 @@
                                            Title="@(L["inspection.tooltipDeleteRecipe"])" />
                         </Authorized>
                     </AuthorizeView>
-                    <AuthorizeView Roles="Admin,User">
+                    <AuthorizeView Roles="Admin">
                         <Authorized>
                             <MudMenu Icon="@Icons.Material.Filled.PlaylistAdd"
                                      Variant="Variant.Outlined" Size="Size.Small"
@@ -165,7 +166,7 @@
                     }
                 </MudTd>
                 <MudTd Style="text-align: right; white-space: nowrap;">
-                    <AuthorizeView Roles="Admin,User">
+                    <AuthorizeView Roles="Admin">
                         <Authorized Context="authContext1">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                            Color="Color.Default"
