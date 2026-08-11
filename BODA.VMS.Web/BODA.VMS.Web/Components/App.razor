@@ -6,20 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <base href="/" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="app.css?v=20260604-1" />
+    <link rel="preload" href="fonts/Saira-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="app.css?v=20260811-1" />
     <link rel="stylesheet" href="BODA.VMS.Web.styles.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    @* Vasim(VMS) 실행 아이콘 — 2026-08-11 브랜드 파비콘 *@
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
     <HeadOutlet @rendermode="new InteractiveWebAssemblyRenderMode(prerender: false)" />
 </head>
 
 <body>
-    <div id="vms-boot-loader" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#F5F6F8; z-index:99999; transition:opacity 0.3s;">
-        <div style="text-align:center; font-family:'Montserrat', 'Segoe UI', sans-serif;">
-            <div style="font-size:36px; font-weight:800; letter-spacing:-0.5px;">
-                <span style="color:#00264C;">BODA</span> <span style="color:#FF6724;">VMS</span>
+    @* 부트 로더 — "Machined Instrument": 네이비 도면 배경 + 사각 게이지 스피너 *@
+    <div id="vms-boot-loader" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,#001830 0%,#00264C 60%,#012A55 100%); z-index:99999; transition:opacity 0.3s;">
+        <div style="text-align:center; font-family:'Segoe UI', 'Malgun Gothic', sans-serif;">
+            <div style="font-size:34px; font-weight:800; letter-spacing:2px;">
+                <span style="color:#FFFFFF;">BODA</span> <span style="color:#FF6724;">VMS</span>
             </div>
-            <div style="font-size:13px; color:#5A5A5A; margin-top:6px; letter-spacing:1px;">VISION MANAGEMENT SYSTEM</div>
-            <div style="margin-top:24px; width:42px; height:42px; border:3px solid #E2E2E2; border-top-color:#FF6724; border-radius:50%; animation:vms-spin 0.8s linear infinite; display:inline-block;"></div>
+            <div style="font-size:10px; color:rgba(255,255,255,0.5); margin-top:8px; letter-spacing:5px;">VISION MANAGEMENT SYSTEM</div>
+            <div style="margin-top:28px; width:36px; height:36px; border:2px solid rgba(255,255,255,0.18); border-top-color:#FF6724; animation:vms-spin 0.9s steps(8) infinite; display:inline-block;"></div>
         </div>
         <style>@@keyframes vms-spin { to { transform: rotate(360deg); } }</style>
     </div>

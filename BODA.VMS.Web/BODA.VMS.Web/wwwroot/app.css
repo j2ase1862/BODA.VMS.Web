@@ -1,446 +1,598 @@
-/* ============================================
-   BODA VMS — VASIM Corporate Identity Theme
-   Primary: #FF6724 (Orange)
-   Secondary: #01397D (Blue)
-   Navy: #00264C (Deep Navy)
+/* ═══════════════════════════════════════════════════════════════
+   BODA VMS — "Machined Instrument" Identity  (2026-08-11 redesign)
 
-   Uses MudBlazor CSS variables (--mud-palette-*)
-   for automatic light/dark mode switching.
-   ============================================ */
+   설계 언어: 정밀 계측기.
+   - VASIM CI 유지: Navy #00264C 가 구조를 지배하고,
+     Orange #FF6724 는 "신호"(활성·경보·핵심 수치)에만 쓴다.
+   - 모서리는 2px — 도장이 아니라 절삭. 그림자 대신 헤어라인.
+   - 서체: Saira (산업 디스플레이) + IBM Plex Mono (계측 수치).
+     한글은 시스템 고딕 폴백 — 라틴 디스플레이가 인상을 만든다.
+   - 상태등은 원이 아니라 각진 LED.
 
-/* 오프라인 운영(GS 인증) — Google Fonts CDN 의존 제거.
-   variable font (.woff2) 단일 파일로 weight 300~800 커버. */
+   오프라인 운영(GS) — 모든 폰트 셀프호스트, CDN 의존 없음.
+   기존 페이지의 'Montserrat'/'Roboto'/'Roboto Mono' 인라인 지정은
+   아래 alias @font-face 가 새 서체로 흡수한다 (페이지 수정 불필요).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ---- 서체 원본 ---- */
+@font-face {
+    font-family: 'Saira';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url('/fonts/Saira-Variable.woff2') format('woff2-variations'),
+         url('/fonts/Saira-Variable.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+}
+
+/* ---- 레거시 폰트명 alias — 인라인 지정을 새 서체로 흡수 ---- */
 @font-face {
     font-family: 'Montserrat';
     font-style: normal;
     font-weight: 400 800;
     font-display: swap;
-    src: url('/fonts/Montserrat.woff2') format('woff2-variations'),
-         url('/fonts/Montserrat.woff2') format('woff2');
+    src: url('/fonts/Saira-Variable.woff2') format('woff2-variations'),
+         url('/fonts/Saira-Variable.woff2') format('woff2');
 }
 @font-face {
     font-family: 'Roboto';
     font-style: normal;
-    font-weight: 300 700;
+    font-weight: 400 800;
     font-display: swap;
-    src: url('/fonts/Roboto.woff2') format('woff2-variations'),
-         url('/fonts/Roboto.woff2') format('woff2');
+    src: url('/fonts/Saira-Variable.woff2') format('woff2-variations'),
+         url('/fonts/Saira-Variable.woff2') format('woff2');
 }
 @font-face {
     font-family: 'Roboto Mono';
     font-style: normal;
-    font-weight: 400 500;
+    font-weight: 400;
     font-display: swap;
-    src: url('/fonts/RobotoMono.woff2') format('woff2-variations'),
-         url('/fonts/RobotoMono.woff2') format('woff2');
+    src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto Mono';
+    font-style: normal;
+    font-weight: 500 700;
+    font-display: swap;
+    src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
+/* ---- 디자인 토큰 ---- */
 :root {
     --vms-primary: #FF6724;
     --vms-primary-light: #FF8A50;
-    --vms-primary-dark: #E55A1B;
-    --vms-primary-glow: rgba(255, 103, 36, 0.12);
+    --vms-primary-dark: #E5551B;
+    --vms-primary-glow: rgba(255, 103, 36, 0.10);
+
+    --vms-navy: #00264C;
+    --vms-navy-2: #01397D;
+    --vms-ink: #131A24;
+
+    /* 페이지 인라인 스타일이 참조하는 별칭 — MudBlazor 팔레트에 위임 */
+    --vms-text-primary: var(--mud-palette-text-primary, #131A24);
+    --vms-text-secondary: var(--mud-palette-text-secondary, #5C6470);
+    --vms-text-light: var(--mud-palette-text-secondary, #8A919C);
+    --vms-success: var(--mud-palette-success, #1F7A33);
+    --vms-error: var(--mud-palette-error, #C9342B);
+
+    --vms-radius: 2px;
+    --vms-hairline: var(--mud-palette-lines-default, #DCDFE3);
+    --vms-font-display: 'Saira', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    --vms-font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+    --vms-ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
-html {
-    overflow-x: hidden;
-}
+html { overflow-x: hidden; }
 
 body {
-    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    font-family: var(--vms-font-display);
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
-    background-color: var(--mud-palette-background, #F5F6F8);
-    color: var(--mud-palette-text-primary, #14151A);
+    background-color: var(--mud-palette-background, #F2F3F1);
+    color: var(--mud-palette-text-primary, #131A24);
     overflow-x: hidden;
     max-width: 100vw;
+    font-variant-numeric: tabular-nums;
 }
 
-/* Prevent layout overflow from any child */
 .mud-layout,
 .mud-main-content {
     overflow-x: hidden;
     max-width: 100%;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--mud-palette-background, #F5F6F8); }
-::-webkit-scrollbar-thumb { background: var(--mud-palette-lines-default, #C3C3C3); border-radius: 3px; }
+/* ---- 스크롤바: 사각, 네이비 ---- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--vms-navy) 35%, transparent);
+    border-radius: 0;
+}
 ::-webkit-scrollbar-thumb:hover { background: var(--vms-primary); }
 
-/* ---- AppBar ---- */
+/* ═══════════════ AppBar — 계기판 상단 프레임 ═══════════════ */
 .vms-appbar {
     background: var(--mud-palette-appbar-background, #FFFFFF) !important;
-    border-bottom: 1px solid var(--mud-palette-divider, #E2E2E2) !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
-    color: var(--mud-palette-appbar-text, #14151A) !important;
+    border-bottom: 1px solid var(--vms-hairline) !important;
+    box-shadow: none !important;
+    color: var(--mud-palette-appbar-text, #131A24) !important;
+    position: relative;
+}
+
+/* 상단 브랜드 룰 — 화면 최상단을 가로지르는 2px 네이비 + 오렌지 노치 */
+.vms-appbar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right,
+        var(--vms-primary) 0, var(--vms-primary) 96px,
+        var(--vms-navy) 96px, var(--vms-navy) 100%);
 }
 
 .vms-appbar .mud-icon-button {
-    color: var(--mud-palette-action-default, #5A5A5A) !important;
+    color: var(--mud-palette-action-default, #5C6470) !important;
 }
 
 .vms-logo {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--vms-font-display);
     font-weight: 800;
-    font-size: 1.2rem;
-    letter-spacing: 1.5px;
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
+    line-height: 1;
 }
 
-.vms-logo .navy {
-    color: var(--mud-palette-text-primary, #00264C) !important;
-}
-
-.vms-logo-accent {
-    color: var(--vms-primary) !important;
-}
+.vms-logo .navy { color: var(--mud-palette-text-primary, #00264C) !important; }
+.vms-logo-accent { color: var(--vms-primary) !important; }
 
 .vms-logo-sub {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.6rem;
-    font-weight: 500;
-    letter-spacing: 2px;
-    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+    font-family: var(--vms-font-mono);
+    font-size: 0.58rem;
+    font-weight: 400;
+    letter-spacing: 0.32em;
+    color: var(--mud-palette-text-secondary, #8A919C) !important;
     text-transform: uppercase;
-    margin-left: 10px;
+    margin-left: 12px;
 }
 
 .vms-appbar-page-title {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-family: var(--vms-font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     color: var(--vms-primary) !important;
     margin-left: 16px;
     padding-left: 16px;
-    border-left: 1px solid var(--mud-palette-divider, #E2E2E2);
+    border-left: 1px solid var(--vms-hairline);
     white-space: nowrap;
+    text-transform: uppercase;
 }
 
-/* ---- Drawer / Sidebar ---- */
+/* ═══════════════ Drawer — 네이비 랙 ═══════════════ */
 .vms-drawer {
     background: var(--mud-palette-drawer-background, #00264C) !important;
     border-right: none !important;
 }
 
 .vms-drawer .mud-nav-link {
-    color: var(--mud-palette-drawer-text, rgba(255,255,255,0.75)) !important;
-    border-radius: 6px;
-    margin: 2px 8px;
-    padding: 10px 14px;
+    color: var(--mud-palette-drawer-text, rgba(255,255,255,0.72)) !important;
+    border-radius: 0;
+    margin: 1px 0 1px 0;
+    padding: 9px 14px 9px 18px;
     font-size: 0.84rem;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-    transition: all 0.2s ease;
+    font-weight: 450;
+    letter-spacing: 0.01em;
+    border-left: 3px solid transparent;
+    transition: background 0.12s var(--vms-ease), border-color 0.12s var(--vms-ease), color 0.12s var(--vms-ease);
 }
 
 .vms-drawer .mud-nav-link:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
     color: #FFFFFF !important;
 }
 
+/* 활성 = 오렌지 노치 + 은은한 발광 — 풀컬러 필이 아니라 신호등 */
 .vms-drawer .mud-nav-link.active {
-    background: var(--vms-primary) !important;
+    background: linear-gradient(to right, rgba(255,103,36,0.16), rgba(255,103,36,0.03)) !important;
+    border-left-color: var(--vms-primary);
     color: #FFFFFF !important;
-    font-weight: 500;
+    font-weight: 600;
 }
 
-.vms-drawer .mud-nav-link .mud-nav-link-icon {
-    color: inherit !important;
+.vms-drawer .mud-nav-link .mud-nav-link-icon { color: inherit !important; }
+
+/* 그룹 헤더 — 도면 섹션 라벨 */
+.vms-drawer .mud-nav-group > .mud-nav-link {
+    font-family: var(--vms-font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42) !important;
+    border-left-color: transparent !important;
 }
 
 .vms-nav-section {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--vms-font-mono);
     font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 2.5px;
+    font-weight: 500;
+    letter-spacing: 0.26em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.35);
     padding: 18px 20px 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vms-nav-section::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.10);
 }
 
 .vms-drawer .mud-divider {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
     margin: 8px 16px !important;
 }
 
-/* ---- Page Headers ---- */
+/* ═══════════════ 페이지 타이틀 — 도면 표제란 ═══════════════ */
 .vms-page-title,
 .vms-page-title.mud-typography {
-    font-family: 'Montserrat', sans-serif !important;
+    font-family: var(--vms-font-display) !important;
     font-weight: 700 !important;
-    font-size: 1.4rem !important;
-    letter-spacing: 0.3px;
-    color: var(--mud-palette-text-primary, #E6EDF3) !important;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--vms-primary);
-    margin-bottom: 24px !important;
+    font-size: 1.35rem !important;
+    letter-spacing: 0.01em;
+    color: var(--mud-palette-text-primary) !important;
+    padding: 2px 0 2px 14px;
+    border-left: 4px solid var(--vms-primary);
+    border-bottom: none;
+    margin-bottom: 22px !important;
     display: inline-block;
+    line-height: 1.25;
 }
 
-/* ---- Stat Cards ---- */
+/* ═══════════════ Stat 카드 — 계측 모듈 ═══════════════ */
 .vms-stat-card {
     background: var(--mud-palette-surface, #FFFFFF) !important;
-    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
-    border-radius: 10px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
-    transition: all 0.25s ease;
+    border: 1px solid var(--vms-hairline) !important;
+    border-radius: var(--vms-radius) !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s var(--vms-ease), box-shadow 0.15s var(--vms-ease);
     position: relative;
     overflow: hidden;
 }
 
 .vms-stat-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--vms-navy) 40%, var(--vms-hairline)) !important;
+    box-shadow: 0 2px 10px rgba(9, 22, 38, 0.08) !important;
+    transform: none;
 }
 
 .vms-stat-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0;
-    width: 4px;
+    width: 3px;
     height: 100%;
 }
 
+/* 모듈 코너 틱 — 절삭 마크 */
+.vms-stat-card::after {
+    content: '';
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 8px; height: 8px;
+    border-top: 1px solid var(--vms-hairline);
+    border-right: 1px solid var(--vms-hairline);
+    opacity: 0.9;
+}
+
 .vms-stat-card.accent-orange::before { background: var(--vms-primary); }
-.vms-stat-card.accent-green::before { background: var(--mud-palette-success, #4CAF50); }
-.vms-stat-card.accent-red::before { background: var(--mud-palette-error, #EF5350); }
-.vms-stat-card.accent-blue::before { background: var(--mud-palette-secondary, #01397D); }
+.vms-stat-card.accent-green::before { background: var(--mud-palette-success, #1F7A33); }
+.vms-stat-card.accent-red::before { background: var(--mud-palette-error, #C9342B); }
+.vms-stat-card.accent-blue::before { background: var(--vms-navy-2); }
 
 .vms-stat-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--vms-radius);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .vms-stat-icon.orange { background: var(--vms-primary-glow); }
-.vms-stat-icon.green { background: rgba(76, 175, 80, 0.1); }
-.vms-stat-icon.red { background: rgba(239, 83, 80, 0.1); }
-.vms-stat-icon.blue { background: rgba(1, 57, 125, 0.1); }
+.vms-stat-icon.green { background: rgba(31, 122, 51, 0.10); }
+.vms-stat-icon.red { background: rgba(201, 52, 43, 0.10); }
+.vms-stat-icon.blue { background: rgba(1, 57, 125, 0.10); }
 
 .vms-stat-label {
-    font-family: 'Montserrat', sans-serif !important;
-    font-size: 0.7rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 1px;
+    font-family: var(--vms-font-mono) !important;
+    font-size: 0.64rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+    color: var(--mud-palette-text-secondary, #6B7280) !important;
 }
 
 .vms-stat-value {
-    font-family: 'Montserrat', sans-serif !important;
+    font-family: var(--vms-font-display) !important;
     font-weight: 700 !important;
-    font-size: 1.8rem !important;
-    line-height: 1.2;
-    color: var(--mud-palette-text-primary, #14151A) !important;
+    font-size: 1.9rem !important;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--mud-palette-text-primary, #131A24) !important;
 }
 
 .vms-stat-sub {
     font-size: 0.75rem !important;
-    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
+    color: var(--mud-palette-text-secondary, #6B7280) !important;
 }
 
-/* ---- Cards & Panels ---- */
+/* ═══════════════ 패널 — 상단 네이비 룰의 도면 프레임 ═══════════════ */
 .vms-panel {
     background: var(--mud-palette-surface, #FFFFFF) !important;
-    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
-    border-radius: 10px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+    border: 1px solid var(--vms-hairline) !important;
+    border-top: 2px solid color-mix(in srgb, var(--vms-navy) 82%, var(--mud-palette-surface, #fff)) !important;
+    border-radius: var(--vms-radius) !important;
+    box-shadow: none !important;
 }
 
 .vms-panel-header {
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 0.8rem !important;
-    letter-spacing: 0.5px;
+    font-family: var(--vms-font-mono) !important;
+    font-weight: 500 !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--mud-palette-text-primary, #00264C) !important;
 }
 
-/* ---- Tables ---- */
+/* ═══════════════ 테이블 — 계측 대장 ═══════════════ */
 .vms-table .mud-table {
     background: var(--mud-palette-surface, #FFFFFF) !important;
-    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
-    border-radius: 10px !important;
+    border: 1px solid var(--vms-hairline) !important;
+    border-radius: var(--vms-radius) !important;
     overflow: hidden;
+    box-shadow: none !important;
 }
 
 .vms-table .mud-table-head .mud-table-cell {
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 0.7rem !important;
-    letter-spacing: 1px;
+    font-family: var(--vms-font-mono) !important;
+    font-weight: 500 !important;
+    font-size: 0.64rem !important;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--mud-palette-text-secondary, #8B8B8B) !important;
-    background: var(--mud-palette-background, #F5F6F8) !important;
-    border-bottom: 2px solid var(--mud-palette-divider, #E2E2E2) !important;
-    padding: 12px 16px !important;
+    color: var(--mud-palette-text-secondary, #6B7280) !important;
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border-bottom: 2px solid color-mix(in srgb, var(--vms-navy) 55%, var(--vms-hairline)) !important;
+    padding: 11px 16px !important;
 }
 
 .vms-table .mud-table-body .mud-table-row {
-    border-bottom: 1px solid var(--mud-palette-table-lines, #F0F0F0) !important;
-    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--mud-palette-table-lines, #ECEDEA) !important;
+    transition: background 0.1s var(--vms-ease), box-shadow 0.1s var(--vms-ease);
 }
 
 .vms-table .mud-table-body .mud-table-row:hover {
     background: var(--vms-primary-glow) !important;
+    box-shadow: inset 2px 0 0 var(--vms-primary);
 }
 
 .vms-table .mud-table-body .mud-table-cell {
-    color: var(--mud-palette-text-primary, #14151A) !important;
+    color: var(--mud-palette-text-primary, #131A24) !important;
     font-size: 0.85rem !important;
-    padding: 10px 16px !important;
+    padding: 9px 16px !important;
     border-bottom: none !important;
 }
 
 .vms-table .mud-table-toolbar {
     background: var(--mud-palette-surface, #FFFFFF) !important;
-    border-bottom: 1px solid var(--mud-palette-table-lines, #F0F0F0) !important;
+    border-bottom: 1px solid var(--mud-palette-table-lines, #ECEDEA) !important;
     padding: 8px 16px !important;
 }
 
 .vms-table .mud-table-pagination {
-    background: var(--mud-palette-background, #F5F6F8) !important;
-    border-top: 1px solid var(--mud-palette-table-lines, #F0F0F0) !important;
+    background: var(--mud-palette-surface, #FFFFFF) !important;
+    border-top: 1px solid var(--vms-hairline) !important;
+    font-variant-numeric: tabular-nums;
 }
 
-/* ---- Status Indicators ---- */
+/* ═══════════════ 상태 LED — 원이 아니라 각진 계기등 ═══════════════ */
 .vms-status-dot {
     display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 6px;
+    width: 9px;
+    height: 9px;
+    border-radius: 1px;
+    margin-right: 7px;
+    position: relative;
+    top: -1px;
 }
 
 .vms-status-dot.online {
-    background: var(--mud-palette-success, #4CAF50);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    background: var(--mud-palette-success, #1F7A33);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mud-palette-success, #1F7A33) 35%, transparent),
+                0 0 8px color-mix(in srgb, var(--mud-palette-success, #1F7A33) 55%, transparent);
+    animation: vms-led-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes vms-led-breathe {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.35); }
 }
 
 .vms-status-dot.offline {
-    background: var(--mud-palette-action-default, #C3C3C3);
+    background: transparent;
+    border: 1px solid var(--mud-palette-action-default, #A8AEB6);
 }
 
-/* ---- Login Page ---- */
+/* ═══════════════ 로그인 — 블루프린트 ═══════════════ */
 .vms-login-bg {
     min-height: 100vh;
-    background: linear-gradient(135deg, #001B36 0%, #01397D 50%, #00264C 100%);
+    background:
+        radial-gradient(1100px 620px at 78% -10%, rgba(1, 57, 125, 0.55), transparent 60%),
+        linear-gradient(160deg, #001830 0%, #00264C 55%, #012A55 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    overflow: hidden;
 }
 
+/* 도면 격자 — 24px 세선 + 120px 주선 */
 .vms-login-bg::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    opacity: 0.5;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+    mask-image: radial-gradient(900px 700px at 50% 45%, #000 30%, transparent 85%);
+    -webkit-mask-image: radial-gradient(900px 700px at 50% 45%, #000 30%, transparent 85%);
+}
+
+/* 조준 십자 — 좌하단 장식 (도면 기준점) */
+.vms-login-bg::after {
+    content: '';
+    position: absolute;
+    left: 48px; bottom: 48px;
+    width: 56px; height: 56px;
+    border-left: 1px solid rgba(255, 103, 36, 0.55);
+    border-bottom: 1px solid rgba(255, 103, 36, 0.55);
+    pointer-events: none;
 }
 
 .vms-login-card {
     background: var(--mud-palette-surface, #FFFFFF) !important;
     border: none !important;
-    border-radius: 12px !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3) !important;
+    border-top: 3px solid var(--vms-primary) !important;
+    border-radius: var(--vms-radius) !important;
+    box-shadow: 0 24px 80px rgba(0, 10, 25, 0.5) !important;
     width: 100%;
     max-width: 420px;
     position: relative;
     z-index: 1;
+    animation: vms-card-in 0.5s var(--vms-ease) both;
+}
+
+@keyframes vms-card-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .vms-login-logo {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--vms-font-display);
     font-weight: 800;
-    font-size: 2rem;
-    letter-spacing: 3px;
+    font-size: 2.1rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     text-align: center;
+    line-height: 1.1;
 }
 
 .vms-login-logo .navy { color: var(--mud-palette-text-primary, #00264C); }
 .vms-login-logo .orange { color: var(--vms-primary); }
 
 .vms-login-subtitle {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 3px;
-    color: var(--mud-palette-text-secondary, #8B8B8B);
+    font-family: var(--vms-font-mono);
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.34em;
+    color: var(--mud-palette-text-secondary, #8A919C);
     text-transform: uppercase;
     text-align: center;
 }
 
-/* ---- Chips ---- */
+/* ═══════════════ 칩 / 판정 ═══════════════ */
+.mud-chip {
+    font-family: var(--vms-font-display) !important;
+    border-radius: var(--vms-radius) !important;
+}
+
 .vms-chip-pass {
-    background: rgba(46, 125, 50, 0.1) !important;
-    color: var(--mud-palette-success, #2E7D32) !important;
+    background: rgba(31, 122, 51, 0.10) !important;
+    color: var(--mud-palette-success, #1F7A33) !important;
     font-weight: 600 !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.5px;
+    font-size: 0.74rem !important;
+    letter-spacing: 0.06em;
 }
 
 .vms-chip-ng {
-    background: rgba(211, 47, 47, 0.1) !important;
-    color: var(--mud-palette-error, #D32F2F) !important;
-    font-weight: 600 !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.5px;
+    background: rgba(201, 52, 43, 0.10) !important;
+    color: var(--mud-palette-error, #C9342B) !important;
+    font-weight: 700 !important;
+    font-size: 0.74rem !important;
+    letter-spacing: 0.06em;
 }
 
 /* ---- Filter Bar ---- */
 .vms-filter-bar {
     background: var(--mud-palette-surface, #FFFFFF) !important;
-    border: 1px solid var(--mud-palette-divider, #F0F0F0) !important;
-    border-radius: 10px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+    border: 1px solid var(--vms-hairline) !important;
+    border-radius: var(--vms-radius) !important;
+    box-shadow: none !important;
 }
 
-/* ---- Monospace ---- */
+/* ---- Monospace 수치 ---- */
 .vms-mono {
-    font-family: 'Roboto Mono', monospace;
-    font-size: 0.82rem;
+    font-family: var(--vms-font-mono);
+    font-size: 0.8rem;
     color: var(--mud-palette-secondary, #01397D);
+    font-variant-numeric: tabular-nums;
 }
 
-/* ---- Buttons (VASIM style) ---- */
+/* ---- 버튼 — 절삭 모서리 + 디스플레이체 ---- */
 .vms-btn {
-    font-family: 'Montserrat', sans-serif !important;
+    font-family: var(--vms-font-display) !important;
     font-weight: 600 !important;
-    letter-spacing: 0.5px !important;
+    letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
-    font-size: 0.875rem !important;
+    font-size: 0.85rem !important;
     min-height: 42px !important;
     padding-left: 18px !important;
     padding-right: 18px !important;
     line-height: 1 !important;
 }
 
-/* IconButton에는 height/width 동시에 (정사각형 유지) */
+.mud-button-root { border-radius: var(--vms-radius) !important; }
+
+.mud-button-filled.mud-button-filled-primary {
+    box-shadow: none !important;
+}
+.mud-button-filled.mud-button-filled-primary:hover {
+    box-shadow: 0 3px 12px rgba(255, 103, 36, 0.35) !important;
+}
+
 .vms-btn.mud-icon-button {
     min-width: 42px !important;
     min-height: 42px !important;
 }
 
 /* ============================================================
-   필터바/툴바 영역 입력 컴포넌트 높이 통일 (40px)
-
-   vms-panel과 vms-filter-bar 내부의 모든 outlined input/button을
-   40px로 강제합니다. MudSelect / MudDatePicker / MudDateRangePicker /
-   MudTextField / MudNumericField / MudButton 모두 포함.
-
-   다이얼로그 내부는 영향 받지 않습니다 (.mud-dialog 컨테이너 별개).
+   [기능 보존] 필터바/툴바 영역 입력 컴포넌트 높이 통일 (40px)
+   vms-panel/vms-filter-bar/테이블 툴바의 outlined input·button 40px 강제.
+   다이얼로그 내부는 영향 없음 (.mud-dialog 별개).
    ============================================================ */
-
-/* 1) Input 컨테이너 — outlined 변형 */
 .vms-panel .mud-input.mud-input-outlined,
 .vms-filter-bar .mud-input.mud-input-outlined,
 .vms-table .mud-table-toolbar .mud-input.mud-input-outlined {
@@ -448,7 +600,6 @@ body {
     min-height: 40px !important;
 }
 
-/* 2) 실제 input/select 슬롯 — 텍스트 vertical center */
 .vms-panel .mud-input.mud-input-outlined > input.mud-input-slot,
 .vms-panel .mud-input.mud-input-outlined > .mud-input-slot,
 .vms-panel .mud-select .mud-input-control .mud-input.mud-input-outlined,
@@ -466,7 +617,6 @@ body {
     line-height: 1.2 !important;
 }
 
-/* 2-b) MudSelect의 선택값 표시 영역 — 별도 vertical center */
 .vms-panel .mud-select .mud-select-input,
 .vms-filter-bar .mud-select .mud-select-input,
 .vms-table .mud-table-toolbar .mud-select .mud-select-input {
@@ -478,7 +628,6 @@ body {
     line-height: 1.2 !important;
 }
 
-/* 3) outlined border 정렬 */
 .vms-panel .mud-input-outlined-border,
 .vms-filter-bar .mud-input-outlined-border,
 .vms-table .mud-table-toolbar .mud-input-outlined-border {
@@ -486,28 +635,24 @@ body {
     height: 100% !important;
 }
 
-/* 4) Margin (Dense/Normal 무관하게 동일) — 컨트롤 자체 마진 제거 */
 .vms-panel .mud-input-control,
 .vms-filter-bar .mud-input-control,
 .vms-table .mud-table-toolbar .mud-input-control {
     margin-top: 0 !important;
 }
 
-/* 5) 라벨 위치 (input이 비어있을 때) */
 .vms-panel .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label,
 .vms-filter-bar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label,
 .vms-table .mud-table-toolbar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label {
     top: 10px !important;
 }
 
-/* 6) 라벨 위치 (값 입력되어 위로 올라간 상태) */
 .vms-panel .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label.mud-input-label-inputcontrol[data-shrink="true"],
 .vms-filter-bar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label.mud-input-label-inputcontrol[data-shrink="true"],
 .vms-table .mud-table-toolbar .mud-input.mud-input-outlined .mud-input-label-outlined.mud-input-label.mud-input-label-inputcontrol[data-shrink="true"] {
     top: 0 !important;
 }
 
-/* 7) Filled/Outlined MudButton — input(40px) + border(1px×2) = 시각적 균형 위해 42px */
 .vms-panel .mud-button-filled,
 .vms-panel .mud-button-outlined,
 .vms-filter-bar .mud-button-filled,
@@ -516,11 +661,10 @@ body {
 .vms-table .mud-table-toolbar .mud-button-outlined {
     min-height: 42px !important;
     height: 42px !important;
-    font-size: 0.875rem !important;
+    font-size: 0.85rem !important;
     line-height: 1 !important;
 }
 
-/* 8) IconButton (정사각형 유지) */
 .vms-panel .mud-icon-button:not(.mud-button-text),
 .vms-filter-bar .mud-icon-button:not(.mud-button-text),
 .vms-table .mud-table-toolbar .mud-icon-button:not(.mud-button-text) {
@@ -528,53 +672,48 @@ body {
     width: 42px !important;
 }
 
-/* 9) Datepicker 내부 input adornment (캘린더 아이콘) 정렬 */
 .vms-panel .mud-input-adornment,
 .vms-filter-bar .mud-input-adornment,
 .vms-table .mud-table-toolbar .mud-input-adornment {
     height: 40px !important;
 }
 
-/* ---- MudTabs 가시성 개선 (라이트/다크 공통) ---- */
-/* 탭바: 하단 보더만 표시, 배경 없음 */
+/* ---- 탭 — 하단 슬라이더 + Badge 보존 ---- */
 .vms-tabs .mud-tabs-toolbar,
 .vms-tabs .mud-tabs-tabbar {
     background: transparent !important;
-    border-bottom: 1px solid var(--mud-palette-lines-default, rgba(127,127,127,0.2)) !important;
+    border-bottom: 1px solid var(--vms-hairline) !important;
     box-shadow: none !important;
 }
 
-/* 탭바 슬라이더(밑줄) — 활성 표시 */
 .vms-tabs .mud-tab-slider {
-    height: 3px !important;
+    height: 2px !important;
     background-color: var(--vms-primary, #FF6724) !important;
 }
 
-/* 탭바와 탭 자체에 overflow visible — Badge가 잘리지 않도록 */
 .vms-tabs .mud-tabs-tabbar-inner,
 .vms-tabs .mud-tab-panels {
     overflow: visible !important;
 }
 
-/* 비활성 탭 — 기본 텍스트 색의 65% 명도, Badge 공간을 위한 오른쪽 여유 */
 .vms-tabs .mud-tab {
+    font-family: var(--vms-font-display) !important;
     color: var(--mud-palette-text-primary, currentColor) !important;
-    opacity: 0.65;
+    opacity: 0.6;
     font-weight: 500 !important;
     text-transform: none !important;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.02em;
     min-width: 140px;
-    padding: 10px 32px 10px 20px !important; /* 오른쪽 패딩 늘려 Badge 공간 확보 */
-    transition: opacity 0.15s, background 0.15s;
+    padding: 10px 32px 10px 20px !important;
+    transition: opacity 0.12s var(--vms-ease), background 0.12s var(--vms-ease);
     overflow: visible !important;
 }
 
 .vms-tabs .mud-tab:hover {
     opacity: 0.9;
-    background: rgba(255, 103, 36, 0.08) !important;
+    background: var(--vms-primary-glow) !important;
 }
 
-/* 활성 탭 — 풀 명도 + 오렌지 + 굵게 */
 .vms-tabs .mud-tab.mud-tab-active {
     opacity: 1;
     font-weight: 700 !important;
@@ -582,7 +721,6 @@ body {
     background: transparent !important;
 }
 
-/* 탭 내부 Badge — 텍스트 오른쪽에 자연스럽게 위치 */
 .vms-tabs .mud-tab .mud-badge-root {
     position: static !important;
     margin-left: 8px;
@@ -597,57 +735,52 @@ body {
     padding: 0 6px;
     font-size: 0.7rem;
     font-weight: 700;
-    border-radius: 10px;
+    border-radius: 2px;
     line-height: 20px;
+    font-variant-numeric: tabular-nums;
 }
 
-/* ---- MudBlazor Overrides ---- */
+/* ---- 다이얼로그 — 표제란이 있는 도면 시트 ---- */
 .mud-dialog {
-    border-radius: 12px !important;
+    border-radius: var(--vms-radius) !important;
+    border-top: 3px solid var(--vms-navy) !important;
     overflow: hidden;
 }
 
 .mud-dialog .mud-dialog-title {
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.5px;
+    font-family: var(--vms-font-display) !important;
+    font-weight: 700 !important;
+    font-size: 1.02rem !important;
+    letter-spacing: 0.01em;
     color: var(--mud-palette-text-primary, #00264C) !important;
-    background: var(--mud-palette-background, #F5F6F8) !important;
-    border-bottom: 1px solid var(--mud-palette-divider, #E2E2E2) !important;
-}
-
-.mud-tabs-toolbar {
-    background: var(--mud-palette-background, #F5F6F8) !important;
-}
-
-.mud-tab.mud-tab-active {
-    color: var(--vms-primary) !important;
-}
-
-.mud-tabs-panels {
     background: var(--mud-palette-surface, #FFFFFF) !important;
+    border-bottom: 1px solid var(--vms-hairline) !important;
 }
 
-.mud-chip {
-    font-family: 'Montserrat', sans-serif !important;
-}
+.mud-tabs-toolbar { background: transparent !important; }
+.mud-tab.mud-tab-active { color: var(--vms-primary) !important; }
+.mud-tabs-panels { background: var(--mud-palette-surface, #FFFFFF) !important; }
+
+/* ---- 입력 요소 모서리 ---- */
+.mud-input.mud-input-outlined .mud-input-outlined-border { border-radius: var(--vms-radius) !important; }
+.mud-popover, .mud-menu-list, .mud-list { border-radius: var(--vms-radius) !important; }
+.mud-snackbar { border-radius: var(--vms-radius) !important; font-family: var(--vms-font-display) !important; }
+.mud-alert { border-radius: var(--vms-radius) !important; }
 
 /* ---- Blazor Overrides ---- */
 .blazor-error-boundary {
-    background: var(--mud-palette-error, #D32F2F);
+    background: var(--mud-palette-error, #C9342B);
     padding: 1rem;
     color: white;
-    border-radius: 8px;
+    border-radius: var(--vms-radius);
 }
 
-.blazor-error-boundary::after {
-    content: "An error has occurred.";
-}
+.blazor-error-boundary::after { content: "An error has occurred."; }
 
 h1:focus { outline: none; }
-.valid.modified:not([type=checkbox]) { outline: 1px solid var(--mud-palette-success, #4CAF50); }
-.invalid { outline: 1px solid var(--mud-palette-error, #D32F2F); }
-.validation-message { color: var(--mud-palette-error, #D32F2F); }
+.valid.modified:not([type=checkbox]) { outline: 1px solid var(--mud-palette-success, #1F7A33); }
+.invalid { outline: 1px solid var(--mud-palette-error, #C9342B); }
+.validation-message { color: var(--mud-palette-error, #C9342B); }
 
 /* ---- Utility ---- */
 .vms-divider {
@@ -658,10 +791,10 @@ h1:focus { outline: none; }
 .text-orange { color: var(--vms-primary) !important; }
 
 /* ============================================
-   Mobile Responsive
+   [기능 보존] Mobile Responsive
    ============================================ */
 
-/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+/* iOS 자동 줌 방지 (input font-size >= 16px 필요) */
 input, select, textarea,
 .mud-input input,
 .mud-input textarea,
@@ -670,36 +803,20 @@ input, select, textarea,
     font-size: 16px !important;
 }
 
-/* CRITICAL: Prevent MudTable from stacking cells vertically on mobile.
-   MudBlazor uses @media(max-width:599.99px) to set display:block on cells.
-   We override with higher specificity + !important to keep horizontal layout. */
+/* [기능 보존] MudTable 모바일 셀 세로 스택 방지 — 가로 스크롤 유지 */
 .vms-table {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
 
-.vms-table .mud-table-container {
-    overflow-x: auto;
-}
+.vms-table .mud-table-container { overflow-x: auto; }
 
-.vms-table .mud-table {
-    /* Disable MudBlazor's built-in breakpoint behavior */
-}
-
-/* Force horizontal table on ALL screen sizes */
-.vms-table table thead {
-    display: table-header-group !important;
-}
-
-.vms-table table tbody {
-    display: table-row-group !important;
-}
+.vms-table table thead { display: table-header-group !important; }
+.vms-table table tbody { display: table-row-group !important; }
 
 .vms-table table thead tr,
 .vms-table table tbody tr,
-.vms-table .mud-table-row {
-    display: table-row !important;
-}
+.vms-table .mud-table-row { display: table-row !important; }
 
 .vms-table table thead th,
 .vms-table table tbody td,
@@ -710,20 +827,17 @@ input, select, textarea,
     white-space: nowrap;
 }
 
-/* Hide MudBlazor's mobile cell labels (::before pseudo) */
 .vms-table .mud-table-cell::before {
     display: none !important;
     content: none !important;
 }
 
-/* Allow description cells to wrap */
 .vms-table .mud-table-cell .mud-typography-body2 {
     white-space: normal;
     min-width: 80px;
 }
 
 @media (max-width: 600px) {
-    /* Dialog fullscreen on mobile */
     .mud-dialog:not(.mud-dialog-width-false) {
         margin: 8px !important;
         max-height: calc(100vh - 16px) !important;
@@ -731,46 +845,28 @@ input, select, textarea,
         max-width: 100% !important;
     }
 
-    .mud-dialog .mud-dialog-content {
-        padding: 12px !important;
-    }
+    .mud-dialog .mud-dialog-content { padding: 12px !important; }
+    .mud-dialog .mud-dialog-actions { padding: 8px 12px !important; }
 
-    .mud-dialog .mud-dialog-actions {
-        padding: 8px 12px !important;
-    }
-
-    /* Page title smaller */
     .vms-page-title,
     .vms-page-title.mud-typography {
         font-size: 1.1rem !important;
         margin-bottom: 16px !important;
     }
 
-    /* Stat cards compact */
-    .vms-stat-value {
-        font-size: 1.4rem !important;
-    }
+    .vms-stat-value { font-size: 1.4rem !important; }
+    .vms-stat-icon { width: 36px; height: 36px; }
 
-    .vms-stat-icon {
-        width: 36px;
-        height: 36px;
-    }
-
-    /* Touch-friendly nav links */
     .vms-drawer .mud-nav-link {
         padding: 14px 16px;
         font-size: 0.9rem;
     }
 
-    /* Chart responsive height */
-    .mud-chart {
-        max-height: 220px;
-    }
+    .mud-chart { max-height: 220px; }
 
-    /* Table cells compact */
     .vms-table .mud-table-head .mud-table-cell {
         padding: 6px 8px !important;
-        font-size: 0.6rem !important;
+        font-size: 0.58rem !important;
     }
 
     .vms-table .mud-table-body .mud-table-cell {
@@ -778,56 +874,37 @@ input, select, textarea,
         font-size: 0.75rem !important;
     }
 
-    /* Table toolbar stacking */
     .vms-table .mud-table-toolbar {
         padding: 8px !important;
         flex-wrap: wrap;
         gap: 4px;
     }
 
-    /* Filter bar stacking */
-    .vms-filter-bar .mud-grid-item {
-        padding: 4px 8px !important;
-    }
+    .vms-filter-bar .mud-grid-item { padding: 4px 8px !important; }
 
-    /* Login card padding */
     .vms-login-card {
         margin: 16px !important;
         max-width: calc(100% - 32px) !important;
     }
 
-    .vms-login-logo {
-        font-size: 1.6rem;
-    }
+    .vms-login-logo { font-size: 1.6rem; }
+    .vms-logo { font-size: 1rem; }
 
-    /* AppBar compact */
-    .vms-logo {
-        font-size: 1rem;
-    }
-
-    /* Smaller chips on mobile */
     .mud-chip {
         font-size: 0.65rem !important;
         height: 22px !important;
     }
 
-    /* Compact icon buttons on mobile */
-    .mud-table .mud-icon-button {
-        padding: 4px !important;
-    }
+    .mud-table .mud-icon-button { padding: 4px !important; }
+
+    /* 로그인 장식 십자는 모바일에서 숨김 */
+    .vms-login-bg::after { display: none; }
 }
 
-/* Tablet adjustments */
 @media (min-width: 601px) and (max-width: 960px) {
     .vms-page-title,
-    .vms-page-title.mud-typography {
-        font-size: 1.25rem !important;
-    }
-
-    .vms-stat-value {
-        font-size: 1.5rem !important;
-    }
-
+    .vms-page-title.mud-typography { font-size: 1.25rem !important; }
+    .vms-stat-value { font-size: 1.5rem !important; }
     .mud-dialog:not(.mud-dialog-width-false) {
         margin: 16px !important;
         max-width: calc(100% - 32px) !important;

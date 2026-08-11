@@ -59,6 +59,8 @@
         }
     }
 
+    // "Machined Instrument" 테마 (2026-08-11) — VASIM CI 유지, 오렌지는 신호색으로 절제.
+    // 라이트 = 엔지니어링 페이퍼(웜 그레이), 다크 = 네이비 잉크. 서체 Saira + IBM Plex Mono.
     private MudTheme _theme = new()
     {
         PaletteLight = new PaletteLight
@@ -66,54 +68,54 @@
             Primary = "#FF6724",
             Secondary = "#01397D",
             Tertiary = "#00264C",
-            Background = "#F5F6F8",
+            Background = "#F2F3F1",
             Surface = "#FFFFFF",
             AppbarBackground = "#FFFFFF",
-            AppbarText = "#14151A",
+            AppbarText = "#131A24",
             DrawerBackground = "#00264C",
-            DrawerText = "rgba(255,255,255,0.75)",
-            DrawerIcon = "rgba(255,255,255,0.75)",
-            TextPrimary = "#14151A",
-            TextSecondary = "#5A5A5A",
-            ActionDefault = "#5A5A5A",
-            Success = "#2E7D32",
-            Error = "#D32F2F",
-            Warning = "#ED6C02",
-            Info = "#0288D1",
-            Divider = "#E2E2E2",
-            TableLines = "#F0F0F0",
-            LinesDefault = "#E2E2E2",
-            LinesInputs = "#E2E2E2",
+            DrawerText = "rgba(255,255,255,0.72)",
+            DrawerIcon = "rgba(255,255,255,0.72)",
+            TextPrimary = "#131A24",
+            TextSecondary = "#5C6470",
+            ActionDefault = "#5C6470",
+            Success = "#1F7A33",
+            Error = "#C9342B",
+            Warning = "#B75E00",
+            Info = "#01397D",
+            Divider = "#DCDFE3",
+            TableLines = "#ECEDEA",
+            LinesDefault = "#DCDFE3",
+            LinesInputs = "#C9CDD3",
             HoverOpacity = 0.04
         },
         PaletteDark = new PaletteDark
         {
-            Primary = "#FF6724",
-            Secondary = "#4A8FD4",
+            Primary = "#FF7A3D",
+            Secondary = "#5B9BE0",
             Tertiary = "#FFB74D",
-            Background = "#0D1117",
-            Surface = "#161B22",
-            AppbarBackground = "#161B22",
-            AppbarText = "#E6EDF3",
-            DrawerBackground = "#0D1117",
+            Background = "#0B1220",
+            Surface = "#111A2B",
+            AppbarBackground = "#111A2B",
+            AppbarText = "#E3E9F2",
+            DrawerBackground = "#081020",
             DrawerText = "rgba(255,255,255,0.65)",
             DrawerIcon = "rgba(255,255,255,0.65)",
-            TextPrimary = "#E6EDF3",
-            TextSecondary = "#8B949E",
-            ActionDefault = "#8B949E",
-            Success = "#3FB950",
-            Error = "#F85149",
-            Warning = "#D29922",
-            Info = "#58A6FF",
-            Divider = "#21262D",
-            TableLines = "#21262D",
-            LinesDefault = "#21262D",
-            LinesInputs = "#30363D",
+            TextPrimary = "#E3E9F2",
+            TextSecondary = "#8C96A6",
+            ActionDefault = "#8C96A6",
+            Success = "#41C463",
+            Error = "#F0564C",
+            Warning = "#E0A32E",
+            Info = "#5B9BE0",
+            Divider = "#1E2A3E",
+            TableLines = "#1E2A3E",
+            LinesDefault = "#1E2A3E",
+            LinesInputs = "#2A3850",
             HoverOpacity = 0.06
         },
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "10px",
+            DefaultBorderRadius = "3px",
             DrawerWidthLeft = "240px",
             DrawerMiniWidthLeft = "56px"
         },
@@ -121,30 +123,30 @@
         {
             Default = new Default
             {
-                FontFamily = new[] { "Roboto", "Segoe UI", "sans-serif" },
+                FontFamily = new[] { "Saira", "Malgun Gothic", "Apple SD Gothic Neo", "sans-serif" },
                 FontSize = "0.875rem"
             },
             H4 = new H4
             {
-                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontFamily = new[] { "Saira", "Malgun Gothic", "sans-serif" },
                 FontWeight = 700,
-                FontSize = "1.4rem"
+                FontSize = "1.35rem"
             },
             H5 = new H5
             {
-                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontFamily = new[] { "Saira", "Malgun Gothic", "sans-serif" },
                 FontWeight = 600,
                 FontSize = "1.15rem"
             },
             H6 = new H6
             {
-                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontFamily = new[] { "Saira", "Malgun Gothic", "sans-serif" },
                 FontWeight = 600,
                 FontSize = "1rem"
             },
             Subtitle1 = new Subtitle1
             {
-                FontFamily = new[] { "Montserrat", "sans-serif" },
+                FontFamily = new[] { "Saira", "Malgun Gothic", "sans-serif" },
                 FontWeight = 600,
                 FontSize = "0.85rem"
             }
