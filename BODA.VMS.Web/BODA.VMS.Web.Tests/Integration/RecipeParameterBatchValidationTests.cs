@@ -31,7 +31,8 @@ public class RecipeParameterBatchValidationTests : IDisposable
         _factory.Dispose();
     }
 
-    private async Task<string> SeedAndLoginAsync(string role = "User")
+    // 파라미터 생성/수정/삭제는 Admin 전용 (2026-08-11 정책 — User 는 조회만)
+    private async Task<string> SeedAndLoginAsync(string role = "Admin")
     {
         using (var db = _factory.CreateScopedDbContext())
         {
@@ -93,6 +94,15 @@ public class RecipeParameterBatchValidationTests : IDisposable
     {
         var resp = await _client.PostAsJsonAsync("/api/parameters/batch", new List<RecipeParameterDto>());
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task POST_batch_as_user_role_returns_403()
+    {
+        // User 는 검사항목 조회만 가능 — 생성은 Admin 전용 (2026-08-11 정책)
+        var token = await SeedAndLoginAsync(role: "User");
+        var resp = await PostBatchAsync(token, new List<RecipeParameterDto> { ValidDto(1) });
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

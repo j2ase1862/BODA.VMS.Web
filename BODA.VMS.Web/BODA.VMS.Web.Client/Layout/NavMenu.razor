@@ -30,6 +30,10 @@
     <MudNavGroup Title="@L["menu.quality"]" Icon="@Icons.Material.Filled.VerifiedUser"
                  Expanded="_expanded[QualityKey]"
                  ExpandedChanged="@(v => OnExpandedChanged(QualityKey, v))">
+        @* 검사항목(레시피 파라미터) = 품질 기준정보 — System(Admin 전용)에서 이동 (2026-08-11).
+           User 는 조회 가능, 생성/수정/삭제는 페이지·API 양쪽에서 Admin 게이트. *@
+        <MudNavLink Href="/inspection-items"
+                    Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">@L["menu.inspectionItems"]</MudNavLink>
         <MudNavLink Href="/quality-analysis"
                     Icon="@Icons.Material.Filled.Analytics" OnClick="HandleClick">@L["menu.paretoAnalysis"]</MudNavLink>
         <MudNavLink Href="/spc"
@@ -68,8 +72,6 @@
             <MudNavGroup Title="@L["menu.system"]" Icon="@Icons.Material.Filled.Settings"
                          Expanded="_expanded[AdminKey]"
                          ExpandedChanged="@(v => OnExpandedChanged(AdminKey, v))">
-                <MudNavLink Href="/inspection-items"
-                            Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">@L["menu.inspectionItems"]</MudNavLink>
                 <MudNavLink Href="/shifts"
                             Icon="@Icons.Material.Filled.WatchLater" OnClick="HandleClick">@L["menu.shifts"]</MudNavLink>
                 <MudNavLink Href="/admin/approvals"

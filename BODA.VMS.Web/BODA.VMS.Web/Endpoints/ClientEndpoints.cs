@@ -223,7 +223,7 @@ public static class ClientEndpoints
                 logger.LogError(ex, "Failed to create recipe '{Name}' for client {ClientId}", dto.Name, id);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+        }).RequireAuthorization(policy => policy.RequireRole("Admin"))
           .AddEndpointFilter<ValidationEndpointFilter<RecipeDto>>();
 
         // Recipe 삭제

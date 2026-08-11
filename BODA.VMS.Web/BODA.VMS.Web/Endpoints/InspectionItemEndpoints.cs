@@ -334,7 +334,7 @@ public static class InspectionItemEndpoints
                 logger.LogError(ex, "Failed to create parameter {Code}", dto.ParamCode);
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+        }).RequireAuthorization(policy => policy.RequireRole("Admin"))
           .AddEndpointFilter<ValidationEndpointFilter<RecipeParameterDto>>();
 
         // 배치 생성 — CollectionValidationEndpointFilter 가 각 항목 검증.
@@ -357,7 +357,7 @@ public static class InspectionItemEndpoints
                 logger.LogError(ex, "Failed to create parameter batch");
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+        }).RequireAuthorization(policy => policy.RequireRole("Admin"))
           .AddEndpointFilter<CollectionValidationEndpointFilter<RecipeParameterDto>>();
 
         // 수정
@@ -372,7 +372,7 @@ public static class InspectionItemEndpoints
             if (result is null) return Results.NotFound();
             await BroadcastParamsChangedAsync(hub, logger, result.RecipeId);
             return Results.Ok(result);
-        }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
+        }).RequireAuthorization(policy => policy.RequireRole("Admin"))
           .AddEndpointFilter<ValidationEndpointFilter<RecipeParameterDto>>();
 
         // 삭제
