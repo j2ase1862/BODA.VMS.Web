@@ -45,6 +45,49 @@ public static class InspectionItemEndpoints
         }).AllowAnonymous()
           .AddEndpointFilter<ClientApiKeyEndpointFilter>();
 
+        // VisionSetup 이 로컬에서 생성한 레시피를 Web 원장에 등록 (2026-08-11).
+        // 이름 기준 멱등: 같은 클라이언트에 동일 이름 레시피가 있으면 그 ID 를 반환 —
+        // 오프라인 후 재시도·기존 로컬 레시피의 이름 연결이 중복 생성 없이 수렴한다.
+        app.MapPost("/api/parameters/sync/recipes/{clientIndex:int}", async (
+            int clientIndex,
+            VmsRecipeRegisterRequest request,
+            BodaVmsDbContext db,
+            IClientService clientService,
+            ILogger<Program> logger) =>
+        {
+            var name = request.Name?.Trim();
+            if (string.IsNullOrEmpty(name) || name.Length > 100)
+                return Results.BadRequest("Name is required (1~100 chars)");
+
+            var client = await db.Clients
+                .FirstOrDefaultAsync(c => c.ClientIndex == clientIndex);
+            if (client is null)
+                return Results.NotFound($"Client with index {clientIndex} not found");
+
+            var existing = await db.Recipes
+                .FirstOrDefaultAsync(r => r.ClientId == client.Id && r.Name == name);
+            if (existing is not null)
+                return Results.Ok(new { id = existing.Id, name = existing.Name, existed = true });
+
+            try
+            {
+                var created = await clientService.CreateRecipeAsync(client.Id, new RecipeDto
+                {
+                    Name = name,
+                    Description = request.Description
+                });
+                return Results.Created($"/api/parameters/sync/recipe/{created.Id}",
+                    new { id = created.Id, name = created.Name, existed = false });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "VMS recipe register failed: '{Name}' (clientIndex={Idx})",
+                    name, clientIndex);
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
+        }).AllowAnonymous()
+          .AddEndpointFilter<ClientApiKeyEndpointFilter>();
+
         // VMS가 검사 결과 업로드
         app.MapPost("/api/parameters/results", async (
             ParameterResultUploadRequest request,
@@ -331,3 +374,6 @@ public static class InspectionItemEndpoints
         }).RequireAuthorization(policy => policy.RequireRole("Admin"));
     }
 }
+
+/// <summary>VisionSetup → Web 레시피 등록 요청 (X-API-Key 인증 sync 계열).</summary>
+public record VmsRecipeRegisterRequest(string? Name, string? Description = null);
