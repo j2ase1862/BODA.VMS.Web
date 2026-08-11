@@ -778,7 +778,11 @@
     "snackbarRejectedFmt": "{0} rejected",
     "resetPasswordTitle": "Reset Password",
     "resetPasswordConfirmFmt": "Reset {0}'s password to the default (1234)?",
-    "snackbarResetDone": "Password has been reset"
+    "snackbarResetDone": "Password has been reset",
+    "changeRoleTitle": "Change Role",
+    "confirmChangeRoleFmt": "Change role of '{0}' from {1} to {2}?",
+    "snackbarRoleChangedFmt": "'{0}' role changed to {1}",
+    "snackbarRoleChangeFailed": "Failed to change role"
   },
   "audit": {
     "alertInfo": "21 CFR Part 11 / EU GMP Annex 11 compliance — master/settings change log. Immutable.",

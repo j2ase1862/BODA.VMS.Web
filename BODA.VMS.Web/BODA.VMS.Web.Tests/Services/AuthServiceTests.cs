@@ -31,7 +31,8 @@ public class AuthServiceTests
         RefreshTokenOptions? refresh = null)
         => new(db, CreateJwtService(), new StubCurrentUser(),
                Options.Create(lockout ?? new AccountLockoutOptions()),
-               Options.Create(refresh ?? new RefreshTokenOptions()));
+               Options.Create(refresh ?? new RefreshTokenOptions()),
+               NSubstitute.Substitute.For<IAlarmService>());
 
     internal sealed class StubCurrentUser : ICurrentUserService
     {

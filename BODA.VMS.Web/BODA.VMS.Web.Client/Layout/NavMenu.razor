@@ -31,9 +31,13 @@
                  Expanded="_expanded[QualityKey]"
                  ExpandedChanged="@(v => OnExpandedChanged(QualityKey, v))">
         @* 검사항목(레시피 파라미터) = 품질 기준정보 — System(Admin 전용)에서 이동 (2026-08-11).
-           User 는 조회 가능, 생성/수정/삭제는 페이지·API 양쪽에서 Admin 게이트. *@
-        <MudNavLink Href="/inspection-items"
-                    Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">@L["menu.inspectionItems"]</MudNavLink>
+           검사 기준값은 Guest 비노출 — Admin/User 만 조회, 편집은 Admin (페이지·API 이중 게이트). *@
+        <AuthorizeView Roles="Admin,User">
+            <Authorized>
+                <MudNavLink Href="/inspection-items"
+                            Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">@L["menu.inspectionItems"]</MudNavLink>
+            </Authorized>
+        </AuthorizeView>
         <MudNavLink Href="/quality-analysis"
                     Icon="@Icons.Material.Filled.Analytics" OnClick="HandleClick">@L["menu.paretoAnalysis"]</MudNavLink>
         <MudNavLink Href="/spc"

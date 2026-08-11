@@ -778,7 +778,11 @@
     "snackbarRejectedFmt": "{0} 거절됨",
     "resetPasswordTitle": "비밀번호 초기화",
     "resetPasswordConfirmFmt": "{0}의 비밀번호를 기본값(1234)으로 초기화하시겠습니까?",
-    "snackbarResetDone": "비밀번호가 초기화되었습니다"
+    "snackbarResetDone": "비밀번호가 초기화되었습니다",
+    "changeRoleTitle": "역할 변경",
+    "confirmChangeRoleFmt": "'{0}' 사용자의 역할을 {1} → {2}(으)로 변경하시겠습니까?",
+    "snackbarRoleChangedFmt": "'{0}' 역할이 {1}(으)로 변경되었습니다",
+    "snackbarRoleChangeFailed": "역할 변경에 실패했습니다"
   },
   "audit": {
     "alertInfo": "21 CFR Part 11 / EU GMP Annex 11 준수 — 마스터/설정 데이터 변경 이력. 변경/삭제 불가.",
