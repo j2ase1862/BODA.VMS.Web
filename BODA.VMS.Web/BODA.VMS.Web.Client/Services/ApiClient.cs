@@ -33,6 +33,18 @@ public class ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>POST 후 응답을 그대로 반환 — 400 본문(검증 오류 등)을 호출부에서 직접 처리할 때 사용.</summary>
+    public async Task<HttpResponseMessage> PostWithResponseAsync<TRequest>(string url, TRequest data)
+    {
+        return await _http.PostAsJsonAsync(url, data);
+    }
+
+    /// <summary>PUT 후 응답을 그대로 반환 — 409 등 본문 메시지를 호출부에서 직접 처리할 때 사용.</summary>
+    public async Task<HttpResponseMessage> PutWithResponseAsync<TRequest>(string url, TRequest data)
+    {
+        return await _http.PutAsJsonAsync(url, data);
+    }
+
     public async Task<TResponse?> PutAsync<TRequest, TResponse>(string url, TRequest data)
     {
         var response = await _http.PutAsJsonAsync(url, data);

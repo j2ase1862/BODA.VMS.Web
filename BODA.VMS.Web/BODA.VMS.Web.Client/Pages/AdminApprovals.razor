@@ -95,11 +95,37 @@
                     </MudTd>
                     <MudTd>@context.DisplayName</MudTd>
                     <MudTd>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                 Color="GetRoleColor(context.Role)"
-                                 Style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600;">
-                            @context.Role.ToUpper()
-                        </MudChip>
+                        @if (context.IsApproved && context.Username != "admin")
+                        {
+                            @* 역할 칩 클릭 → 변경 메뉴 (2026-08-11). 최초 admin 계정과
+                               승인 대기(Pending)는 제외 — Pending 은 승인 시 역할 지정. *@
+                            <MudMenu ActivationEvent="MouseEvent.LeftClick" Dense="true"
+                                     AnchorOrigin="Origin.BottomLeft">
+                                <ActivatorContent>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="GetRoleColor(context.Role)"
+                                             Icon="@Icons.Material.Filled.ArrowDropDown"
+                                             Style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600; cursor: pointer;">
+                                        @context.Role.ToUpper()
+                                    </MudChip>
+                                </ActivatorContent>
+                                <ChildContent>
+                                    @foreach (var role in new[] { "Admin", "User", "Guest" })
+                                    {
+                                        <MudMenuItem Disabled="@(role == context.Role)"
+                                                     OnClick="@(() => ChangeRole(context, role))">@role</MudMenuItem>
+                                    }
+                                </ChildContent>
+                            </MudMenu>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Color="GetRoleColor(context.Role)"
+                                     Style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600;">
+                                @context.Role.ToUpper()
+                            </MudChip>
+                        }
                     </MudTd>
                     <MudTd>
                         @if (context.IsApproved)
@@ -164,6 +190,34 @@
         await Api.PostAsync<object>($"/api/admin/reject/{user.Id}", new { });
         Snackbar.Add(L.Format("approval.snackbarRejectedFmt", user.Username), Severity.Warning);
         await LoadData();
+    }
+
+    private async Task ChangeRole(UserDto user, string role)
+    {
+        var confirmed = await Dialog.ShowMessageBox(L["approval.changeRoleTitle"],
+            L.Format("approval.confirmChangeRoleFmt", user.Username, user.Role, role),
+            L["action.yes"], L["action.no"]);
+        if (confirmed != true) return;
+
+        var response = await Api.PutWithResponseAsync(
+            $"/api/admin/users/{user.Id}/role", new { Role = role });
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add(L.Format("approval.snackbarRoleChangedFmt", user.Username, role), Severity.Success);
+            await LoadData();
+        }
+        else
+        {
+            // 409(마지막 Admin 강등 등)의 서버 사유를 그대로 안내
+            string? reason = null;
+            try
+            {
+                var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                if (body.TryGetProperty("message", out var m)) reason = m.GetString();
+            }
+            catch { }
+            Snackbar.Add(reason ?? L["approval.snackbarRoleChangeFailed"], Severity.Warning);
+        }
     }
 
     private async Task ResetPassword(UserDto user)

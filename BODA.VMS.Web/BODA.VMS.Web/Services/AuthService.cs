@@ -13,19 +13,22 @@ public class AuthService : IAuthService
     private readonly ICurrentUserService _currentUser;
     private readonly AccountLockoutOptions _lockout;
     private readonly RefreshTokenOptions _refresh;
+    private readonly IAlarmService _alarmService;
 
     public AuthService(
         BodaVmsDbContext db,
         JwtTokenService jwt,
         ICurrentUserService currentUser,
         IOptions<AccountLockoutOptions> lockoutOptions,
-        IOptions<RefreshTokenOptions> refreshOptions)
+        IOptions<RefreshTokenOptions> refreshOptions,
+        IAlarmService alarmService)
     {
         _db = db;
         _jwt = jwt;
         _currentUser = currentUser;
         _lockout = lockoutOptions.Value;
         _refresh = refreshOptions.Value;
+        _alarmService = alarmService;
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -188,6 +191,24 @@ public class AuthService : IAuthService
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
+
+        // 가입 신청 알람 — Admin 이 승인 대기를 즉시 인지하도록 시스템 알람(Info) 생성.
+        // AlarmCreated SignalR 푸시 포함 (2026-08-11 요청). 알람 실패가 가입을 막지 않게 격리.
+        try
+        {
+            await _alarmService.CreateAsync(new AlarmEvent
+            {
+                ClientId = null,   // 시스템 알람 (특정 Client 무관)
+                AlarmType = AlarmEventType.Other,
+                Severity = AlarmSeverity.Info,
+                Title = $"가입 신청: {user.Username}",
+                Message = $"'{user.DisplayName}' ({user.Username}) 가입 승인 대기 — System > 가입 승인에서 처리"
+            });
+        }
+        catch (Exception)
+        {
+            // 알람 생성 실패는 가입 성공에 영향 없음 — 승인 대기 목록에는 정상 표시됨
+        }
 
         return (true, "Registration successful. Please wait for admin approval.");
     }

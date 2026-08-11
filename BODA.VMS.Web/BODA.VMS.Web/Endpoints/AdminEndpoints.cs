@@ -40,7 +40,28 @@ public static class AdminEndpoints
             var success = await userService.ResetPasswordAsync(request.UserId, request.NewPassword);
             return success ? Results.Ok() : Results.NotFound();
         }).AddEndpointFilter<ValidationEndpointFilter<ResetPasswordRequest>>();
+
+        // 승인된 사용자 역할 변경 (2026-08-11) — 마지막 Admin 강등은 서비스가 차단(409)
+        group.MapPut("/users/{userId:int}/role", async (
+            int userId,
+            ChangeRoleRequest request,
+            IUserManagementService userService) =>
+        {
+            if (request.Role is not ("Admin" or "User" or "Guest"))
+                return Results.BadRequest(new { message = "Role must be Admin, User, or Guest" });
+
+            var (success, error) = await userService.ChangeRoleAsync(userId, request.Role);
+            if (success) return Results.Ok();
+            return error == "User not found"
+                ? Results.NotFound()
+                : Results.Conflict(new { message = error });
+        });
     }
+}
+
+public class ChangeRoleRequest
+{
+    public string Role { get; set; } = string.Empty;
 }
 
 public class ResetPasswordRequest

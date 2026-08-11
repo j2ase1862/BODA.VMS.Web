@@ -278,8 +278,10 @@ public static class InspectionItemEndpoints
           .AddEndpointFilter<ValidationEndpointFilter<ParameterResultUploadRequest>>();
 
         // === 관리 엔드포인트 (인증 필요) ===
+        // 검사 기준값은 Guest 비노출 — 조회는 Admin/User, 변형(POST/PUT/DELETE)은
+        // 각 엔드포인트에서 Admin 으로 재강화 (2026-08-11 정책)
         var group = app.MapGroup("/api/parameters")
-            .RequireAuthorization();
+            .RequireAuthorization(policy => policy.RequireRole("Admin", "User"));
 
         // 프리셋 그룹 목록
         group.MapGet("/presets", () =>
