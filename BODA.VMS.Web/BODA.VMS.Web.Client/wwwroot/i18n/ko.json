@@ -736,7 +736,13 @@
     "confirmDeleteRecipeFmt": "레시피 '{0}'와 모든 파라미터를 삭제하시겠습니까?\n되돌릴 수 없습니다.",
     "recipeDeletedFmt": "레시피 '{0}' 삭제됨",
     "recipeDeleteBlocked": "레시피를 참조하는 작업지시가 있어 삭제할 수 없습니다.",
-    "presetAddedFmt": "{0}: {1}개 파라미터 추가됨 (코드 {2}~{3})"
+    "presetAddedFmt": "{0}: {1}개 파라미터 추가됨 (코드 {2}~{3})",
+    "presetPreviewTitleFmt": "{0} 프리셋 미리보기",
+    "presetPreviewText": "아래 {0}개 파라미터가 코드 {1}~{2}로 추가됩니다. 값은 0으로 생성되며, 추가 후 각 행에서 수정할 수 있습니다.",
+    "presetPreviewColCode": "코드",
+    "presetPreviewColDesc": "설명",
+    "presetPreviewColUnit": "단위",
+    "presetPreviewAddFmt": "{0}개 추가"
   },
   "shiftReport": {
     "ngRateLabel": "불량률",

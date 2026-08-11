@@ -736,7 +736,13 @@
     "confirmDeleteRecipeFmt": "Delete recipe '{0}' and all its parameters?\nThis action cannot be undone.",
     "recipeDeletedFmt": "Recipe '{0}' deleted",
     "recipeDeleteBlocked": "Cannot delete: work orders reference this recipe.",
-    "presetAddedFmt": "{0}: {1} parameters added (Code {2}~{3})"
+    "presetAddedFmt": "{0}: {1} parameters added (Code {2}~{3})",
+    "presetPreviewTitleFmt": "{0} Preset Preview",
+    "presetPreviewText": "The following {0} parameters will be added as codes {1}~{2}. Values are created as 0 and can be edited on each row afterwards.",
+    "presetPreviewColCode": "Code",
+    "presetPreviewColDesc": "Description",
+    "presetPreviewColUnit": "Unit",
+    "presetPreviewAddFmt": "Add {0}"
   },
   "shiftReport": {
     "ngRateLabel": "NG Rate",

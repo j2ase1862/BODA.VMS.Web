@@ -281,6 +281,13 @@
             });
         }
 
+        // 미리보기 — 어떤 항목이 어떤 코드로 추가되는지 확인 후 진행
+        var previewParams = new DialogParameters<PresetPreviewDialog> { { x => x.Items, dtos } };
+        var previewDialog = await Dialog.ShowAsync<PresetPreviewDialog>(
+            L.Format("inspection.presetPreviewTitleFmt", group.GroupName), previewParams);
+        var previewResult = await previewDialog.Result;
+        if (previewResult is null || previewResult.Canceled) return;
+
         try
         {
             await Api.PostAsync<List<RecipeParameterDto>, List<RecipeParameterDto>>(
