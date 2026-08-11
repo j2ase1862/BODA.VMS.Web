@@ -316,11 +316,13 @@ public static class InspectionItemEndpoints
         group.MapPost("/", async (
             RecipeParameterDto dto,
             IRecipeParameterService service,
+            IHubContext<VmsPublicHub> hub,
             ILogger<Program> logger) =>
         {
             try
             {
                 var result = await service.CreateAsync(dto);
+                await BroadcastParamsChangedAsync(hub, logger, result.RecipeId);
                 return Results.Created($"/api/parameters/{result.Id}", result);
             }
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE") == true)
@@ -340,11 +342,14 @@ public static class InspectionItemEndpoints
         group.MapPost("/batch", async (
             List<RecipeParameterDto> dtos,
             IRecipeParameterService service,
+            IHubContext<VmsPublicHub> hub,
             ILogger<Program> logger) =>
         {
             try
             {
                 var results = await service.CreateBatchAsync(dtos);
+                foreach (var recipeId in results.Select(r => r.RecipeId).Distinct())
+                    await BroadcastParamsChangedAsync(hub, logger, recipeId);
                 return Results.Created("/api/parameters", results);
             }
             catch (Exception ex)
@@ -359,19 +364,48 @@ public static class InspectionItemEndpoints
         group.MapPut("/{id:int}", async (
             int id,
             RecipeParameterDto dto,
-            IRecipeParameterService service) =>
+            IRecipeParameterService service,
+            IHubContext<VmsPublicHub> hub,
+            ILogger<Program> logger) =>
         {
             var result = await service.UpdateAsync(id, dto);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            if (result is null) return Results.NotFound();
+            await BroadcastParamsChangedAsync(hub, logger, result.RecipeId);
+            return Results.Ok(result);
         }).RequireAuthorization(policy => policy.RequireRole("Admin", "User"))
           .AddEndpointFilter<ValidationEndpointFilter<RecipeParameterDto>>();
 
         // 삭제
-        group.MapDelete("/{id:int}", async (int id, IRecipeParameterService service) =>
+        group.MapDelete("/{id:int}", async (
+            int id,
+            IRecipeParameterService service,
+            IHubContext<VmsPublicHub> hub,
+            ILogger<Program> logger) =>
         {
+            var item = await service.GetByIdAsync(id);   // 삭제 전 RecipeId 확보
             var success = await service.DeleteAsync(id);
+            if (success && item is not null)
+                await BroadcastParamsChangedAsync(hub, logger, item.RecipeId);
             return success ? Results.Ok() : Results.NotFound();
         }).RequireAuthorization(policy => policy.RequireRole("Admin"));
+    }
+
+    /// <summary>
+    /// 파라미터 변경을 연결된 VMS/VisionSetup 에 즉시 푸시 (WorkOrderUpdated 와 동일 패턴).
+    /// 수신 측은 해당 레시피가 로드돼 있으면 캐시를 재동기화한다. 실패해도 요청은 성공 —
+    /// 60초 폴링이 안전망.
+    /// </summary>
+    private static async Task BroadcastParamsChangedAsync(
+        IHubContext<VmsPublicHub> hub, ILogger logger, int recipeId)
+    {
+        try
+        {
+            await hub.Clients.All.SendAsync("RecipeParametersChanged", new { recipeId });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[VmsPublicHub] RecipeParametersChanged broadcast failed");
+        }
     }
 }
 
