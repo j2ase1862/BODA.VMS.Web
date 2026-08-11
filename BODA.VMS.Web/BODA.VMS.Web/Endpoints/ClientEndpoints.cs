@@ -240,6 +240,14 @@ public static class ClientEndpoints
             {
                 return Results.Conflict(ex.Message);
             }
+            catch (DbUpdateException ex)
+            {
+                // 예상 밖 FK 제약 — unhandled 로 흘리면 /Error 재실행에서 405 로 둔갑하므로
+                // 여기서 명확한 상태코드로 끊는다 (2026-08-11 Connections FK 사례)
+                return Results.Problem(
+                    detail: $"레시피 삭제 중 DB 제약 위반: {ex.InnerException?.Message ?? ex.Message}",
+                    statusCode: 500);
+            }
         }).RequireAuthorization(policy => policy.RequireRole("Admin"));
     }
 }

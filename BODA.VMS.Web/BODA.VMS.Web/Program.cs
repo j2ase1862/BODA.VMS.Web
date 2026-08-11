@@ -458,6 +458,10 @@ using (var scope = app.Services.CreateScope())
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE Recipes ADD COLUMN CreatedAt TEXT;");
     }
 
+    // 2-b-2. VisionServer Connections FK 에 ON DELETE CASCADE 보강 — 레시피 삭제가
+    // Cameras→Steps→InspectionTools 연쇄 후 Connections 에서 FK 실패하던 문제의 근본 수정
+    await BODA.VMS.Web.Data.VisionServerSchemaMigrations.EnsureConnectionsCascadeAsync(conn, app.Logger);
+
     // 2-c. Create/Migrate RecipeParameters table (레시피-파라미터 계층 구조)
     // FK가 잘못된 기존 테이블이 있으면 재생성
     using (var cmdFk = conn.CreateCommand())
