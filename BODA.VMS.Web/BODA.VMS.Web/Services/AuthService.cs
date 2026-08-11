@@ -145,7 +145,8 @@ public class AuthService : IAuthService
             Username = user.Username,
             DisplayName = user.DisplayName,
             Role = user.Role,
-            AccessTokenExpiresAt = expiresAt
+            AccessTokenExpiresAt = expiresAt,
+            MustChangePassword = user.MustChangePassword
         };
 
         if (_refresh.ExpireDays > 0)
@@ -228,6 +229,22 @@ public class AuthService : IAuthService
             CreatedAt = user.CreatedAt,
             ApprovedAt = user.ApprovedAt
         };
+    }
+
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(
+        int userId, string currentPassword, string newPassword)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return (false, "사용자를 찾을 수 없습니다");
+
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            return (false, "현재 비밀번호가 올바르지 않습니다");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.MustChangePassword = false;   // 임시 비밀번호 상태 해제
+        // AuditAuthAsync 의 SaveChanges 가 위 변경도 함께 영속화
+        await AuditAuthAsync(AuditAction.PasswordChanged, user.Username, user.Id, "password changed by user");
+        return (true, null);
     }
 
     /// <summary>

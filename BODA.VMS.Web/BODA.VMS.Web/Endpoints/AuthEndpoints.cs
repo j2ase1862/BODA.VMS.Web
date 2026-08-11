@@ -44,6 +44,24 @@ public static class AuthEndpoints
                 : Results.BadRequest(new { message });
         }).AddEndpointFilter<ValidationEndpointFilter<RegisterRequest>>();
 
+        // 본인 비밀번호 변경 (2026-08-11) — 임시 비밀번호 강제 변경 흐름 포함, 모든 역할 허용.
+        group.MapPost("/change-password", async (
+            ChangePasswordRequest request,
+            ClaimsPrincipal user,
+            IAuthService authService) =>
+        {
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+                return Results.Unauthorized();
+
+            var (success, error) = await authService.ChangePasswordAsync(
+                userId, request.CurrentPassword, request.NewPassword);
+            return success
+                ? Results.Ok()
+                : Results.BadRequest(new { message = error });
+        }).AddEndpointFilter<ValidationEndpointFilter<ChangePasswordRequest>>()
+          .RequireAuthorization();
+
         group.MapGet("/me", async (ClaimsPrincipal user, IAuthService authService) =>
         {
             var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;

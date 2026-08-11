@@ -30,4 +30,10 @@ public class User
 
     /// <summary>이 시각 전까지 로그인 차단 (UTC). null 이면 잠금 없음.</summary>
     public DateTime? LockoutUntil { get; set; }
+
+    /// <summary>
+    /// 다음 로그인 시 비밀번호 변경 강제 (임시 비밀번호 발급 시 true — 2026-08-11).
+    /// 변경 완료(/api/auth/change-password) 시 false 로 해제.
+    /// </summary>
+    public bool MustChangePassword { get; set; }
 }

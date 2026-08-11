@@ -260,8 +260,34 @@
             L["action.yes"], L["action.no"]);
         if (result != true) return;
 
-        await Api.PostAsync("/api/admin/reset-password",
-            new { UserId = user.Id, NewPassword = "1234" });
+        // 임시 비밀번호 재설계 (2026-08-11) — 서버가 생성한 임시 비밀번호를
+        // 응답으로 1회만 수신, MessageBox 로 표시해 관리자가 받아 적도록 한다.
+        var response = await Api.PostWithResponseAsync(
+            $"/api/admin/users/{user.Id}/reset-password", new { });
+        if (!response.IsSuccessStatusCode)
+        {
+            Snackbar.Add(L["approval.snackbarResetFailed"], Severity.Warning);
+            return;
+        }
+
+        string? temp = null;
+        try
+        {
+            var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            if (body.TryGetProperty("tempPassword", out var t)) temp = t.GetString();
+        }
+        catch { }
+
+        if (string.IsNullOrEmpty(temp))
+        {
+            Snackbar.Add(L["approval.snackbarResetFailed"], Severity.Warning);
+            return;
+        }
+
+        // 임시 비밀번호는 특수문자 화이트리스트로 생성돼 마크업 안전 (&, <, > 미포함)
+        var message = new MarkupString(
+            L.Format("approval.tempPasswordMsgFmt", user.Username, temp).Replace("\n", "<br/>"));
+        await Dialog.ShowMessageBox(L["approval.resetPasswordTitle"], message, L["action.ok"]);
         Snackbar.Add(L["approval.snackbarResetDone"], Severity.Success);
     }
 

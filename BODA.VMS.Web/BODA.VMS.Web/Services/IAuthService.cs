@@ -14,4 +14,10 @@ public interface IAuthService
 
     Task<(bool Success, string Message)> RegisterAsync(RegisterRequest request);
     Task<UserDto?> GetUserByIdAsync(int userId);
+
+    /// <summary>
+    /// 본인 비밀번호 변경 (2026-08-11) — 현재 비밀번호 검증 후 해시 갱신,
+    /// MustChangePassword 해제. 실패 시 사유 메시지 반환.
+    /// </summary>
+    Task<(bool Success, string? Error)> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
 }

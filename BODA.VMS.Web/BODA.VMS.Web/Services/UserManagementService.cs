@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using Microsoft.EntityFrameworkCore;
@@ -111,13 +112,49 @@ public class UserManagementService : IUserManagementService
         return (true, null);
     }
 
-    public async Task<bool> ResetPasswordAsync(int userId, string newPassword)
+    public async Task<(bool Success, string? TempPassword)> ResetPasswordAsync(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return false;
+        if (user is null) return (false, null);
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        var tempPassword = GenerateTempPassword();
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+        user.MustChangePassword = true;   // 다음 로그인 시 변경 강제
+        user.FailedLoginCount = 0;        // 초기화는 잠금 해제도 겸함
+        user.LockoutUntil = null;
         await _db.SaveChangesAsync();
-        return true;
+        return (true, tempPassword);
+    }
+
+    /// <summary>
+    /// 임시 비밀번호 생성 — 12자, 대문자/소문자/숫자/특수 4종 각 1자 이상 보장
+    /// (KISA 복잡도 정책 충족). 혼동 문자(I/l/O/0/1) 제외, CSPRNG 사용.
+    /// </summary>
+    private static string GenerateTempPassword()
+    {
+        const string upper = "ABCDEFGHJKMNPQRSTUVWXYZ";
+        const string lower = "abcdefghjkmnpqrstuvwxyz";
+        const string digits = "23456789";
+        const string special = "!@#$%^*-_=+";
+        const int length = 12;
+
+        var all = upper + lower + digits + special;
+        var chars = new char[length];
+        chars[0] = Pick(upper);
+        chars[1] = Pick(lower);
+        chars[2] = Pick(digits);
+        chars[3] = Pick(special);
+        for (var i = 4; i < length; i++)
+            chars[i] = Pick(all);
+
+        // Fisher–Yates 셔플 — 문자 종류별 위치가 고정되지 않도록
+        for (var i = length - 1; i > 0; i--)
+        {
+            var j = RandomNumberGenerator.GetInt32(i + 1);
+            (chars[i], chars[j]) = (chars[j], chars[i]);
+        }
+        return new string(chars);
+
+        static char Pick(string set) => set[RandomNumberGenerator.GetInt32(set.Length)];
     }
 }

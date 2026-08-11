@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILocalizer L
+@inject Blazored.LocalStorage.ILocalStorageService Storage
 @implements IDisposable
 
 
@@ -67,6 +68,19 @@
     protected override void OnInitialized()
     {
         L.OnLanguageChanged += HandleLangChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // 임시 비밀번호 상태 — 변경 완료 전까지 /change-password 외 화면 차단 (2026-08-11)
+        var mustChange = await Storage.GetItemAsync<bool>("vms_must_change_pw");
+        if (mustChange &&
+            !Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("change-password", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/change-password");
+        }
     }
 
     private async void HandleLangChanged() => await InvokeAsync(StateHasChanged);

@@ -36,11 +36,15 @@ public static class AdminEndpoints
             return success ? Results.Ok() : Results.NotFound();
         });
 
-        group.MapPost("/reset-password", async (ResetPasswordRequest request, IUserManagementService userService) =>
+        // 비밀번호 초기화 (2026-08-11 재설계) — 서버가 임시 비밀번호 생성,
+        // 평문은 이 응답으로 1회만 노출. 대상 사용자는 다음 로그인 시 변경 강제.
+        group.MapPost("/users/{userId:int}/reset-password", async (
+            int userId,
+            IUserManagementService userService) =>
         {
-            var success = await userService.ResetPasswordAsync(request.UserId, request.NewPassword);
-            return success ? Results.Ok() : Results.NotFound();
-        }).AddEndpointFilter<ValidationEndpointFilter<ResetPasswordRequest>>();
+            var (success, tempPassword) = await userService.ResetPasswordAsync(userId);
+            return success ? Results.Ok(new { tempPassword }) : Results.NotFound();
+        });
 
         // 사용자 삭제 (2026-08-11) — 자기 자신·최초 admin·마지막 Admin 은 409 로 차단
         group.MapDelete("/users/{userId:int}", async (
@@ -80,10 +84,4 @@ public static class AdminEndpoints
 public class ChangeRoleRequest
 {
     public string Role { get; set; } = string.Empty;
-}
-
-public class ResetPasswordRequest
-{
-    public int UserId { get; set; }
-    public string NewPassword { get; set; } = string.Empty;
 }

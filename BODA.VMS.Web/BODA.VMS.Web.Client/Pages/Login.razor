@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject ILocalizer L
+@inject Blazored.LocalStorage.ILocalStorageService Storage
 
 <PageTitle>@L["page.login"] - BODA VMS</PageTitle>
 
@@ -67,7 +68,17 @@
             if (response is not null)
             {
                 await AuthProvider.LoginAsync(response);
-                Navigation.NavigateTo("/", forceLoad: true);
+                if (response.MustChangePassword)
+                {
+                    // 임시 비밀번호 상태 — 비밀번호 변경 완료 전까지 다른 화면 차단
+                    // (MainLayout 이 이 플래그를 보고 /change-password 로 리다이렉트)
+                    await Storage.SetItemAsync("vms_must_change_pw", true);
+                    Navigation.NavigateTo("/change-password", forceLoad: true);
+                }
+                else
+                {
+                    Navigation.NavigateTo("/", forceLoad: true);
+                }
             }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
