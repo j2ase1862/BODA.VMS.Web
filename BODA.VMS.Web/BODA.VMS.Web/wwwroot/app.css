@@ -1381,13 +1381,6 @@ body {
     align-items: start;
 }
 
-/* 레시피 트리 카드는 표보다 살짝 아래에서 시작 — 상단 밀착 방지 (2026-08-12 피드백) */
-.vms-cm-grid > .vms-panel { margin-top: 16px; }
-
-@media (max-width: 1100px) {
-    .vms-cm-grid > .vms-panel { margin-top: 0; }
-}
-
 @media (max-width: 1100px) {
     .vms-cm-grid { grid-template-columns: 1fr; }
 }
