@@ -17,7 +17,8 @@
             <MudText Class="vms-logo ml-2">
                 <span class="navy">BODA</span><span class="vms-logo-accent"> VMS</span>
             </MudText>
-            <MudText Class="vms-logo-sub d-none d-lg-block">Vision Management System</MudText>
+            @* 셸 부제는 버전 라벨 — "Vision Management System" 문구는 로그인/키오스크에만 (2026-08-12 지시) *@
+            <MudText Class="vms-logo-sub d-none d-lg-block">@_versionLabel</MudText>
         </div>
 
         <div class="d-none d-md-flex align-center" style="min-width:0;">
@@ -83,6 +84,13 @@
 
 @code {
     private bool _drawerOpen = false;
+
+    // Directory.Build.props 의 <Version> 이 InformationalVersion 으로 들어온다 (+커밋 해시는 잘라냄)
+    private static readonly string _versionLabel = "VMS " +
+        (typeof(MainLayout).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion?.Split('+')[0] ?? "1.0.0");
 
     protected override void OnInitialized()
     {
