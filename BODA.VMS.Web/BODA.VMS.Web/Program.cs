@@ -1209,10 +1209,11 @@ app.UseStaticFiles(new StaticFileOptions
             else
                 ctx.Context.Response.Headers.CacheControl = "public, max-age=604800, immutable";
         }
-        // CSS/JS with versioning
+        // CSS/JS — 파일명 fingerprint 가 없어 장기 캐시 시 배포 후 최대 24h 옛 스타일이 남는다
+        // (2026-08-12 리디자인 검토 중 실제 발생) → ETag 재검증: 미변경 304, 변경 즉시 반영
         else if (name.EndsWith(".css") || name.EndsWith(".js"))
         {
-            ctx.Context.Response.Headers.CacheControl = "public, max-age=86400";
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=0, must-revalidate";
         }
         // i18n JSON — 항상 최신 (개발 중 키 추가/변경 시 즉시 반영)
         else if (path.StartsWith("/i18n/") && name.EndsWith(".json"))
