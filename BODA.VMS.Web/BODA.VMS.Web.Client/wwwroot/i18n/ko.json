@@ -328,7 +328,8 @@
     "unregisteredCode": "(미등록 — 불량 코드에 추가 필요)",
     "noNgData": "선택한 기간에 NG 데이터가 없습니다.",
     "promptRun": "기간을 선택하고 실행 버튼을 눌러 파레토 분석을 시작하세요.",
-    "seriesCount": "건수"
+    "seriesCount": "건수",
+    "bottomSummaryFmt": "상위 {0}개 코드가 전체 NG의 {1}% — 개선 우선순위"
   },
   "spc": {
     "parameter": "파라미터 코드",

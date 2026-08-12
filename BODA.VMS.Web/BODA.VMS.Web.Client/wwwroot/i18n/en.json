@@ -328,7 +328,8 @@
     "unregisteredCode": "(unregistered — please add to defect codes)",
     "noNgData": "No NG data in the selected period.",
     "promptRun": "Select a period and press Run to start Pareto analysis.",
-    "seriesCount": "Count"
+    "seriesCount": "Count",
+    "bottomSummaryFmt": "Top {0} codes account for {1}% of all NG — improvement priority"
   },
   "spc": {
     "parameter": "Parameter Code",

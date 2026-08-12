@@ -1790,6 +1790,152 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 7b 파레토 분석 — 콤보 차트(막대+누적선+80% 기준선) ---- */
+
+.vms-par-chart {
+    position: relative;
+    height: 300px;
+    margin: 6px 4px 0;
+}
+
+.vms-par-chart svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.vms-par-grid {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px solid #1E293C;
+}
+
+/* 80% 기준선 — 누적 스케일(상단에서 20%) */
+.vms-par-limit {
+    position: absolute;
+    left: 0; right: 0;
+    top: 20%;
+    border-top: 1px dashed #F0564C;
+}
+
+.vms-par-limit-label {
+    position: absolute;
+    right: 0;
+    top: 20%;
+    transform: translateY(-115%);
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    color: #F0564C;
+}
+
+.vms-par-cols {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+}
+
+.vms-par-col {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* 막대 위 건수 — 상위 1위 밝게, 2~3위 중간, 이하 저조도 */
+.vms-par-count {
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-par-count.c1 { color: #E6ECF5; }
+.vms-par-count.c2 { color: #C9D3E0; }
+.vms-par-count.dim { color: #8C96A6; }
+
+.vms-par-bar {
+    width: min(46px, 62%);
+    background: #5B9BE0;
+    border-radius: 3px 3px 0 0;
+}
+
+/* 누적선 오렌지 2.5px + 지점 r4 */
+.vms-par-line {
+    fill: none;
+    stroke: #FF7A3D;
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.vms-par-pt {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #FF7A3D;
+    transform: translate(-50%, -50%);
+}
+
+/* 하단 축 라벨 — NG 코드 모노 12px */
+.vms-par-x {
+    display: flex;
+    margin: 8px 4px 0;
+}
+
+.vms-par-x span {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    color: var(--vms-text-mono-caption);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-par-code { font-weight: 700; color: var(--vms-link); }
+
+.vms-par-unreg { font-style: italic; color: #8C96A6; }
+
+/* 누적 열 — 인라인 바(임계값 색) + 모노 수치 */
+.vms-cum-cell {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    min-width: 120px;
+}
+
+.vms-cum-track {
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: #243349;
+    overflow: hidden;
+}
+
+.vms-cum-fill { height: 100%; border-radius: 3px; }
+.vms-cum-fill.hot { background: #F0564C; }
+.vms-cum-fill.mid { background: #E0A32E; }
+.vms-cum-fill.low { background: #5B9BE0; }
+
+.vms-cum-value {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
 /* 부분군 표 이탈 배지 — X̄·R 동시 이탈 시 복수 표시 */
 .vms-ooc-badge + .vms-ooc-badge { margin-left: 6px; }
 
