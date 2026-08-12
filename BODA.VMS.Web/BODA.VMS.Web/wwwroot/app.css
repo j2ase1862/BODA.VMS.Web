@@ -1655,6 +1655,141 @@ body {
     color: var(--vms-text-mono-caption);
 }
 
+/* ---- 6b OEE 분석 — 저채도 팔레트 (카드 다수 배치, 원색 금지) ---- */
+
+.vms-oee-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(340px, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 760px) {
+    .vms-oee-grid { grid-template-columns: 1fr; }
+}
+
+.vms-oee-card {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 등급 — 상단 3px 띠 + 대형 수치 색 (테두리는 진한 톤, 텍스트는 밝은 톤) */
+.vms-oee-card.g-ok   { border-top: 3px solid #4E8C63 !important; }
+.vms-oee-card.g-info { border-top: 3px solid #3C5F80 !important; }
+.vms-oee-card.g-warn { border-top: 3px solid #8A6E37 !important; }
+.vms-oee-card.g-bad  { border-top: 3px solid #A8443C !important; }
+
+.vms-oee-card.g-ok   .vms-oee-value { color: #7FA98C; }
+.vms-oee-card.g-info .vms-oee-value { color: #7FA6CC; }
+.vms-oee-card.g-warn .vms-oee-value { color: #C9A05A; }
+.vms-oee-card.g-bad  .vms-oee-value { color: #C4756E; }
+
+.vms-oee-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vms-oee-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-oee-idx {
+    font-family: var(--vms-font-mono);
+    color: var(--vms-link);
+}
+
+.vms-oee-big {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.vms-oee-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-oee-value {
+    font-family: var(--vms-font-mono);
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* A / P / Q 3분할 */
+.vms-oee-apq {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.vms-oee-apq-cell {
+    background: #0C121D;
+    border-radius: 8px;
+    padding: 9px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.vms-oee-apq-label {
+    font-size: 10px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-oee-apq-value {
+    font-family: var(--vms-font-mono);
+    font-size: 16px;
+    color: #E6ECF5;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 상태 분포 스택 바 — 가동/대기/정지 저채도 */
+.vms-oee-bar {
+    display: flex;
+    height: 14px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #243349;
+}
+
+.vms-oee-bar .seg.run  { background: #4E8C63; }
+.vms-oee-bar .seg.idle { background: #8A6E37; }
+.vms-oee-bar .seg.down { background: #A8443C; }
+
+.vms-oee-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10.5px;
+}
+
+.vms-oee-legend .run  { color: #7FA98C; }
+.vms-oee-legend .idle { color: #B39A6A; }
+.vms-oee-legend .down { color: #C4756E; }
+
+.vms-oee-foot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--mud-palette-text-primary);
+    border-top: 1px solid var(--vms-hairline);
+    padding-top: 10px;
+    margin-top: 2px;
+}
+
+.vms-oee-foot .pass { color: #7FA98C; }
+.vms-oee-foot .ng   { color: #C4756E; }
+
 /* 부분군 표 이탈 배지 — X̄·R 동시 이탈 시 복수 표시 */
 .vms-ooc-badge + .vms-ooc-badge { margin-left: 6px; }
 
