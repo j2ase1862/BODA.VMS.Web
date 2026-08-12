@@ -257,7 +257,12 @@
     "ackedFmt": "확인 처리됨: {0}",
     "resolvedFmt": "해제 처리됨: {0}",
     "resolveTitleFmt": "해제 — {0}",
-    "currentWorkingSince": "근무중"
+    "currentWorkingSince": "근무중",
+    "last24hFmt": "최근 24시간 {0}건",
+    "ackAll": "모두 확인",
+    "ackAllDoneFmt": "{0}건 확인 처리됨",
+    "actAck": "확인",
+    "actResolve": "해제"
   },
   "oee": {
     "formulaAlert": "OEE = 가용성 × 성능 × 품질. 가용성 = (가동+대기)/기간 · 성능 = 가동/(가동+대기) · 품질 = 합격/전체. 상태 로그가 없는 기간은 보수적으로 정지로 간주됩니다.",

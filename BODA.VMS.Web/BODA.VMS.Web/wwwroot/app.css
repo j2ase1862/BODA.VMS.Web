@@ -1248,6 +1248,129 @@ body {
 
 .vms-pager-btn:disabled { opacity: 0.35; cursor: default; }
 
+/* ---- 5a 알람 관리 ---- */
+
+/* 페이지 헤더 — 좌: 타이틀+부제(최근 24시간 건수), 우: '모두 확인' */
+.vms-page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.vms-page-head .vms-page-title,
+.vms-page-head .vms-page-title.mud-typography {
+    display: block;
+    margin-bottom: 2px !important;
+}
+
+.vms-page-sub {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--vms-text-mono-caption);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 요약 3카드 — 좌측 3px 색띠는 반드시 3색 구분 (README 5a) */
+.vms-sum-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 900px) {
+    .vms-sum-grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+/* 색 이름 클래스(orange/red 등)는 MudBlazor 팔레트 헬퍼와 충돌 — band-* 로 명명 */
+.vms-sum-card.band-new { border-left: 3px solid var(--vms-primary) !important; }
+.vms-sum-card.band-ack { border-left: 3px solid var(--vms-link) !important; }
+
+.vms-sum-card.band-crit {
+    border: 1px solid rgba(240, 86, 76, 0.32) !important;
+    border-left: 3px solid #F0564C !important;
+    background: rgba(240, 86, 76, 0.09) !important;
+}
+
+.vms-sum-card.band-crit .vms-sum-label,
+.vms-sum-card.band-crit .vms-sum-value { color: #F0564C; }
+
+/* 심각도 모노 배지 — CRITICAL / MAJOR / MINOR */
+.vms-sev-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-sev-badge.crit { background: rgba(240, 86, 76, 0.16); color: #F0564C; }
+.vms-sev-badge.warn { background: rgba(138, 110, 55, 0.22); color: #C2A469; }
+.vms-sev-badge.info { background: rgba(91, 155, 224, 0.14); color: #5B9BE0; }
+
+/* 유형 연한 칩 */
+.vms-type-chip {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--vms-hairline);
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+/* 처리 상태 칩 — 신규 오렌지 / 확인 블루 / 해제 그린 */
+.vms-state-chip {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-state-chip.st-new { background: rgba(255, 122, 61, 0.16); color: var(--vms-primary); }
+.vms-state-chip.st-ack { background: rgba(91, 155, 224, 0.14); color: var(--vms-link); }
+.vms-state-chip.st-res { background: rgba(61, 208, 104, 0.14); color: #3DD068; }
+
+/* 내용 셀 — 제목 13px/600 + 메시지 11.5px 2행 클램프 */
+.vms-cell-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-cell-msg {
+    font-size: 11.5px;
+    color: var(--mud-palette-text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 320px;
+    white-space: normal;
+}
+
+/* 확인/해제 셀 — 이름 + 모노 시각, 조치 내용은 그린 */
+.vms-cell-who { font-size: 12px; color: var(--mud-palette-text-primary); }
+
+.vms-cell-when {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-cell-resolution {
+    font-size: 11.5px;
+    color: #3DD068;
+    margin-top: 2px;
+    max-width: 220px;
+    white-space: normal;
+}
+
+.vms-cell-empty { color: var(--vms-text-mono-caption); }
+
 /* ---- Monospace 수치 — 링크/식별자 블루 ---- */
 .vms-mono {
     font-family: var(--vms-font-mono);

@@ -8,8 +8,9 @@
 
 <MudLayout>
     @* 3a 공통 셸 (2026-08-12) — 58px 상단바: 로고 + 데스크톱 pill 내비(TopNav),
-       우측 시각 → 다크/언어 → ALM 배지 → 알림 벨 → 사용자.
-       md 미만은 햄버거 + MudDrawer(Temporary) 폴백 — pill은 데스크톱 전용. *@
+       우측 시각 → 다크/언어 → ALM 배지 → 사용자.
+       md 미만은 햄버거 + MudDrawer(Temporary) 폴백 — pill은 데스크톱 전용.
+       알림 벨은 5a 에서 제거 — ALM 배지가 유일한 알람 진입점, '모두 확인'은 /alarms 헤더로 이동. *@
     <MudAppBar Elevation="0" Dense="true" Class="vms-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                        Class="d-md-none" OnClick="@ToggleDrawer" />
@@ -38,7 +39,6 @@
         <AuthorizeView>
             <Authorized>
                 <AlarmBadge />
-                <NotificationBell />
                 <MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                     <ActivatorContent>
                         <button type="button" class="vms-user-chip" title="@context.User.Identity?.Name">

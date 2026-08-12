@@ -257,7 +257,12 @@
     "ackedFmt": "Acknowledged: {0}",
     "resolvedFmt": "Resolved: {0}",
     "resolveTitleFmt": "Resolve — {0}",
-    "currentWorkingSince": "Active"
+    "currentWorkingSince": "Active",
+    "last24hFmt": "{0} in the last 24 hours",
+    "ackAll": "Acknowledge all",
+    "ackAllDoneFmt": "{0} alarm(s) acknowledged",
+    "actAck": "Ack",
+    "actResolve": "Resolve"
   },
   "oee": {
     "formulaAlert": "OEE = Availability × Performance × Quality. Availability = (Running+Idle)/Period · Performance = Running/(Running+Idle) · Quality = Pass/Total. Periods without status logs are conservatively treated as Down.",

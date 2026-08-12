@@ -9,47 +9,70 @@
 
 <PageTitle>@L["page.alarms"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.alarms"]</MudText>
-
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px;" class="mb-3">
-    <div class="vms-panel pa-3" style="border-left: 4px solid var(--mud-palette-error);">
-        <div style="font-size:11px; text-transform:uppercase; color: var(--vms-text-secondary);">@L["alarms.summaryNew"]</div>
-        <div style="font-size:28px; font-weight:700; font-family: 'Roboto Mono', monospace;">@_summary?.NewCount</div>
+@* 5a — 헤더: 부제는 최근 24시간 건수(사용자에게 의미 있는 정보만),
+   우측 '모두 확인'은 NotificationBell 제거에 따라 이 페이지로 이동 (README 5a 구현 노트) *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.alarms"]</MudText>
+        @if (_last24h >= 0)
+        {
+            <div class="vms-page-sub">@L.Format("alarms.last24hFmt", _last24h)</div>
+        }
     </div>
-    <div class="vms-panel pa-3" style="border-left: 4px solid var(--mud-palette-warning);">
-        <div style="font-size:11px; text-transform:uppercase; color: var(--vms-text-secondary);">@L["alarms.summaryAck"]</div>
-        <div style="font-size:28px; font-weight:700; font-family: 'Roboto Mono', monospace;">@_summary?.AckCount</div>
-    </div>
-    <div class="vms-panel pa-3" style="border-left: 4px solid var(--mud-palette-error);">
-        <div style="font-size:11px; text-transform:uppercase; color: var(--vms-text-secondary);">@L["alarms.summaryCritical"]</div>
-        <div style="font-size:28px; font-weight:700; font-family: 'Roboto Mono', monospace; color: var(--mud-palette-error);">
-            @_summary?.CriticalCount
-        </div>
-    </div>
+    <AuthorizeView Roles="Admin,User" Context="auth">
+        <Authorized>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.DoneAll"
+                       OnClick="AcknowledgeAll" Disabled="@(_processing || (_summary?.NewCount ?? 0) == 0)"
+                       Class="vms-btn">
+                @L["alarms.ackAll"]
+            </MudButton>
+        </Authorized>
+    </AuthorizeView>
 </div>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudSelect T="string?" @bind-Value="_state" Label="@(L["alarms.filterState"])" Clearable="true"
+@* 요약 3카드 — 좌측 3px 색띠 3색 구분(신규 오렌지 / 확인 블루 / Critical 적), Critical 만 배경·테두리 강조 *@
+<div class="vms-sum-grid cols-3 mb-4">
+    <MudPaper Class="vms-panel vms-sum-card band-new">
+        <span class="vms-sum-label">@L["alarms.summaryNew"]</span>
+        <span class="vms-sum-value">@(_summary?.NewCount ?? 0)</span>
+    </MudPaper>
+    <MudPaper Class="vms-panel vms-sum-card band-ack">
+        <span class="vms-sum-label">@L["alarms.summaryAck"]</span>
+        <span class="vms-sum-value">@(_summary?.AckCount ?? 0)</span>
+    </MudPaper>
+    <MudPaper Class="vms-panel vms-sum-card band-crit">
+        <span class="vms-sum-label">@L["alarms.summaryCritical"]</span>
+        <span class="vms-sum-value">@(_summary?.CriticalCount ?? 0)</span>
+    </MudPaper>
+</div>
+
+@* 필터 바 — 4b 공통 패턴: 외부 모노 라벨 + 주 액션(검색) 오렌지 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["alarms.filterState"]</label>
+            <MudSelect T="string?" @bind-Value="_state" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("New")">@L["status.new"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Ack")">@L["status.ack"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Resolved")">@L["status.resolved"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="string?" @bind-Value="_severity" Label="@(L["alarms.filterSeverity"])" Clearable="true"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["alarms.filterSeverity"]</label>
+            <MudSelect T="string?" @bind-Value="_severity" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Critical")">@L["status.critical"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Major")">@L["status.major"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Minor")">@L["status.minor"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="string?" @bind-Value="_type" Label="@(L["alarms.filterType"])" Clearable="true"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["alarms.filterType"]</label>
+            <MudSelect T="string?" @bind-Value="_type" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("NG")">@L["alarms.typeNG"]</MudSelectItem>
@@ -57,14 +80,12 @@
                 <MudSelectItem T="string?" Value="@("HighNgRate")">@L["alarms.typeHighNgRate"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Other")">@L["alarms.typeOther"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Search"
-                       OnClick="Load" Class="vms-btn">@L["action.search"]</MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Search"
+                   OnClick="Load" Class="vms-btn">@L["action.search"]</MudButton>
+    </div>
+</MudPaper>
 
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
@@ -81,91 +102,74 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <span class="vms-mono" style="font-size:12px;">
+                <span class="vms-mono-dim">
                     @context.OccurredAt.ToLocalTime().ToString("MM-dd HH:mm:ss")
                 </span>
             </MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                         Color="@TypeColor(context.AlarmType)">
-                    @TypeLabel(context.AlarmType)
-                </MudChip>
+                <span class="vms-type-chip">@TypeLabel(context.AlarmType)</span>
             </MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                         Color="@SevColor(context.Severity)">
-                    @SevLabel(context.Severity)
-                </MudChip>
+                <span class="vms-sev-badge @SevClass(context.Severity)">@context.Severity.ToUpperInvariant()</span>
             </MudTd>
             <MudTd>
                 @if (context.ClientName is not null)
                 {
-                    <span style="font-size:12px;">
-                        #@context.ClientIndex?.ToString("D2") @context.ClientName
-                    </span>
+                    <span class="vms-mono-dim">#@context.ClientIndex?.ToString("D2")</span>
+                    <span style="font-size:12.5px;"> @context.ClientName</span>
                 }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
             <MudTd>
                 <div>
-                    <MudText Typo="Typo.body2" Style="font-weight:600;">@context.Title</MudText>
+                    <div class="vms-cell-title">@context.Title</div>
                     @if (!string.IsNullOrEmpty(context.Message))
                     {
-                        <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);">@context.Message</MudText>
+                        <div class="vms-cell-msg">@context.Message</div>
                     }
                 </div>
             </MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small"
-                         Color="@StateColor(context.State)"
-                         Variant="@(context.State == "New" ? Variant.Filled : Variant.Outlined)">
-                    @StateLabel(context.State)
-                </MudChip>
+                <span class="vms-state-chip @StateClass(context.State)">@StateLabel(context.State)</span>
             </MudTd>
             <MudTd>
                 @if (context.AcknowledgedAt.HasValue)
                 {
-                    <div style="font-size:11px;">
-                        <div>@context.AcknowledgedByName</div>
-                        <div style="color: var(--vms-text-secondary);">
-                            @context.AcknowledgedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")
-                        </div>
+                    <div class="vms-cell-who">@context.AcknowledgedByName</div>
+                    <div class="vms-cell-when">
+                        @context.AcknowledgedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")
                     </div>
                 }
-                else { <span style="color: var(--vms-text-secondary);">—</span> }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
             <MudTd>
                 @if (context.ResolvedAt.HasValue)
                 {
-                    <div style="font-size:11px;">
-                        <div>@context.ResolvedByName</div>
-                        <div style="color: var(--vms-text-secondary);">
-                            @context.ResolvedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")
-                        </div>
-                        @if (!string.IsNullOrEmpty(context.Resolution))
-                        {
-                            <div style="color: var(--mud-palette-success); margin-top:2px; max-width:200px; white-space: normal;">
-                                @context.Resolution
-                            </div>
-                        }
+                    <div class="vms-cell-who">@context.ResolvedByName</div>
+                    <div class="vms-cell-when">
+                        @context.ResolvedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")
                     </div>
+                    @if (!string.IsNullOrEmpty(context.Resolution))
+                    {
+                        <div class="vms-cell-resolution">@context.Resolution</div>
+                    }
                 }
-                else { <span style="color: var(--vms-text-secondary);">—</span> }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
             <MudTd Style="text-align:right; white-space:nowrap;">
                 @{ var row = context; }
                 <AuthorizeView Roles="Admin,User" Context="auth">
                     <Authorized>
+                        @* 해결된 행은 액션 없음 — 텍스트 링크 #5B9BE0 (README 표 패턴) *@
                         @if (row.ResolvedAt is null)
                         {
                             @if (row.AcknowledgedAt is null)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small"
-                                               Color="Color.Info"
-                                               OnClick="@(() => Acknowledge(row))" />
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                           OnClick="@(() => Acknowledge(row))">@L["alarms.actAck"]</MudButton>
                             }
-                            <MudIconButton Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Small"
-                                           Color="Color.Success"
-                                           OnClick="@(() => Resolve(row))" />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                       OnClick="@(() => Resolve(row))">@L["alarms.actResolve"]</MudButton>
                         }
                     </Authorized>
                 </AuthorizeView>
@@ -188,6 +192,8 @@
     private List<AlarmEventDto> _items = new();
     private AlarmSummaryDto? _summary;
     private bool _loading;
+    private bool _processing;
+    private int _last24h = -1;
     private string? _state = "New";
     private string? _severity;
     private string? _type;
@@ -213,6 +219,12 @@
             var page = await Api.GetAsync<PagedResult<AlarmEventDto>>(url);
             _items = page?.Items ?? new();
             _summary = await Api.GetAsync<AlarmSummaryDto>("/api/alarms/summary");
+
+            // 헤더 부제용 최근 24시간 발생 건수 — 기존 목록 API 의 startDate 필터 + TotalCount 재사용
+            var since = DateTime.UtcNow.AddHours(-24).ToString("yyyy-MM-ddTHH:mm:ss");
+            var recent = await Api.GetAsync<PagedResult<AlarmEventDto>>(
+                $"/api/alarms?startDate={since}&pageSize=1");
+            _last24h = recent?.TotalCount ?? -1;
         }
         catch (HttpRequestException ex)
         {
@@ -222,6 +234,22 @@
     }
 
     private async void HandleAlarmChanged(AlarmEventDto a) => await InvokeAsync(Load);
+
+    private async Task AcknowledgeAll()
+    {
+        _processing = true;
+        try
+        {
+            var result = await Api.PostAsync<object, AckAllResponse>("/api/alarms/acknowledge-all", new { });
+            Snackbar.Add(L.Format("alarms.ackAllDoneFmt", result?.Acknowledged ?? 0), Severity.Success);
+            await Load();
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
+        }
+        finally { _processing = false; }
+    }
 
     private async Task Acknowledge(AlarmEventDto a)
     {
@@ -271,14 +299,6 @@
         _ => L["alarms.typeOther"]
     };
 
-    private string SevLabel(string s) => s switch
-    {
-        "Critical" => L["status.critical"],
-        "Major" => L["status.major"],
-        "Minor" => L["status.minor"],
-        _ => s
-    };
-
     private string StateLabel(string s) => s switch
     {
         "New" => L["status.new"],
@@ -287,33 +307,29 @@
         _ => s
     };
 
-    private static Color SevColor(string sev) => sev switch
+    private static string SevClass(string sev) => sev switch
     {
-        "Critical" => Color.Error,
-        "Major" => Color.Warning,
-        "Minor" => Color.Info,
-        _ => Color.Default
+        "Critical" => "crit",
+        "Major" => "warn",
+        _ => "info"
     };
 
-    private static Color TypeColor(string t) => t switch
+    private static string StateClass(string s) => s switch
     {
-        "NG" => Color.Error,
-        "Offline" => Color.Warning,
-        "HighNgRate" => Color.Error,
-        _ => Color.Default
-    };
-
-    private static Color StateColor(string s) => s switch
-    {
-        "New" => Color.Error,
-        "Ack" => Color.Warning,
-        "Resolved" => Color.Success,
-        _ => Color.Default
+        "New" => "st-new",
+        "Ack" => "st-ack",
+        "Resolved" => "st-res",
+        _ => "st-ack"
     };
 
     public void Dispose()
     {
         SignalR.OnAlarmCreated -= HandleAlarmChanged;
         SignalR.OnAlarmUpdated -= HandleAlarmChanged;
+    }
+
+    private class AckAllResponse
+    {
+        public int Acknowledged { get; set; }
     }
 }
