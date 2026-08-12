@@ -186,6 +186,15 @@
     "failed": "로그인 실패. 다시 시도해주세요.",
     "footerNote": "관리자 승인 후 사용 가능"
   },
+  "register": {
+    "approvalNote": "가입 후 관리자 승인이 완료되어야 로그인할 수 있습니다.",
+    "displayName": "표시 이름",
+    "pwPolicy": "8자 이상 + 대문자·소문자·숫자·특수문자 중 3종, 또는 10자 이상 + 2종",
+    "submit": "가입 신청",
+    "haveAccount": "이미 계정이 있으신가요? 로그인",
+    "successMsg": "가입 신청 완료 — 관리자 승인 후 로그인할 수 있습니다.",
+    "failedMsg": "가입 신청에 실패했습니다. 다시 시도해주세요."
+  },
   "home": {
     "totalClients": "전체 클라이언트",
     "onlineFmt": "{0} 온라인",

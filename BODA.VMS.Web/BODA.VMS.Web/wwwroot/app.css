@@ -1790,6 +1790,30 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 9b 회원가입 — 비밀번호 강도 바 (4분할 3px, 충족 단계만 그린) ---- */
+
+.vms-pw-meter {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.vms-pw-seg {
+    height: 3px;
+    border-radius: 2px;
+    background: #243349;
+    transition: background 0.2s var(--vms-ease);
+}
+
+.vms-pw-seg.on { background: #4E8C63; }
+
+.vms-pw-policy {
+    font-size: 11.5px;
+    color: var(--mud-palette-text-secondary);
+    margin-top: 6px;
+}
+
 /* ---- 8b CRUD 공통 다이얼로그 / 피드백 ---- */
 
 /* 폼 다이얼로그 프레임 — 카드 radius 14, 깊은 그림자, 헤더/푸터 구분선 */

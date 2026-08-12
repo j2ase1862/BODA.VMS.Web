@@ -186,6 +186,15 @@
     "failed": "Login failed. Please try again.",
     "footerNote": "Admin approval required"
   },
+  "register": {
+    "approvalNote": "Your account requires admin approval before you can sign in.",
+    "displayName": "Display Name",
+    "pwPolicy": "8+ chars with 3 of upper/lower/digit/special, or 10+ chars with 2 types",
+    "submit": "Register",
+    "haveAccount": "Already have an account? Sign in",
+    "successMsg": "Registration submitted — you can sign in after admin approval.",
+    "failedMsg": "Registration failed. Please try again."
+  },
   "home": {
     "totalClients": "Total Clients",
     "onlineFmt": "{0} online",
