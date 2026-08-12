@@ -25,14 +25,18 @@
                     </LayoutView>
                 </NotFound>
             </Router>
+
+            @* 팝오버/다이얼로그 콘텐츠는 이 프로바이더 하위에서 렌더된다 —
+               내부의 AuthorizeView가 인증 캐스케이드를 받도록 반드시
+               CascadingAuthenticationState 안쪽에 둘 것 (TopNav 드롭다운 권한 게이트, 2026-08-12) *@
+            <MudPopoverProvider />
+            <MudDialogProvider />
+            <MudSnackbarProvider />
         </CascadingValue>
     </CascadingValue>
 </CascadingAuthenticationState>
 
 <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
 
 @code {
     private bool _isDarkMode = false;

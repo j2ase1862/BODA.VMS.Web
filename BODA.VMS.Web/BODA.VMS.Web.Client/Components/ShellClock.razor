@@ -1,0 +1,20 @@
+@implements IDisposable
+
+@* 3a 공통 셸 — 우측 현재 시각 (모노 11px). 교대 표시는 데이터 소스 부재로 이번 단계 생략 (2026-08-12 지시). *@
+<span class="vms-shell-clock">@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+
+@code {
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new System.Threading.Timer(_ =>
+        {
+            _now = DateTime.Now;
+            _ = InvokeAsync(StateHasChanged);
+        }, null, 1000 - DateTime.Now.Millisecond, 1000);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

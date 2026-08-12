@@ -9,6 +9,7 @@
     "subtitle": "Vision Management System"
   },
   "menu": {
+    "almBadge": "ALM",
     "monitoring": "현장 모니터링",
     "production": "생산 관리",
     "quality": "품질 관리",

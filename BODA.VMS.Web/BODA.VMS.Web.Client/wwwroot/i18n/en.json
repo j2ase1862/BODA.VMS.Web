@@ -9,6 +9,7 @@
     "subtitle": "Vision Management System"
   },
   "menu": {
+    "almBadge": "ALM",
     "monitoring": "Monitoring",
     "production": "Production",
     "quality": "Quality",
