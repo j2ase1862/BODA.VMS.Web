@@ -958,6 +958,7 @@
   "andon": {
     "predictiveInsights": "예측 사전 경보",
     "noInsights": "임계 초과 라인 없음",
+    "noActiveWo": "활성 작업지시 없음",
     "insightHigh": "위험",
     "insightMedium": "주의"
   }

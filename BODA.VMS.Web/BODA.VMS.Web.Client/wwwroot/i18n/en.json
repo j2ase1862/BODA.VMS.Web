@@ -958,6 +958,7 @@
   "andon": {
     "predictiveInsights": "Predictive Insights",
     "noInsights": "No lines exceeding threshold",
+    "noActiveWo": "No active work order",
     "insightHigh": "HIGH",
     "insightMedium": "WARN"
   }
