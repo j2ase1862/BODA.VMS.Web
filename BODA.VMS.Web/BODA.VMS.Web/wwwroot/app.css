@@ -1371,6 +1371,122 @@ body {
 
 .vms-cell-empty { color: var(--vms-text-mono-caption); }
 
+/* ---- 5b 클라이언트 관리 ---- */
+
+/* 본문 7fr/5fr — 좌 표 / 우 레시피 구성 트리 */
+.vms-cm-grid {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 14px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .vms-cm-grid { grid-template-columns: 1fr; }
+}
+
+/* 순번 — 8px LED 뒤 모노 블루 #01 */
+.vms-cm-index {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    color: var(--vms-link);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 트리에 표시 중인 클라이언트 행 강조 */
+.vms-table .mud-table-row.vms-cm-row-sel { background: rgba(255, 122, 61, 0.06); }
+
+/* 표 하단 슬롯 안내 — 모노 10.5px */
+.vms-slots-info {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
+    padding: 12px 20px;
+    letter-spacing: 0.04em;
+}
+
+/* 삭제 등 파괴 액션 텍스트 */
+.vms-row-action.danger { color: #F0564C !important; }
+.vms-row-action.danger:hover { color: #FF7A6B !important; }
+
+/* 레시피 구성 트리 — MudTreeView 대체 커스텀 스타일 (README 5b) */
+.vms-rt-recipe {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 8px 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    border-radius: 0 8px 8px 0;
+}
+
+.vms-rt-recipe:hover { background: rgba(255, 122, 61, 0.05); }
+
+.vms-rt-recipe.sel {
+    background: rgba(255, 122, 61, 0.08);
+    border-left: 2px solid var(--vms-primary);
+}
+
+.vms-rt-caret { color: var(--vms-text-mono-caption); font-size: 12px; width: 14px; }
+.vms-rt-caret.open { color: var(--vms-primary); }
+
+/* 스텝 없는 레시피 — 펼침 불가, 커서·hover 배경 없음 */
+.vms-rt-recipe.leaf { cursor: default; }
+.vms-rt-recipe.leaf:hover { background: transparent; }
+
+.vms-rt-desc {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-rt-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-rt-stepbadge {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--vms-text-mono-caption);
+    white-space: nowrap;
+}
+
+.vms-rt-step {
+    padding: 5px 12px 5px 32px;
+    font-size: 13px;
+    color: #C9D3E0;
+}
+
+.vms-rt-step-caret { color: var(--vms-link); font-size: 11px; margin-right: 4px; }
+
+.vms-rt-tool {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 12px 3px 56px;
+    font-size: 12.5px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-rt-tool-marker {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    background: var(--vms-text-mono-caption);
+    flex: 0 0 auto;
+}
+
 /* ---- Monospace 수치 — 링크/식별자 블루 ---- */
 .vms-mono {
     font-family: var(--vms-font-mono);

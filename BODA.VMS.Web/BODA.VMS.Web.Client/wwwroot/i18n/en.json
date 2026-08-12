@@ -543,7 +543,15 @@
     "snackbarUpdateFailedFmt": "Update failed: {0}",
     "snackbarDeleteFailedFmt": "Delete failed: {0}",
     "snackbarDeleteBlocked": "This client has linked data (inspection history, etc.) and cannot be deleted. Deactivate it instead.",
-    "lastSeen": "Last seen"
+    "lastSeen": "Last seen",
+    "subCountFmt": "{0} registered · {1} online",
+    "colRecipes": "Recipes",
+    "actView": "View",
+    "actEdit": "Edit",
+    "actDelete": "Delete",
+    "slotsFmt": "Up to 10 clients · {0} slot(s) free",
+    "treeHeader": "Recipe Structure",
+    "treeSelectPrompt": "Select a client from the table"
   },
   "warehouse": {
     "header": "Inbound Location Master",

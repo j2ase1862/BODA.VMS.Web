@@ -7,128 +7,164 @@
 
 <PageTitle>@L["page.clients"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.clients"]</MudText>
-
-<div class="vms-table">
-    <MudTable Items="_clients" Dense="true" Hover="true" Loading="_loading" Elevation="0">
-        <ToolBarContent>
-            <MudText Class="vms-panel-header">@L["client.headerRegistered"]</MudText>
-            <MudSpacer />
-            <AuthorizeView Roles="Admin,User">
-                <Authorized>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
-                               OnClick="OpenCreateDialog"
-                               Class="vms-btn">
-                        @L["client.btnCreate"]
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-        </ToolBarContent>
-        <HeaderContent>
-            <MudTh>@L["client.colIndex"]</MudTh>
-            <MudTh>@L["common.name"]</MudTh>
-            <MudTh Class="d-none d-sm-table-cell">@L["client.colIp"]</MudTh>
-            <MudTh Class="d-none d-sm-table-cell">@L["client.lastSeen"]</MudTh>
-            <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>
-                <div class="d-flex align-center gap-2">
-                    @if (_aliveStatus.GetValueOrDefault(context.Id))
-                    {
-                        <span class="vms-status-dot online"></span>
-                    }
-                    else
-                    {
-                        <span class="vms-status-dot offline"></span>
-                    }
-                    <MudText Style="font-family: 'Roboto Mono', monospace; color: var(--vms-accent-light);">
-                        #@context.ClientIndex.ToString("D2")
-                    </MudText>
-                </div>
-            </MudTd>
-            <MudTd>
-                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
-                <MudText Typo="Typo.caption" Class="d-sm-none" Style="color: var(--vms-text-secondary);">
-                    @context.IpAddress
-                </MudText>
-            </MudTd>
-            <MudTd Class="d-none d-sm-table-cell"><span class="vms-mono">@context.IpAddress</span></MudTd>
-            <MudTd Class="d-none d-sm-table-cell">
-                <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
-                    @(context.LastSeenAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "—")
-                </MudText>
-            </MudTd>
-            <MudTd Style="text-align: right; white-space: nowrap;">
-                <MudIconButton Icon="@Icons.Material.Filled.Info" Size="Size.Small"
-                               Color="Color.Primary"
-                               OnClick="@(() => ShowRecipes(context))" />
-                <AuthorizeView Roles="Admin,User">
-                    <Authorized Context="authContext1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       Color="Color.Default"
-                                       OnClick="@(() => OpenEditDialog(context))" />
-                    </Authorized>
-                </AuthorizeView>
-                <AuthorizeView Roles="Admin">
-                    <Authorized Context="authContext2">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteClient(context))" />
-                    </Authorized>
-                </AuthorizeView>
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large"
-                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["client.noClients"]</MudText>
-            </div>
-        </NoRecordsContent>
-    </MudTable>
+@* 5b — 헤더: 등록/온라인 수 부제 + 우측 클라이언트 등록(오렌지) *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.clients"]</MudText>
+        <div class="vms-page-sub">@L.Format("client.subCountFmt", _clients.Count, OnlineCount)</div>
+    </div>
+    <AuthorizeView Roles="Admin,User">
+        <Authorized>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog"
+                       Class="vms-btn">
+                @L["client.btnCreate"]
+            </MudButton>
+        </Authorized>
+    </AuthorizeView>
 </div>
 
-@if (_selectedRecipes is not null)
-{
-    <MudPaper Class="vms-panel pa-5 mt-4">
-        <MudText Class="vms-panel-header mb-3">@L.Format("client.recipesTitleFmt", _selectedClientName)</MudText>
-        @if (_selectedRecipes.Count == 0)
+@* 본문 7fr/5fr — 좌: 클라이언트 표, 우: 레시피 구성 트리 *@
+<div class="vms-cm-grid">
+    <div class="vms-table">
+        <MudTable Items="_clients" Dense="true" Hover="true" Loading="_loading" Elevation="0"
+                  RowClassFunc="@((c, i) => c.Id == _selectedClientId ? "vms-cm-row-sel" : "")">
+            <HeaderContent>
+                <MudTh>@L["client.colIndex"]</MudTh>
+                <MudTh>@L["common.name"]</MudTh>
+                <MudTh Class="d-none d-sm-table-cell">@L["client.colIp"]</MudTh>
+                <MudTh Class="d-none d-sm-table-cell">@L["client.lastSeen"]</MudTh>
+                <MudTh Style="text-align:right;">@L["client.colRecipes"]</MudTh>
+                <MudTh Style="text-align:right;">@L["common.actions"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <div class="d-flex align-center">
+                        @if (_aliveStatus.GetValueOrDefault(context.Id))
+                        {
+                            <span class="vms-status-dot online"></span>
+                        }
+                        else
+                        {
+                            <span class="vms-status-dot offline"></span>
+                        }
+                        <span class="vms-cm-index">#@context.ClientIndex.ToString("D2")</span>
+                    </div>
+                </MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Name</MudText>
+                    <MudText Typo="Typo.caption" Class="d-sm-none" Style="color: var(--vms-text-secondary);">
+                        @context.IpAddress
+                    </MudText>
+                </MudTd>
+                <MudTd Class="d-none d-sm-table-cell"><span class="vms-mono">@context.IpAddress</span></MudTd>
+                <MudTd Class="d-none d-sm-table-cell">
+                    @if (context.LastSeenAt.HasValue)
+                    {
+                        <span class="vms-mono-dim">@context.LastSeenAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+                    }
+                    else { <span class="vms-cell-empty">—</span> }
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    <span class="vms-mono-dim">@RecipeCount(context.Id)</span>
+                </MudTd>
+                <MudTd Style="text-align:right; white-space:nowrap;">
+                    @{ var row = context; }
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                               OnClick="@(() => SelectClient(row))">@L["client.actView"]</MudButton>
+                    <AuthorizeView Roles="Admin,User">
+                        <Authorized Context="authContext1">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                       OnClick="@(() => OpenEditDialog(row))">@L["client.actEdit"]</MudButton>
+                        </Authorized>
+                    </AuthorizeView>
+                    <AuthorizeView Roles="Admin">
+                        <Authorized Context="authContext2">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                       OnClick="@(() => DeleteClient(row))">@L["client.actDelete"]</MudButton>
+                        </Authorized>
+                    </AuthorizeView>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="pa-8 d-flex flex-column align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Large"
+                             Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
+                    <MudText Style="color: var(--vms-text-secondary);">@L["client.noClients"]</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+        <div class="vms-slots-info">@L.Format("client.slotsFmt", Math.Max(0, 10 - _clients.Count))</div>
+    </div>
+
+    @* 우: 레시피 구성 트리 — 커스텀 스타일 (README 5b) *@
+    <MudPaper Class="vms-panel pa-5">
+        <MudText Class="vms-panel-header mb-3">
+            @(_selectedClientName is null ? L["client.treeHeader"] : L.Format("client.recipesTitleFmt", _selectedClientName))
+        </MudText>
+        @if (_selectedClientId is null)
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                @L["client.noRecipes"]
-            </MudAlert>
+            <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">@L["client.treeSelectPrompt"]</MudText>
+        }
+        else if (SelectedRecipes.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">@L["client.noRecipes"]</MudText>
         }
         else
         {
-            <MudTreeView T="string" Color="Color.Primary">
-                @foreach (var recipe in _selectedRecipes)
-                {
-                    <MudTreeViewItem Value="@recipe.Name" Icon="@Icons.Material.Filled.Description">
-                        @foreach (var step in recipe.Steps)
+            @* 스텝/툴 계층은 현재 API 가 레시피 목록만 반환(하위는 VisionSetup 관리) —
+               스텝이 있을 때만 캐럿·STEP 배지·펼침을 렌더, 없으면 설명을 보조 행으로 *@
+            @foreach (var recipe in SelectedRecipes)
+            {
+                var hasSteps = recipe.Steps.Count > 0;
+                var expanded = hasSteps && _expandedRecipeIds.Contains(recipe.Id);
+                <div class="vms-rt-recipe @(expanded ? "sel" : "") @(hasSteps ? "" : "leaf")"
+                     @onclick="@(() => { if (hasSteps) ToggleRecipe(recipe.Id); })">
+                    <span class="vms-rt-caret @(expanded ? "open" : "")">@(hasSteps ? (expanded ? "▾" : "▸") : "")</span>
+                    <div class="vms-rt-name">
+                        @recipe.Name
+                        @if (!string.IsNullOrEmpty(recipe.Description))
                         {
-                            <MudTreeViewItem Value="@step.Name" Icon="@Icons.Material.Filled.PlayArrow">
-                                @foreach (var tool in step.InspectionTools)
-                                {
-                                    <MudTreeViewItem Value="@($"{tool.Name} ({tool.ToolType})")"
-                                                     Icon="@Icons.Material.Filled.Build" />
-                                }
-                            </MudTreeViewItem>
+                            <div class="vms-rt-desc">@recipe.Description</div>
                         }
-                    </MudTreeViewItem>
+                    </div>
+                    @if (hasSteps)
+                    {
+                        <span class="vms-rt-stepbadge">STEP @recipe.Steps.Count</span>
+                    }
+                </div>
+                @if (expanded)
+                {
+                    @foreach (var step in recipe.Steps.OrderBy(s => s.OrderIndex))
+                    {
+                        <div class="vms-rt-step"><span class="vms-rt-step-caret">▾</span> @step.Name</div>
+                        @foreach (var tool in step.InspectionTools.OrderBy(t => t.OrderIndex))
+                        {
+                            <div class="vms-rt-tool">
+                                <span class="vms-rt-tool-marker"></span>@tool.Name — @tool.ToolType
+                            </div>
+                        }
+                    }
                 }
-            </MudTreeView>
+            }
         }
     </MudPaper>
-}
+</div>
 
 @code {
     private List<ClientDto> _clients = new();
     private Dictionary<int, bool> _aliveStatus = new();
+    private Dictionary<int, List<RecipeDto>> _recipesByClient = new();
     private bool _loading = true;
-    private List<RecipeDto>? _selectedRecipes;
-    private string _selectedClientName = "";
+    private int? _selectedClientId;
+    private string? _selectedClientName;
+    private readonly HashSet<int> _expandedRecipeIds = new();
+
+    private int OnlineCount => _clients.Count(c => _aliveStatus.GetValueOrDefault(c.Id));
+
+    private List<RecipeDto> SelectedRecipes =>
+        _selectedClientId is int id && _recipesByClient.TryGetValue(id, out var r) ? r : new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,7 +178,34 @@
         _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
         foreach (var c in _clients)
             _aliveStatus[c.Id] = c.IsAlive;
+
+        // 레시피 수 열 + 우측 트리 공용 — 클라이언트별 레시피를 한 번에 적재 (최대 10대 전제)
+        foreach (var c in _clients)
+            _recipesByClient[c.Id] = await Api.GetAsync<List<RecipeDto>>($"/api/clients/{c.Id}/recipes") ?? new();
+
+        // 첫 클라이언트 자동 선택 — 트리 빈 화면 방지 (기존 선택 유지)
+        if (_selectedClientId is null && _clients.Count > 0)
+            SelectClient(_clients[0]);
         _loading = false;
+    }
+
+    private string RecipeCount(int clientId) =>
+        _recipesByClient.TryGetValue(clientId, out var r) ? r.Count.ToString() : "—";
+
+    private void SelectClient(ClientDto client)
+    {
+        _selectedClientId = client.Id;
+        _selectedClientName = client.Name;
+        _expandedRecipeIds.Clear();
+        // 스텝이 있는 첫 레시피는 펼친 상태로 — 트리 구조가 한눈에 보이게
+        var first = SelectedRecipes.FirstOrDefault(r => r.Steps.Count > 0);
+        if (first is not null) _expandedRecipeIds.Add(first.Id);
+    }
+
+    private void ToggleRecipe(int recipeId)
+    {
+        if (!_expandedRecipeIds.Remove(recipeId))
+            _expandedRecipeIds.Add(recipeId);
     }
 
     private async void HandleStatusChange(int clientId, bool isAlive)
@@ -226,17 +289,17 @@
             }
             response.EnsureSuccessStatusCode();
             Snackbar.Add(L["client.snackbarDeleted"], Severity.Warning);
+            if (_selectedClientId == client.Id)
+            {
+                _selectedClientId = null;
+                _selectedClientName = null;
+                _expandedRecipeIds.Clear();
+            }
             await LoadClients();
         }
         catch (HttpRequestException ex)
         {
             Snackbar.Add(L.Format("client.snackbarDeleteFailedFmt", ex.Message), Severity.Error);
         }
-    }
-
-    private async Task ShowRecipes(ClientDto client)
-    {
-        _selectedClientName = client.Name;
-        _selectedRecipes = await Api.GetAsync<List<RecipeDto>>($"/api/clients/{client.Id}/recipes") ?? new();
     }
 }
