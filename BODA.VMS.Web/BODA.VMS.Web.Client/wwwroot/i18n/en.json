@@ -364,7 +364,11 @@
     "verdictExcellent": "Excellent (6σ)",
     "verdictGood": "Good (AIAG standard)",
     "verdictNeedsAction": "Needs action — improvement recommended",
-    "verdictNotMet": "Not met — immediate action required"
+    "verdictNotMet": "Not met — immediate action required",
+    "specSet": "Spec set",
+    "xbarChart": "X̄ Chart",
+    "rChart": "R Chart",
+    "oocFmt": "#{0} OOC"
   },
   "reliability": {
     "formulaAlert": "Down-state transitions in equipment status logs are counted as Failures.",

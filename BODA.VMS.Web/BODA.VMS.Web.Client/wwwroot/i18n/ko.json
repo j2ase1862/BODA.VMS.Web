@@ -364,7 +364,11 @@
     "verdictExcellent": "우수 (6σ급)",
     "verdictGood": "양호 (AIAG 표준)",
     "verdictNeedsAction": "관리필요 — 개선 권장",
-    "verdictNotMet": "부적합 — 즉시 조치 필요"
+    "verdictNotMet": "부적합 — 즉시 조치 필요",
+    "specSet": "규격 설정됨",
+    "xbarChart": "X̄ 관리도",
+    "rChart": "R 관리도",
+    "oocFmt": "#{0} 이탈"
   },
   "reliability": {
     "formulaAlert": "설비 상태 로그에서 정지(Down) 전이를 고장(Failure)으로 카운트합니다.",

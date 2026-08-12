@@ -1487,6 +1487,187 @@ body {
     flex: 0 0 auto;
 }
 
+/* ---- 6a SPC 관리도 ---- */
+
+.vms-sum-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+@media (max-width: 1200px) {
+    .vms-sum-grid.cols-5 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .vms-sum-grid.cols-5 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* SPC 수치는 모노 20–22px (README 6a) */
+.vms-sum-value.mono {
+    font-family: var(--vms-font-mono);
+    font-size: 21px;
+    letter-spacing: -0.01em;
+}
+
+.vms-sum-sub {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-sum-unit {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 4px;
+    font-family: var(--vms-font-display);
+}
+
+/* 파라미터 셀렉트 — 규격 설정됨 그린 라벨 */
+.vms-spec-set {
+    font-size: 12px;
+    color: #3DD068;
+    margin-left: 8px;
+}
+
+/* 정보/경고 배너 — 좌측 모노 라벨 + 본문 (README 정보 배너 패턴) */
+.vms-banner {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.vms-banner.info {
+    background: rgba(91, 155, 224, 0.07);
+    border: 1px solid rgba(91, 155, 224, 0.28);
+}
+
+.vms-banner.info .vms-banner-label { color: #5B9BE0; }
+
+.vms-banner.warn {
+    background: rgba(224, 163, 46, 0.07);
+    border: 1px solid rgba(224, 163, 46, 0.28);
+}
+
+.vms-banner.warn .vms-banner-label { color: #E0A32E; }
+
+.vms-banner-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+}
+
+.vms-banner-text {
+    font-size: 12.5px;
+    color: #C9D3E0;
+}
+
+/* 관리도 패널 헤더 — 우측 모노 11px UCL/CL/LCL */
+.vms-spc-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.vms-spc-limits {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* 관리도 플롯 — SVG 데이터 라인 + HTML 오버레이(한계선·점·이탈 라벨) */
+.vms-spc-chart {
+    position: relative;
+    height: 240px;
+    margin: 6px 4px 2px;
+}
+
+.vms-spc-chart svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.vms-spc-grid {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px solid #1E293C;
+}
+
+/* UCL/LCL — 적 점선, CL — 블루 실선 (README 6a) */
+.vms-spc-limit {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed #F0564C;
+}
+
+.vms-spc-center {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px solid #5B9BE0;
+}
+
+.vms-spc-line {
+    fill: none;
+    stroke: #E6ECF5;
+    stroke-width: 1.6;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.vms-spc-pt {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8C96A6;
+    transform: translate(-50%, -50%);
+}
+
+/* 관리 이탈점만 반경 5 적색 + 위 모노 10px 라벨 */
+.vms-spc-pt.ooc {
+    width: 10px;
+    height: 10px;
+    background: #F0564C;
+}
+
+.vms-spc-ooc-label {
+    position: absolute;
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    color: #F0564C;
+    white-space: nowrap;
+    transform: translate(-50%, -190%);
+}
+
+.vms-spc-x {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 4px 0;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    color: var(--vms-text-mono-caption);
+}
+
+/* 부분군 표 이탈 배지 — X̄·R 동시 이탈 시 복수 표시 */
+.vms-ooc-badge + .vms-ooc-badge { margin-left: 6px; }
+
+.vms-ooc-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    background: rgba(240, 86, 76, 0.18);
+    color: #F0564C;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
 /* ---- Monospace 수치 — 링크/식별자 블루 ---- */
 .vms-mono {
     font-family: var(--vms-font-mono);

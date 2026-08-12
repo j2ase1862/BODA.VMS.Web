@@ -8,13 +8,13 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.spc"]</MudText>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" Value="_clientId" ValueChanged="OnClientChanged"
-                       Label="@(L["common.line"])" Clearable="true"
-                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+@* 6a — 필터 바: 4b 공통 패턴. 파라미터는 규격 설정 여부를 그린 라벨로 표기 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" Value="_clientId" ValueChanged="OnClientChanged" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
@@ -23,127 +23,114 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.recipe"]</label>
             <MudSelect T="int?" Value="_recipeId" ValueChanged="OnRecipeChanged"
-                       Label="@(L["common.recipe"])" Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Disabled="@(!_clientId.HasValue)"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.MenuBook">
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Disabled="@(!_clientId.HasValue)">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["spc.selectRecipe"]</MudSelectItem>
                 @foreach (var r in _recipes)
                 {
                     <MudSelectItem T="int?" Value="@((int?)r.Id)">@r.Name</MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
+        </div>
+        <div class="vms-filter-field wide">
+            <label class="vms-filter-label">@L["spc.parameter"]</label>
             <MudSelect T="int?" @bind-Value="_paramCode"
-                       Label="@(L["spc.parameter"])"
                        Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Disabled="@(!_recipeId.HasValue)"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Tag">
+                       Disabled="@(!_recipeId.HasValue)">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["spc.selectParam"]</MudSelectItem>
                 @foreach (var p in _params)
                 {
                     <MudSelectItem T="int?" Value="@((int?)p.ParamCode)">
-                        @p.ParamCode — @p.Description @(p.UpperLimit.HasValue || p.LowerLimit.HasValue ? "✓" : "")
+                        @p.ParamCode — @p.Description
+                        @if (p.UpperLimit.HasValue || p.LowerLimit.HasValue)
+                        {
+                            <span class="vms-spec-set">@L["spc.specSet"]</span>
+                        }
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="6" sm="1">
-            <MudNumericField T="int" @bind-Value="_subgroupSize" Label="@(L["spc.subgroupSize"])"
+        </div>
+        <div class="vms-filter-field" style="min-width:90px;">
+            <label class="vms-filter-label">@L["spc.subgroupSize"]</label>
+            <MudNumericField T="int" @bind-Value="_subgroupSize"
                              Variant="Variant.Outlined" Margin="Margin.Dense"
                              Min="2" Max="10" />
-        </MudItem>
-        <MudItem xs="6" sm="2" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.ShowChart"
-                       OnClick="Compute" Disabled="@(!_paramCode.HasValue)" Class="vms-btn">
-                @L["action.calculate"]
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ShowChart"
+                   OnClick="Compute" Disabled="@(!_paramCode.HasValue)" Class="vms-btn">
+            @L["action.calculate"]
+        </MudButton>
+    </div>
+</MudPaper>
 
 @if (_result is not null && _result.SubgroupCount > 0)
 {
-    <div class="summary-grid mb-3" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.measurements"]</div>
-            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                @_result.TotalMeasurements.ToString("N0")
-            </div>
-            <div style="font-size:11px; color: var(--vms-text-secondary);">
-                @L.Format("spc.subgroupsLineFmt", _result.SubgroupCount, _result.SubgroupSize)
-            </div>
-        </div>
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.grandMean"]</div>
-            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                @_result.GrandMean.ToString("F4") <span style="font-size:11px;">@_result.Unit</span>
-            </div>
+    @* 요약 5카드 — Cp/Cpk 카드만 등급별 좌측 색띠 + 판정 보조문 등급 색 *@
+    <div class="vms-sum-grid cols-5 mb-4">
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["spc.measurements"]</span>
+            <span class="vms-sum-value mono">@_result.TotalMeasurements.ToString("N0")</span>
+            <span class="vms-sum-sub">@L.Format("spc.subgroupsLineFmt", _result.SubgroupCount, _result.SubgroupSize)</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["spc.grandMean"]</span>
+            <span class="vms-sum-value mono">@_result.GrandMean.ToString("F4")<span class="vms-sum-unit">@_result.Unit</span></span>
             @if (_result.TargetValue.HasValue)
             {
-                <div style="font-size:11px; color: var(--vms-text-secondary);">
-                    @L.Format("spc.targetValueFmt", _result.TargetValue.Value.ToString("F4"))
-                </div>
+                <span class="vms-sum-sub">@L.Format("spc.targetValueFmt", _result.TargetValue.Value.ToString("F4"))</span>
             }
-        </div>
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.estimatedSigma"]</div>
-            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                @_result.EstimatedSigma.ToString("F4")
-            </div>
-            <div style="font-size:11px; color: var(--vms-text-secondary);">@L["spc.sigmaSource"]</div>
-        </div>
-        <div class="vms-panel pa-3" style="border-left: 3px solid @(GetCpkColor(_result.Cpk));">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.cpCpk"]</div>
-            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                @(_result.Cp?.ToString("F2") ?? "—") / @(_result.Cpk?.ToString("F2") ?? "—")
-            </div>
-            <div style="font-size:11px; color: var(--vms-text-secondary);">
-                @GetCpkVerdict(_result.Cpk, L)
-            </div>
-        </div>
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["spc.ppPpk"]</div>
-            <div style="font-size:22px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                @(_result.Pp?.ToString("F2") ?? "—") / @(_result.Ppk?.ToString("F2") ?? "—")
-            </div>
-            <div style="font-size:11px; color: var(--vms-text-secondary);">@L["spc.ppSource"]</div>
-        </div>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["spc.estimatedSigma"]</span>
+            <span class="vms-sum-value mono">@_result.EstimatedSigma.ToString("F4")</span>
+            <span class="vms-sum-sub">@L["spc.sigmaSource"]</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card" Style="@($"border-left: 3px solid {CpkColor(_result.Cpk)} !important;")">
+            <span class="vms-sum-label">@L["spc.cpCpk"]</span>
+            <span class="vms-sum-value mono">@(_result.Cp?.ToString("F2") ?? "—") / @(_result.Cpk?.ToString("F2") ?? "—")</span>
+            <span class="vms-sum-sub" style="color:@CpkColor(_result.Cpk);">@CpkVerdict(_result.Cpk)</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["spc.ppPpk"]</span>
+            <span class="vms-sum-value mono">@(_result.Pp?.ToString("F2") ?? "—") / @(_result.Ppk?.ToString("F2") ?? "—")</span>
+            <span class="vms-sum-sub">@L["spc.ppSource"]</span>
+        </MudPaper>
     </div>
 
     @if (!_result.LowerLimit.HasValue || !_result.UpperLimit.HasValue)
     {
-        <MudAlert Severity="MudBlazor.Severity.Warning" Class="mb-3" Dense="true">
-            @L["spc.uslLslMissing"]
-            <br /><strong>@L["spc.uslLslAction"]</strong>
-        </MudAlert>
+        <div class="vms-banner warn mb-4">
+            <span class="vms-banner-label">USL/LSL</span>
+            <span class="vms-banner-text">@L["spc.uslLslMissing"] @L["spc.uslLslAction"]</span>
+        </div>
     }
 
-    <div class="vms-panel pa-3 mb-3">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">
-            @L.Format("spc.xbarChartFmt", _result.UclXbar.ToString("F4"), _result.LclXbar.ToString("F4"))
-        </MudText>
-        <MudChart ChartType="ChartType.Line"
-                  ChartSeries="@_xbarSeries"
-                  XAxisLabels="@_xLabels"
-                  Width="100%" Height="280px"
-                  ChartOptions="@_xbarOptions" />
-    </div>
+    @* X̄ 관리도 — UCL/LCL 적 점선, CL 블루 실선, 이탈점만 확대 + 모노 라벨 (README 6a) *@
+    <MudPaper Class="vms-panel pa-5 mb-4">
+        <div class="vms-spc-head">
+            <MudText Class="vms-panel-header">@L["spc.xbarChart"]</MudText>
+            <span class="vms-spc-limits">
+                UCL @_result.UclXbar.ToString("F4") · CL @_result.GrandMean.ToString("F4") · LCL @_result.LclXbar.ToString("F4")
+            </span>
+        </div>
+        @ControlChart(_xbarGeom)
+    </MudPaper>
 
-    <div class="vms-panel pa-3 mb-3">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">
-            @L.Format("spc.rChartFmt", _result.UclR.ToString("F4"), _result.LclR.ToString("F4"))
-        </MudText>
-        <MudChart ChartType="ChartType.Line"
-                  ChartSeries="@_rSeries"
-                  XAxisLabels="@_xLabels"
-                  Width="100%" Height="220px"
-                  ChartOptions="@_rOptions" />
-    </div>
+    @* R 관리도 — 동일 규칙 *@
+    <MudPaper Class="vms-panel pa-5 mb-4">
+        <div class="vms-spc-head">
+            <MudText Class="vms-panel-header">@L["spc.rChart"]</MudText>
+            <span class="vms-spc-limits">
+                UCL @_result.UclR.ToString("F4") · R̄ @_result.MeanOfRanges.ToString("F4") · LCL @_result.LclR.ToString("F4")
+            </span>
+        </div>
+        @ControlChart(_rGeom)
+    </MudPaper>
 
     <div class="vms-table">
         <MudTable Items="_result.Subgroups" Dense="true" Hover="true" Elevation="0">
@@ -158,17 +145,14 @@
                 <MudTh>@L["spc.colOutOfControl"]</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd><strong>@context.Index</strong></MudTd>
-                <MudTd><span class="vms-mono">@context.StartTime.ToLocalTime().ToString("MM-dd HH:mm:ss")</span></MudTd>
+                <MudTd><span class="vms-mono-dim">@context.Index</span></MudTd>
+                <MudTd><span class="vms-mono-dim">@context.StartTime.ToLocalTime().ToString("MM-dd HH:mm:ss")</span></MudTd>
                 <MudTd Style="text-align:right;"><span class="vms-mono">@context.Mean.ToString("F4")</span></MudTd>
                 <MudTd Style="text-align:right;"><span class="vms-mono">@context.Range.ToString("F4")</span></MudTd>
                 <MudTd>
-                    @{ var ooc = IsOutOfControl(context); }
-                    @if (ooc != null)
+                    @foreach (var ooc in OutOfControlReasons(context))
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">
-                            @ooc
-                        </MudChip>
+                        <span class="vms-ooc-badge">@ooc</span>
                     }
                 </MudTd>
             </RowTemplate>
@@ -177,9 +161,10 @@
 }
 else if (_result is not null)
 {
-    <MudAlert Severity="MudBlazor.Severity.Info">
-        @L.Format("spc.insufficientFmt", _subgroupSize, _result.TotalMeasurements)
-    </MudAlert>
+    <div class="vms-banner info">
+        <span class="vms-banner-label">DATA</span>
+        <span class="vms-banner-text">@L.Format("spc.insufficientFmt", _subgroupSize, _result.TotalMeasurements)</span>
+    </div>
 }
 else
 {
@@ -206,11 +191,49 @@ else
     private List<RecipeParameterDto> _params = new();
     private SpcResultDto? _result;
 
-    private List<ChartSeries> _xbarSeries = new();
-    private List<ChartSeries> _rSeries = new();
-    private string[] _xLabels = Array.Empty<string>();
-    private ChartOptions _xbarOptions = new() { YAxisFormat = "F4", InterpolationOption = InterpolationOption.Straight };
-    private ChartOptions _rOptions = new() { YAxisFormat = "F4", InterpolationOption = InterpolationOption.Straight };
+    private ChartGeom? _xbarGeom;
+    private ChartGeom? _rGeom;
+
+    // 관리도 지오메트리 — 좌표는 0~100 백분율 (SVG viewBox + HTML 오버레이 공용)
+    private sealed record ChartPoint(double X, double Y, bool Ooc, int Index);
+    private sealed record ChartGeom(string Polyline, List<ChartPoint> Points,
+                                    double UclY, double LclY, double CenterY, string[] XLabels);
+
+    private RenderFragment ControlChart(ChartGeom? g) => __builder =>
+    {
+        if (g is null) return;
+        <div class="vms-spc-chart">
+            @for (var i = 1; i <= 3; i++)
+            {
+                <div class="vms-spc-grid" style="top:@(i * 25)%"></div>
+            }
+            <div class="vms-spc-limit" style="top:@Pct(g.UclY)"></div>
+            <div class="vms-spc-limit" style="top:@Pct(g.LclY)"></div>
+            <div class="vms-spc-center" style="top:@Pct(g.CenterY)"></div>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline class="vms-spc-line" points="@g.Polyline" />
+            </svg>
+            @foreach (var p in g.Points)
+            {
+                @if (p.Ooc)
+                {
+                    <span class="vms-spc-ooc-label" style="left:@Pct(p.X); top:@Pct(p.Y)">
+                        @L.Format("spc.oocFmt", p.Index)
+                    </span>
+                }
+                <span class="vms-spc-pt @(p.Ooc ? "ooc" : "")" style="left:@Pct(p.X); top:@Pct(p.Y)"></span>
+            }
+        </div>
+        <div class="vms-spc-x">
+            @foreach (var lb in g.XLabels)
+            {
+                <span>@lb</span>
+            }
+        </div>
+    };
+
+    private static string Pct(double v) =>
+        v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + "%";
 
     protected override async Task OnInitializedAsync()
     {
@@ -263,59 +286,70 @@ else
 
     private void BuildCharts()
     {
-        if (_result is null || _result.Subgroups.Count == 0)
-        {
-            _xbarSeries = new(); _rSeries = new(); _xLabels = Array.Empty<string>();
-            return;
-        }
+        _xbarGeom = null; _rGeom = null;
+        if (_result is null || _result.Subgroups.Count == 0) return;
 
         var subs = _result.Subgroups;
-        var count = subs.Count;
-        _xLabels = subs.Select(s => s.Index.ToString()).ToArray();
-
-        var nameXbar = L["spc.seriesXbar"];
-        var nameR = L["spc.seriesR"];
-        var nameUcl = L["spc.seriesUcl"];
-        var nameLcl = L["spc.seriesLcl"];
-        var nameCenter = L["spc.seriesCenter"];
-
-        _xbarSeries = new List<ChartSeries>
-        {
-            new ChartSeries { Name = nameXbar, Data = subs.Select(s => s.Mean).ToArray() },
-            new ChartSeries { Name = nameUcl, Data = Enumerable.Repeat(_result.UclXbar, count).ToArray() },
-            new ChartSeries { Name = nameLcl, Data = Enumerable.Repeat(_result.LclXbar, count).ToArray() },
-            new ChartSeries { Name = nameCenter, Data = Enumerable.Repeat(_result.GrandMean, count).ToArray() }
-        };
-
-        _rSeries = new List<ChartSeries>
-        {
-            new ChartSeries { Name = nameR, Data = subs.Select(s => s.Range).ToArray() },
-            new ChartSeries { Name = nameUcl, Data = Enumerable.Repeat(_result.UclR, count).ToArray() },
-            new ChartSeries { Name = nameLcl, Data = Enumerable.Repeat(_result.LclR, count).ToArray() },
-            new ChartSeries { Name = nameCenter, Data = Enumerable.Repeat(_result.MeanOfRanges, count).ToArray() }
-        };
+        _xbarGeom = BuildGeom(subs.Select(s => s.Mean).ToList(),
+                              _result.UclXbar, _result.LclXbar, _result.GrandMean,
+                              subs.Select(s => s.Index).ToList());
+        _rGeom = BuildGeom(subs.Select(s => s.Range).ToList(),
+                           _result.UclR, _result.LclR, _result.MeanOfRanges,
+                           subs.Select(s => s.Index).ToList());
     }
 
-    private string? IsOutOfControl(SpcSubgroup s)
+    private static ChartGeom BuildGeom(List<double> values, double ucl, double lcl, double center, List<int> indices)
     {
-        if (_result is null) return null;
-        if (s.Mean > _result.UclXbar) return "X̄ > UCL";
-        if (s.Mean < _result.LclXbar) return "X̄ < LCL";
-        if (s.Range > _result.UclR) return "R > UCL";
-        if (s.Range < _result.LclR && _result.LclR > 0) return "R < LCL";
-        return null;
+        var min = Math.Min(values.Min(), Math.Min(lcl, center));
+        var max = Math.Max(values.Max(), Math.Max(ucl, center));
+        var span = max - min;
+        var pad = span > 0 ? span * 0.15 : Math.Abs(max) * 0.1 + 1;
+        min -= pad; max += pad;
+        var range = max - min;
+
+        double YOf(double v) => (max - v) / range * 100.0;
+        double XOf(int i) => values.Count == 1 ? 50.0 : i / (double)(values.Count - 1) * 100.0;
+
+        var pts = new List<ChartPoint>();
+        var poly = new System.Text.StringBuilder();
+        for (var i = 0; i < values.Count; i++)
+        {
+            var x = XOf(i);
+            var y = YOf(values[i]);
+            var ooc = values[i] > ucl || values[i] < lcl;
+            pts.Add(new ChartPoint(x, y, ooc, indices[i]));
+            poly.Append(Pt(x)).Append(',').Append(Pt(y)).Append(' ');
+        }
+
+        return new ChartGeom(poly.ToString().TrimEnd(), pts,
+                             YOf(ucl), YOf(lcl), YOf(center),
+                             indices.Select(i => i.ToString()).ToArray());
     }
 
-    private static string GetCpkColor(double? cpk)
+    private static string Pt(double v) =>
+        v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+
+    // X̄·R 동시 이탈 부분군은 배지를 모두 표시
+    private IEnumerable<string> OutOfControlReasons(SpcSubgroup s)
     {
-        if (cpk is null) return "var(--mud-palette-default)";
-        if (cpk >= 1.67) return "var(--mud-palette-success)";  // 6σ급
-        if (cpk >= 1.33) return "var(--mud-palette-info)";     // 산업 표준 (AIAG)
-        if (cpk >= 1.00) return "var(--mud-palette-warning)";  // 최소 허용
-        return "var(--mud-palette-error)";                     // 부적합
+        if (_result is null) yield break;
+        if (s.Mean > _result.UclXbar) yield return "X̄ > UCL";
+        if (s.Mean < _result.LclXbar) yield return "X̄ < LCL";
+        if (s.Range > _result.UclR) yield return "R > UCL";
+        if (s.Range < _result.LclR && _result.LclR > 0) yield return "R < LCL";
     }
 
-    private static string GetCpkVerdict(double? cpk, ILocalizer L)
+    // 등급 색은 README 6a 고정 팔레트 — ≥1.67 그린 / ≥1.33 블루 / ≥1.00 앰버 / 미달 레드
+    private static string CpkColor(double? cpk)
+    {
+        if (cpk is null) return "var(--vms-hairline)";
+        if (cpk >= 1.67) return "#3DD068";
+        if (cpk >= 1.33) return "#5B9BE0";
+        if (cpk >= 1.00) return "#E0A32E";
+        return "#F0564C";
+    }
+
+    private string CpkVerdict(double? cpk)
     {
         if (cpk is null) return L["spc.verdictUslLslMissing"];
         if (cpk >= 1.67) return L["spc.verdictExcellent"];
