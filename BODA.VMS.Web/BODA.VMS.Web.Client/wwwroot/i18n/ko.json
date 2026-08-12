@@ -935,12 +935,14 @@
     "btnGenerate": "PDF 생성",
     "scopeTitle": "리포트 범위",
     "selectedPeriodFmt": "선택한 기간: {0}",
-    "includesTitle": "📋 포함 내용",
+    "includesTitle": "포함 내용",
     "includeKpi": "전체 KPI (전체 / 합격 / 불량 / 불량률 / 평균 OEE)",
     "includeOee": "라인별 OEE 표 (가용성 / 성능 / 품질 / OEE)",
     "includePareto": "파레토 분석 — 상위 10개 불량 코드 (빈도 + 누적 %)",
     "includeShift": "교대조별 생산 집계 (교대 데이터가 있는 경우)",
-    "downloadCompleteFmt": "다운로드 완료: {0}"
+    "downloadCompleteFmt": "다운로드 완료: {0}",
+    "previewTitle": "문서 미리보기",
+    "pageEstimateFmt": "A4 세로 · {0}페이지 예상"
   },
   "forecast": {
     "lastRefreshed": "마지막 갱신",

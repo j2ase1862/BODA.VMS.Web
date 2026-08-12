@@ -935,12 +935,14 @@
     "btnGenerate": "Generate PDF",
     "scopeTitle": "Report Scope",
     "selectedPeriodFmt": "Selected period: {0}",
-    "includesTitle": "📋 Included",
+    "includesTitle": "Included",
     "includeKpi": "Overall KPIs (Total / Pass / NG / NG Rate / Avg OEE)",
     "includeOee": "Per-line OEE table (Availability / Performance / Quality / OEE)",
     "includePareto": "Pareto analysis — top 10 NG codes (frequency + cumulative %)",
     "includeShift": "Shift production summary (when shift data is available)",
-    "downloadCompleteFmt": "Download complete: {0}"
+    "downloadCompleteFmt": "Download complete: {0}",
+    "previewTitle": "Document Preview",
+    "pageEstimateFmt": "A4 portrait · est. {0} pages"
   },
   "forecast": {
     "lastRefreshed": "Last refreshed",

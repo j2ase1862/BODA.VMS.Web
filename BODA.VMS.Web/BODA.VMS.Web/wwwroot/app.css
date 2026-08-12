@@ -1790,6 +1790,151 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 9d PDF 리포트 — 생성 범위 + 라이트 지면 문서 미리보기 ---- */
+
+/* 계산된 기간 — 잉크 박스에 모노 16px 크게 */
+.vms-rep-period {
+    background: #0C121D;
+    border: 1px solid var(--vms-hairline);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-family: var(--vms-font-mono);
+    font-size: 16px;
+    color: var(--mud-palette-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 포함 내용 — 5px 오렌지 사각 마커 + 13px */
+.vms-rep-includes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.vms-rep-includes li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-rep-includes li::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    background: var(--vms-primary);
+    flex: 0 0 auto;
+}
+
+/* 문서 미리보기 — 라이트 지면 (다크 테마 무관 고정) */
+.vms-paper {
+    background: #F4F5F2;
+    border-radius: 6px;
+    padding: 22px 24px 16px;
+    color: #131A24;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vms-paper-head {
+    border-top: 2px solid #01397D;
+    padding-top: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.vms-paper-logo { font-weight: 800; font-size: 14px; color: #01397D; letter-spacing: 0.02em; }
+.vms-paper-logo .accent { color: #FF6724; }
+.vms-paper-title { font-size: 12px; font-weight: 700; color: #131A24; }
+.vms-paper-period {
+    margin-left: auto;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    color: #5C6470;
+}
+
+/* KPI 4칸 — 라벨 + 자리표시 블록 */
+.vms-paper-kpi {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.vms-paper-kpi .cell {
+    border: 1px solid #DCDFE3;
+    border-radius: 4px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vms-paper-kpi .lbl { font-size: 8.5px; color: #5C6470; }
+.vms-paper-kpi .ph { height: 10px; border-radius: 2px; background: #C9CDD3; }
+.vms-paper-kpi .ph.w60 { width: 60%; }
+.vms-paper-kpi .ph.w48 { width: 48%; }
+.vms-paper-kpi .ph.w40 { width: 40%; }
+
+.vms-paper-sec {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #01397D;
+    border-bottom: 1px solid #DCDFE3;
+    padding-bottom: 4px;
+}
+
+.vms-paper-bars { display: flex; flex-direction: column; gap: 6px; }
+
+.vms-paper-bars .row { display: flex; align-items: center; gap: 8px; }
+.vms-paper-bars .lbl {
+    font-family: var(--vms-font-mono);
+    font-size: 8.5px;
+    color: #5C6470;
+    width: 24px;
+}
+.vms-paper-bars .bar { height: 8px; border-radius: 2px; background: #01397D; opacity: 0.75; }
+
+.vms-paper-pareto {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 56px;
+    padding: 0 6px;
+}
+
+.vms-paper-pareto .pbar {
+    flex: 1;
+    max-width: 34px;
+    background: #5C7FA6;
+    border-radius: 2px 2px 0 0;
+}
+
+.vms-paper-foot {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #DCDFE3;
+    padding-top: 8px;
+    font-family: var(--vms-font-mono);
+    font-size: 8.5px;
+    color: #5C6470;
+}
+
+.vms-paper-caption {
+    margin-top: 10px;
+    text-align: center;
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
+}
+
 /* ---- 9c 설정 — 폼 패턴 기준 (정의 목록·ADMIN 배지·토글) ---- */
 
 .vms-set-grid {
