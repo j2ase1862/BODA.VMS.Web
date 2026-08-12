@@ -30,7 +30,8 @@
                내부의 AuthorizeView가 인증 캐스케이드를 받도록 반드시
                CascadingAuthenticationState 안쪽에 둘 것 (TopNav 드롭다운 권한 게이트, 2026-08-12) *@
             <MudPopoverProvider />
-            <MudDialogProvider />
+            @* 8b — 모든 다이얼로그 우측 상단 ✕ (README CRUD 공통) *@
+            <MudDialogProvider CloseButton="true" />
             <MudSnackbarProvider />
         </CascadingValue>
     </CascadingValue>

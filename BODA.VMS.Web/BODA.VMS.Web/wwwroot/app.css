@@ -1790,6 +1790,148 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 8b CRUD 공통 다이얼로그 / 피드백 ---- */
+
+/* 폼 다이얼로그 프레임 — 카드 radius 14, 깊은 그림자, 헤더/푸터 구분선 */
+.mud-dialog {
+    background: var(--mud-palette-surface) !important;
+    border: 1px solid var(--vms-hairline);
+    border-radius: 14px !important;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mud-dialog .mud-dialog-title {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--vms-hairline);
+}
+
+.mud-dialog .mud-dialog-title .mud-typography {
+    font-family: var(--vms-font-display) !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+}
+
+.mud-dialog .mud-dialog-content { padding: 20px 24px 22px !important; }
+
+.mud-dialog .mud-dialog-actions {
+    border-top: 1px solid var(--vms-hairline);
+    padding: 14px 24px !important;
+    gap: 10px;
+}
+
+/* 기본(Small) 다이얼로그 폭 520px */
+.mud-dialog.mud-dialog-width-sm { width: 520px; max-width: 92vw; }
+
+/* 폼 패턴 — 필드 gap 16, 외부 모노 라벨 + 필수 * 오렌지, 짧은 필드 2열 */
+.vms-form { display: flex; flex-direction: column; gap: 16px; }
+
+.vms-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.vms-form-label {
+    display: block;
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+    margin-bottom: 6px;
+}
+
+.vms-form-label .req { color: var(--vms-primary); margin-left: 3px; }
+
+/* 인라인 검증/주의 배너 — 앰버 CHECK (README 8b) */
+.vms-banner.check {
+    background: rgba(138, 110, 55, 0.08);
+    border: 1px solid rgba(138, 110, 55, 0.3);
+}
+
+.vms-banner.check .vms-banner-label { color: #C2A469; }
+
+/* 확인 다이얼로그 — 대상 식별자 모노 블루, 파괴적은 레드 프레임/제목/버튼 */
+.vms-confirm-target {
+    font-family: var(--vms-font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--vms-link);
+    margin-bottom: 8px;
+}
+
+.vms-confirm-msg {
+    font-size: 13.5px;
+    color: var(--mud-palette-text-primary);
+    white-space: pre-line;
+}
+
+.mud-dialog:has(.vms-confirm-danger) { border-color: rgba(168, 68, 60, 0.35); }
+
+.mud-dialog:has(.vms-confirm-danger) .mud-dialog-title .mud-typography { color: #DE857D !important; }
+
+.vms-btn-danger {
+    background: #A8443C !important;
+    color: #FFEDEB !important;
+}
+
+/* 스낵바 4종 — 좌측 3px 색띠 + 모노 레벨 라벨 + 13px 본문 (원색 필 제거) */
+.mud-snackbar {
+    background: #151E2E !important;
+    color: #E6ECF5 !important;
+    border: 1px solid var(--vms-hairline);
+    border-left: 3px solid #5F6B7E;
+    border-radius: 10px !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+.mud-snackbar .mud-snackbar-icon { display: none; }
+
+.mud-snackbar .mud-snackbar-content-message {
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mud-snackbar .mud-snackbar-content-message::before {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.mud-snackbar.mud-alert-filled-success { border-left-color: #4E8C63; }
+.mud-snackbar.mud-alert-filled-success .mud-snackbar-content-message::before { content: "SUCCESS"; color: #7FA98C; }
+
+.mud-snackbar.mud-alert-filled-info { border-left-color: #3C5F80; }
+.mud-snackbar.mud-alert-filled-info .mud-snackbar-content-message::before { content: "INFO"; color: #7FA6CC; }
+
+.mud-snackbar.mud-alert-filled-warning { border-left-color: #8A6E37; }
+.mud-snackbar.mud-alert-filled-warning .mud-snackbar-content-message::before { content: "WARNING"; color: #C2A469; }
+
+.mud-snackbar.mud-alert-filled-error { border-left-color: #A8443C; }
+.mud-snackbar.mud-alert-filled-error .mud-snackbar-content-message::before { content: "ERROR"; color: #DE857D; }
+
+/* 빈 상태 — 아웃라인 아이콘 + 저조도 안내문 (컬러 아이콘 금지) */
+.vms-empty {
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.vms-empty .mud-icon-root {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: #2B3648;
+}
+
+.vms-empty-text { font-size: 13px; color: #5F6B7E; }
+
 /* ---- 8a 작업 지시 — CRUD 기준 화면 (15개 CRUD 페이지의 reference) ---- */
 
 .vms-filter-spacer { flex: 1; }

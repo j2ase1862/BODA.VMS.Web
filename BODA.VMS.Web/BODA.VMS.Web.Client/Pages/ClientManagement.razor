@@ -271,10 +271,16 @@
 
     private async Task DeleteClient(ClientDto client)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("client.confirmDeleteFmt", client.Name),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, $"#{client.ClientIndex:D2} {client.Name}" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {

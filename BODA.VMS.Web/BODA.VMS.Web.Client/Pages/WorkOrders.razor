@@ -144,10 +144,10 @@
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large"
-                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["workorder.noOrders"]</MudText>
+            @* 8b 빈 상태 패턴 — 아웃라인 아이콘 + 저조도 안내문, 컬러 금지 *@
+            <div class="vms-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.Assignment" />
+                <span class="vms-empty-text">@L["workorder.noOrders"]</span>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -254,10 +254,15 @@
             "Close" => L["workorder.actClose"],
             _ => action
         };
-        var confirmed = await Dialog.ShowMessageBox(L["action.confirm"],
-            L.Format("workorder.confirmActionFmt", wo.OrderNo, actionLabel),
-            actionLabel, L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, wo.OrderNo },
+            { x => x.Message, L.Format("confirm.actionFmt", actionLabel) },
+            { x => x.ConfirmText, actionLabel }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["action.confirm"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {
@@ -288,10 +293,16 @@
 
     private async Task DeleteItem(WorkOrderDto wo)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("workorder.confirmDeleteFmt", wo.OrderNo),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, wo.OrderNo },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {

@@ -172,7 +172,9 @@
   },
   "confirm": {
     "delete": "Confirm Delete",
-    "deleteMsgFmt": "Delete {0}?"
+    "deleteMsgFmt": "Delete {0}?",
+    "actionFmt": "Proceed with {0}?",
+    "deleteIrreversible": "This item will be deleted. This action cannot be undone."
   },
   "login": {
     "username": "Username",

@@ -172,7 +172,9 @@
   },
   "confirm": {
     "delete": "삭제 확인",
-    "deleteMsgFmt": "{0}을(를) 삭제하시겠습니까?"
+    "deleteMsgFmt": "{0}을(를) 삭제하시겠습니까?",
+    "actionFmt": "{0} 처리를 진행하시겠습니까?",
+    "deleteIrreversible": "이 항목을 삭제합니다. 되돌릴 수 없는 작업입니다."
   },
   "login": {
     "username": "아이디",
