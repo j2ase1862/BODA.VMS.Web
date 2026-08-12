@@ -181,7 +181,8 @@
     "register": "Register",
     "noAccount": "Don't have an account? Register",
     "invalidCreds": "Invalid credentials or account not approved",
-    "failed": "Login failed. Please try again."
+    "failed": "Login failed. Please try again.",
+    "footerNote": "Admin approval required"
   },
   "home": {
     "totalClients": "Total Clients",

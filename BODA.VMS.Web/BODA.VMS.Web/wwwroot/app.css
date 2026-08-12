@@ -997,7 +997,7 @@ body {
 }
 
 .vms-login-logo .navy { color: #E6ECF5; }
-.vms-login-logo .orange { color: var(--vms-primary); }
+.vms-login-logo .accent { color: var(--vms-primary); }
 
 .vms-login-subtitle {
     font-family: var(--vms-font-mono);
@@ -1007,6 +1007,78 @@ body {
     color: #8C96A6;
     text-transform: uppercase;
     text-align: center;
+}
+
+/* 카드 내부 패딩 40px 36px 32px (README 4a) */
+.vms-login-content.mud-card-content { padding: 40px 36px 32px; }
+
+/* 외부 라벨 — 모노 10px .14em uppercase (floating label 대체) */
+.vms-field-label {
+    display: block;
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8C96A6;
+    margin-bottom: 7px;
+}
+
+.vms-login-field { margin-bottom: 16px; }
+
+/* 입력 — #0C121D + radius 10, 포커스 시 오렌지 테두리 + 3px 글로우 (다크 고정) */
+.vms-login-input .mud-input.mud-input-outlined {
+    background: #0C121D;
+    border-radius: 10px;
+    transition: box-shadow 0.13s var(--vms-ease);
+}
+
+.vms-login-input .mud-input.mud-input-outlined input {
+    color: #E6ECF5;
+    padding: 12px 14px;
+}
+
+.vms-login-input .mud-input-outlined-border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px;
+}
+
+.vms-login-input .mud-input.mud-input-outlined:focus-within {
+    box-shadow: 0 0 0 3px rgba(255, 122, 61, 0.12);
+}
+
+.vms-login-input .mud-input.mud-input-outlined:focus-within .mud-input-outlined-border {
+    border-color: #FF7A3D !important;
+}
+
+.vms-login-input .mud-input-adornment .mud-icon-button { color: #8C96A6; }
+
+/* 로그인 버튼 — 전폭 14px/700 .08em, padding 14px (README 4a) */
+.vms-login-submit {
+    padding: 14px !important;
+    font-size: 14px !important;
+    letter-spacing: 0.08em !important;
+    margin-top: 8px;
+}
+
+.vms-login-register { text-align: center; margin-top: 18px; }
+
+.vms-login-register-link {
+    font-size: 12.5px;
+    color: var(--vms-link) !important;
+}
+
+/* 하단 — 구분선 + 모노 9px .16em 버전·안내 */
+.vms-login-footer {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    text-align: center;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #5F6B7E;
 }
 
 /* ═══════ 칩 ═══════ */
