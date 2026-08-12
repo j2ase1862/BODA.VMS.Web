@@ -1790,6 +1790,118 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 9c 설정 — 폼 패턴 기준 (정의 목록·ADMIN 배지·토글) ---- */
+
+.vms-set-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .vms-set-grid { grid-template-columns: 1fr; }
+}
+
+.vms-set-full { grid-column: 1 / -1; }
+
+/* 패널 제목 — 모노 11px .14em uppercase 블루, 아이콘 없이 */
+.vms-set-title {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--vms-link);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vms-admin-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(255, 122, 61, 0.14);
+    color: var(--vms-primary);
+}
+
+/* 정의 목록 — 150px/1fr 행, 마지막 행 구분선 없음 */
+.vms-def-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.vms-def-row:last-child { border-bottom: none; }
+
+.vms-def-label { font-size: 13px; color: #8C96A6; }
+
+.vms-def-value { font-size: 13px; color: var(--mud-palette-text-primary); }
+
+.vms-def-value.mono { font-family: var(--vms-font-mono); }
+
+/* 저장 버튼 — 카드 우측 하단 */
+.vms-set-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+/* 비활성 버튼 — 아웃라인 + 회색 글자 (흐린 오렌지 금지) */
+.vms-btn-muted,
+.vms-btn-muted.mud-button-root.mud-button-disabled {
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: #5F6B7E !important;
+    background: transparent !important;
+    opacity: 1 !important;
+}
+
+/* 토글 — 38×22 트랙, 켜짐 오렌지+잉크 노브, 꺼짐 #243349+회색 노브 */
+.vms-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vms-toggle input { display: none; }
+
+.vms-toggle-track {
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: #243349;
+    position: relative;
+    transition: background 0.15s var(--vms-ease);
+    flex: 0 0 auto;
+}
+
+.vms-toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #5F6B7E;
+    transition: transform 0.15s var(--vms-ease), background 0.15s var(--vms-ease);
+}
+
+.vms-toggle input:checked + .vms-toggle-track { background: var(--vms-primary); }
+.vms-toggle input:checked + .vms-toggle-track .vms-toggle-knob {
+    transform: translateX(16px);
+    background: #0C121D;
+}
+
+.vms-toggle-label { font-size: 13.5px; color: var(--mud-palette-text-primary); }
+
 /* ---- 9b 회원가입 — 비밀번호 강도 바 (4분할 3px, 충족 단계만 그린) ---- */
 
 .vms-pw-meter {

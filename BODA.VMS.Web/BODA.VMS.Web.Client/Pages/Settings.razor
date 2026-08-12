@@ -7,86 +7,91 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.settings"]</MudText>
 
-<MudGrid Spacing="3">
-    <MudItem xs="12" md="6">
-        <MudPaper Class="vms-panel pa-5">
-            <div class="d-flex align-center mb-4">
-                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small"
-                         Style="color: var(--vms-primary); margin-right: 8px;" />
-                <MudText Class="vms-panel-header">@L["settings.sectionSystemInfo"]</MudText>
+@* 9c — 폼 패턴 기준 화면: 2열 그리드, 정의 목록, 모노 패널 제목(아이콘 없이),
+   Admin 섹션 ADMIN 배지 + 전체 폭, 커스텀 토글 (README 9c) *@
+<div class="vms-set-grid">
+    <MudPaper Class="vms-panel pa-5">
+        <div class="vms-set-title">@L["settings.sectionSystemInfo"]</div>
+        @* 정의 목록 패턴 — 150px/1fr 행, 식별자는 모노 *@
+        <div class="vms-def">
+            <div class="vms-def-row">
+                <span class="vms-def-label">@L["settings.fieldApp"]</span>
+                <span class="vms-def-value">BODA VMS Web</span>
             </div>
-            <MudSimpleTable Dense="true" Hover="true" Style="background: transparent;">
-                <tbody>
-                    <tr>
-                        <td style="color: var(--vms-text-secondary); width: 40%;">@L["settings.fieldApp"]</td>
-                        <td style="font-weight: 500;">BODA VMS Web</td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--vms-text-secondary);">@L["settings.fieldVersion"]</td>
-                        <td><span class="vms-mono">1.0.0</span></td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--vms-text-secondary);">@L["settings.fieldPlatform"]</td>
-                        <td>.NET 8.0 Blazor WASM</td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--vms-text-secondary);">@L["settings.fieldDatabase"]</td>
-                        <td>SQLite (WAL)</td>
-                    </tr>
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    </MudItem>
+            <div class="vms-def-row">
+                <span class="vms-def-label">@L["settings.fieldVersion"]</span>
+                <span class="vms-def-value mono">@_version</span>
+            </div>
+            <div class="vms-def-row">
+                <span class="vms-def-label">@L["settings.fieldPlatform"]</span>
+                <span class="vms-def-value">.NET 8.0 Blazor WASM</span>
+            </div>
+            <div class="vms-def-row">
+                <span class="vms-def-label">@L["settings.fieldDatabase"]</span>
+                <span class="vms-def-value mono">SQLite (WAL)</span>
+            </div>
+        </div>
+    </MudPaper>
 
-    <MudItem xs="12" md="6">
-        <MudPaper Class="vms-panel pa-5">
-            <div class="d-flex align-center mb-4">
-                <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
-                         Style="color: var(--vms-primary); margin-right: 8px;" />
-                <MudText Class="vms-panel-header">@L["settings.sectionMonitoring"]</MudText>
+    <MudPaper Class="vms-panel pa-5">
+        <div class="vms-set-title">@L["settings.sectionMonitoring"]</div>
+        <div class="vms-form">
+            <div>
+                <label class="vms-form-label">@L["settings.pingInterval"]</label>
+                <MudTextField @bind-Value="_pingIntervalSec"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              InputType="InputType.Number" />
             </div>
-            <MudTextField @bind-Value="_pingIntervalSec" Label="@(L["settings.pingInterval"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          InputType="InputType.Number" />
-            <MudTextField @bind-Value="_pingPort" Label="@(L["settings.pingPort"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          InputType="InputType.Number" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       OnClick="SaveSettings" Disabled="true" Size="Size.Medium"
-                       Class="vms-btn">
+            <div>
+                <label class="vms-form-label">@L["settings.pingPort"]</label>
+                <MudTextField @bind-Value="_pingPort"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              InputType="InputType.Number" />
+            </div>
+        </div>
+        @* 비활성 버튼 — 오렌지를 흐리게 하지 말고 아웃라인+회색 글자로 *@
+        <div class="vms-set-actions">
+            <MudButton Variant="Variant.Outlined" Disabled="true" Class="vms-btn vms-btn-muted">
                 @L["settings.btnSavePreparing"]
             </MudButton>
-        </MudPaper>
-    </MudItem>
+        </div>
+    </MudPaper>
 
-    <MudItem xs="12" md="6">
-        <AuthorizeView Roles="Admin">
-            <Authorized>
-                <MudPaper Class="vms-panel pa-5">
-                    <div class="d-flex align-center mb-4">
-                        <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Small"
-                                 Style="color: var(--vms-primary); margin-right: 8px;" />
-                        <MudText Class="vms-panel-header">@L["settings.sectionVs"]</MudText>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <MudPaper Class="vms-panel pa-5 vms-set-full">
+                <div class="vms-set-title">
+                    @L["settings.sectionVs"]
+                    <span class="vms-admin-badge">ADMIN</span>
+                </div>
+
+                @* 토글 — 38×22 트랙, 켜짐 오렌지+잉크 노브, 라벨 오른쪽 13.5px *@
+                <label class="vms-toggle">
+                    <input type="checkbox" @bind="_vsEnabled" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["settings.vsEnabled"]</span>
+                </label>
+
+                <div class="vms-form mt-4">
+                    <div>
+                        <label class="vms-form-label">@L["settings.vsBaseUrl"]</label>
+                        <MudTextField @bind-Value="_vsBaseUrl"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Placeholder="http://localhost:5000"
+                                      Disabled="@(!_vsEnabled)" />
                     </div>
-                    <MudSwitch @bind-Value="_vsEnabled" Label="@(L["settings.vsEnabled"])"
-                               Color="Color.Primary" Class="mb-4" />
-                    <MudTextField @bind-Value="_vsBaseUrl" Label="@(L["settings.vsBaseUrl"])"
-                                  Variant="Variant.Outlined" Class="mb-4"
-                                  Placeholder="http://localhost:5000"
-                                  Disabled="@(!_vsEnabled)" />
-                    <MudAlert Severity="@(_vsEnabled ? Severity.Normal : Severity.Info)"
-                              Variant="Variant.Text" Dense="true" Class="mb-4">
-                        @if (_vsEnabled)
-                        {
-                            <text>@L["settings.vsAlertEnabled"]</text>
-                        }
-                        else
-                        {
-                            <text>@L["settings.vsAlertDisabled"]</text>
-                        }
-                    </MudAlert>
+                </div>
+
+                <div class="vms-banner info mt-4">
+                    <span class="vms-banner-label">INFO</span>
+                    <span class="vms-banner-text">
+                        @(_vsEnabled ? L["settings.vsAlertEnabled"] : L["settings.vsAlertDisabled"])
+                    </span>
+                </div>
+
+                <div class="vms-set-actions">
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               OnClick="SaveVisionServerSettings" Size="Size.Medium"
+                               OnClick="SaveVisionServerSettings"
                                Disabled="_vsSaving" Class="vms-btn">
                         @if (_vsSaving)
                         {
@@ -94,15 +99,22 @@
                         }
                         @L["settings.btnSave"]
                     </MudButton>
-                </MudPaper>
-            </Authorized>
-        </AuthorizeView>
-    </MudItem>
-</MudGrid>
+                </div>
+            </MudPaper>
+        </Authorized>
+    </AuthorizeView>
+</div>
 
 @code {
     private int _pingIntervalSec = 10;
     private int _pingPort = 9999;
+
+    // Directory.Build.props 의 <Version> 이 InformationalVersion 으로 들어온다 (+커밋 해시는 잘라냄)
+    private static readonly string _version =
+        typeof(Settings).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion?.Split('+')[0] ?? "1.0.0";
 
     // VisionServer settings
     private bool _vsEnabled;
@@ -128,11 +140,6 @@
         {
             // Not logged in as Admin or API not available — ignore
         }
-    }
-
-    private void SaveSettings()
-    {
-        Snackbar.Add(L["settings.snackbarSaved"], Severity.Success);
     }
 
     private async Task SaveVisionServerSettings()
