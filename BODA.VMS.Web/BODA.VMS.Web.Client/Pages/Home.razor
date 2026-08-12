@@ -21,12 +21,14 @@
                 </div>
                 <span class="vms-dash-head-date">@DateTime.Now.ToString("yyyy-MM-dd")</span>
             </div>
+            @* 가동률 = Running 라인 비율(안돈 스냅샷), 3번째는 OEE 대신 가동 클라이언트(연결) 비율 (2026-08-12 지시) *@
             <div class="vms-donut-grid">
                 @Donut(L["home.passRate"], _todayTotal > 0 ? _passRate : null, "green",
                        L.Format("home.passRateSub", _todayPass, _todayTotal))
-                @Donut(L["home.availability"], _totalClients > 0 ? _availability : null, "orange",
+                @Donut(L["home.availability"], _andonLineCount > 0 ? _runningPct : null, "orange",
+                       L.Format("home.runningSub", _runningLines, _andonLineCount))
+                @Donut(L["home.clientOnlineRatio"], _totalClients > 0 ? _availability : null, "blue",
                        L.Format("home.availabilitySub", _aliveClients, _totalClients))
-                @Donut(L["home.oee"], null, "blue", L["home.oeeSub"])
                 @Donut(L["home.ngRate"], _todayTotal > 0 ? _ngRate : null, "red",
                        L.Format("home.ngCountSub", _todayTotal - _todayPass))
             </div>
@@ -121,6 +123,30 @@
     </div>
 
     <div class="vms-dash-col">
+        @* 금일 라인별 검사 실적 — /api/andon/snapshot 재사용, NG율 높은 순 상위 5 (2026-08-12 지시) *@
+        <MudPaper Class="vms-panel pa-5">
+            <div class="vms-dash-head">
+                <MudText Class="vms-panel-header">@L["home.lineToday"]</MudText>
+                <a href="/andon" target="_blank" class="vms-dash-link">@L["home.viewAll"]</a>
+            </div>
+            @if (_lineStats.Count == 0)
+            {
+                <div class="vms-dash-empty">@L["home.noLineData"]</div>
+            }
+            else
+            {
+                @foreach (var l in _lineStats)
+                {
+                    <div class="vms-line-row">
+                        <span class="vms-mono vms-dash-id">#@l.ClientIndex.ToString("D2")</span>
+                        <span class="vms-line-name" title="@l.ClientName">@l.ClientName</span>
+                        <span class="vms-line-counts">@L.Format("home.lineCountsFmt", l.TodayTotal, l.TodayNg)</span>
+                        <span class="vms-line-ngrate @(l.TodayNgRate >= 5 ? "bad" : "")">@l.TodayNgRate.ToString("0.#")%</span>
+                    </div>
+                }
+            }
+        </MudPaper>
+
         <MudPaper Class="vms-panel pa-5">
             <div class="vms-dash-head">
                 <MudText Class="vms-panel-header">@L["home.recentAlarms"]</MudText>
@@ -181,6 +207,9 @@
     private List<AlarmEventDto> _recentAlarms = new();
     private int _newAlarmCount;
     private List<MaintenanceScheduleDto> _maintDue = new();
+    private List<AndonLineDto> _lineStats = new();
+    private int _runningLines, _andonLineCount;
+    private double _runningPct;
 
     // 7일 트렌드 SVG 데이터 — viewBox 0~100 좌표, y축은 niceMax 기준 스케일
     private string _ptsTotal = "", _ptsPass = "", _ptsNg = "";
@@ -324,6 +353,22 @@
         {
             var due = await Api.GetAsync<List<MaintenanceScheduleDto>>("/api/maintenance/schedules/due?withinDays=7");
             _maintDue = due?.OrderBy(m => m.NextDueAt).Take(5).ToList() ?? new();
+        }
+        catch { }
+
+        try
+        {
+            var snap = await Api.GetAsync<AndonSnapshotDto>("/api/andon/snapshot");
+            if (snap is not null)
+            {
+                _lineStats = snap.Lines
+                    .OrderByDescending(l => l.TodayNgRate)
+                    .ThenByDescending(l => l.TodayTotal)
+                    .Take(5).ToList();
+                _runningLines = snap.RunningLines;
+                _andonLineCount = snap.Lines.Count;
+                _runningPct = _andonLineCount > 0 ? _runningLines * 100.0 / _andonLineCount : 0;
+            }
         }
         catch { }
     }

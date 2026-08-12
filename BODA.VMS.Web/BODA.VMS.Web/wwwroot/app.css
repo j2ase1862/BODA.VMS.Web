@@ -472,11 +472,11 @@ body {
     box-shadow: none !important;
 }
 
-/* 헤더: 모노 9.5px/500/.12em/uppercase #5F6B7E, 하단 헤더 구분선 */
+/* 헤더: 모노 10.5px/500/.12em/uppercase #5F6B7E, 하단 헤더 구분선 (9.5px 는 과교정 — 2026-08-12) */
 .vms-table .mud-table-head .mud-table-cell {
     font-family: var(--vms-font-mono) !important;
     font-weight: 500 !important;
-    font-size: 9.5px !important;
+    font-size: 10.5px !important;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--vms-text-mono-caption) !important;
@@ -611,7 +611,7 @@ body {
 .vms-table th {
     font-family: var(--vms-font-mono);
     font-weight: 500 !important;
-    font-size: 9.5px !important;
+    font-size: 10.5px !important;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--vms-text-mono-caption) !important;
@@ -660,7 +660,7 @@ body {
 .vms-trend {
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-rows: 260px auto;
+    grid-template-rows: 160px auto;            /* 7포인트 데이터에 260px 은 과함 — 카드 ~250px (2026-08-12 지시) */
     column-gap: 10px;
     row-gap: 8px;
     margin-top: 4px;
@@ -750,6 +750,7 @@ body {
 .vms-donut-label {
     font-family: var(--vms-font-mono);
     font-size: 10px;
+    font-weight: 500;                           /* Plex Mono Medium — 400은 10px에서 획이 너무 가늘다 */
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--mud-palette-text-secondary);   /* #8C96A6 — 4차 톤은 너무 흐림 (2026-08-12 지시) */
@@ -881,6 +882,47 @@ body {
     color: var(--vms-text-mono-caption);
     margin-top: 1px;
 }
+
+/* 금일 라인별 검사 실적 — 라인번호(모노 파랑) + 이름 + 검사·NG + NG율 */
+.vms-line-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.vms-line-row:last-of-type { border-bottom: none; }
+
+.vms-line-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-line-counts {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-line-ngrate {
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mud-palette-text-secondary);
+    min-width: 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-line-ngrate.bad { color: #F0564C; }
 
 @media (max-width: 1100px) {
     .vms-dash-grid { grid-template-columns: 1fr; }
