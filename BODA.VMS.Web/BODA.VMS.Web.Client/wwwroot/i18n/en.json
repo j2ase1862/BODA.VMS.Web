@@ -278,7 +278,12 @@
     "noInspections": "No inspection records",
     "ngDetailTitle": "NG Detail",
     "exportStarted": "Export started",
-    "exportFailed": "Export failed"
+    "exportFailed": "Export failed",
+    "sumTotal": "Total Inspections",
+    "sumPass": "Pass",
+    "sumNg": "NG",
+    "sumNgRate": "Avg NG Rate",
+    "pageInfoFmt": "{0}–{1} / {2}"
   },
   "workorder": {
     "btnCreate": "New Work Order",

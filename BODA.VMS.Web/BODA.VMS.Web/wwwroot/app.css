@@ -1119,6 +1119,135 @@ body {
     box-shadow: none !important;
 }
 
+/* 필터 바 패턴 (README) — 외부 모노 라벨 + flex align-end */
+.vms-filter-flex {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+}
+
+.vms-filter-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 170px;
+}
+
+.vms-filter-field.wide { min-width: 240px; }
+
+.vms-filter-label {
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+    margin-bottom: 6px;
+}
+
+/* 요약 4카드 — 모노 라벨 + 24px/700 수치 (README 4b) */
+.vms-sum-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.vms-sum-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+}
+
+.vms-sum-label {
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-sum-value {
+    font-family: var(--vms-font-display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--mud-palette-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* good/bad — green/red 는 MudBlazor 팔레트 헬퍼(배경 !important)와 충돌하므로 사용 금지 */
+.vms-sum-value.good { color: var(--mud-palette-success); }
+.vms-sum-value.bad { color: var(--mud-palette-error); }
+
+@media (max-width: 900px) {
+    .vms-sum-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 표 행 액션 텍스트 — #5B9BE0 (README 공통) */
+.vms-row-action {
+    color: var(--vms-link) !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    min-width: 0 !important;
+    padding: 2px 8px !important;
+}
+
+.vms-row-action:hover { color: var(--vms-primary) !important; background: transparent !important; }
+
+/* 페이지네이션 — 좌 모노 정보, 우 페이지 버튼(활성 오렌지 / 비활성 테두리형) */
+.vms-pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    width: 100%;
+}
+
+.vms-pager-info {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+
+.vms-pager-btns { display: flex; gap: 6px; }
+
+.vms-pager-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    border-radius: 8px;
+    border: 1px solid var(--mud-palette-lines-inputs);
+    background: transparent;
+    color: var(--mud-palette-text-secondary);
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 0.13s var(--vms-ease), border-color 0.13s var(--vms-ease);
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-pager-btn:hover:not(:disabled):not(.active) {
+    color: var(--vms-primary);
+    border-color: var(--vms-primary);
+}
+
+.vms-pager-btn.active {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    border-color: transparent;
+    font-weight: 700;
+    cursor: default;
+}
+
+.vms-pager-btn:disabled { opacity: 0.35; cursor: default; }
+
 /* ---- Monospace 수치 — 링크/식별자 블루 ---- */
 .vms-mono {
     font-family: var(--vms-font-mono);

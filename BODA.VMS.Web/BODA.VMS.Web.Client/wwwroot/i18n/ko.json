@@ -278,7 +278,12 @@
     "noInspections": "검사 이력이 없습니다",
     "ngDetailTitle": "불량 상세",
     "exportStarted": "내보내기 시작됨",
-    "exportFailed": "내보내기 실패"
+    "exportFailed": "내보내기 실패",
+    "sumTotal": "기간 총 검사",
+    "sumPass": "양품",
+    "sumNg": "NG",
+    "sumNgRate": "평균 불량률",
+    "pageInfoFmt": "{0}–{1} / {2}"
   },
   "workorder": {
     "btnCreate": "작업 지시 등록",
