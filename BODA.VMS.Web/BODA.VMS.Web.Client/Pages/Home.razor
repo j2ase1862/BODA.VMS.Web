@@ -32,13 +32,48 @@
             </div>
         </MudPaper>
 
-        @if (_dailySummary.Count > 0)
+        @* 7일 트렌드 — README 3a 사양(선 2.5 round, 그리드 #1E293C, 축 모노 9px, 범례 헤더 우측,
+           최신 지점 r=3.5 원). MudChart 로는 제어 불가 → SVG 직접 구현 (2026-08-12 지시) *@
+        @if (_dailySummary.Count >= 2)
         {
             <MudPaper Class="vms-panel pa-5">
-                <MudText Class="vms-panel-header mb-3">@L["home.trend7days"]</MudText>
-                <MudChart ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels"
-                          Width="100%" Height="300px"
-                          ChartOptions="@_chartOptions" />
+                <div class="vms-dash-head">
+                    <MudText Class="vms-panel-header">@L["home.trend7days"]</MudText>
+                    <div class="vms-trend-legend">
+                        <span class="vms-trend-key"><i class="total"></i>@L["chart.total"]</span>
+                        <span class="vms-trend-key"><i class="pass"></i>@L["chart.pass"]</span>
+                        <span class="vms-trend-key"><i class="ng"></i>@L["chart.ng"]</span>
+                    </div>
+                </div>
+                <div class="vms-trend">
+                    <div class="vms-trend-y">
+                        @foreach (var t in _trendTicks)
+                        {
+                            <span>@t.ToString("N0")</span>
+                        }
+                    </div>
+                    <div class="vms-trend-plot">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                            @for (var i = 0; i < 5; i++)
+                            {
+                                <line class="vms-trend-grid" x1="0" x2="100" y1="@(i * 25)" y2="@(i * 25)" />
+                            }
+                            <polyline class="vms-trend-line total" points="@_ptsTotal" />
+                            <polyline class="vms-trend-line pass" points="@_ptsPass" />
+                            <polyline class="vms-trend-line ng" points="@_ptsNg" />
+                        </svg>
+                        <span class="vms-trend-dot total" style="top:@Pct(_lastY[0])"></span>
+                        <span class="vms-trend-dot pass" style="top:@Pct(_lastY[1])"></span>
+                        <span class="vms-trend-dot ng" style="top:@Pct(_lastY[2])"></span>
+                    </div>
+                    <div></div>
+                    <div class="vms-trend-x">
+                        @foreach (var lb in _labels)
+                        {
+                            <span>@lb</span>
+                        }
+                    </div>
+                </div>
             </MudPaper>
         }
 
@@ -69,12 +104,12 @@
                             <tr>
                                 <td class="vms-mono vms-dash-id">#@c.ClientIndex.ToString("D2")</td>
                                 <td>@c.Name</td>
-                                <td class="vms-mono">@c.IpAddress</td>
+                                <td class="vms-mono-dim">@c.IpAddress</td>
                                 <td>
                                     <span class="vms-status-dot @(c.IsAlive ? "online" : "offline")"></span>
                                     @(c.IsAlive ? L["home.online"] : L["home.offline"])
                                 </td>
-                                <td class="vms-mono">
+                                <td class="vms-mono-dim">
                                     @(c.LastSeenAt.HasValue ? c.LastSeenAt.Value.ToLocalTime().ToString("MM-dd HH:mm:ss") : "—")
                                 </td>
                             </tr>
@@ -141,25 +176,56 @@
     private double _passRate, _availability;
     private List<ClientDto> _clients = new();
     private List<HistorySummaryDto> _dailySummary = new();
-    private List<ChartSeries> _series = new();
     private string[] _labels = Array.Empty<string>();
     private Dictionary<int, bool> _aliveStatus = new();
     private List<AlarmEventDto> _recentAlarms = new();
     private int _newAlarmCount;
     private List<MaintenanceScheduleDto> _maintDue = new();
 
-    // 7일 트렌드 색 — README 3a: 총 검사 #5B9BE0 / 양품 #3DD068 / NG #F0564C
-    private readonly ChartOptions _chartOptions = new()
+    // 7일 트렌드 SVG 데이터 — viewBox 0~100 좌표, y축은 niceMax 기준 스케일
+    private string _ptsTotal = "", _ptsPass = "", _ptsNg = "";
+    private double[] _lastY = new double[3];
+    private int[] _trendTicks = Array.Empty<int>();
+
+    private static string Pct(double v) => v.ToString("F2", CultureInfo.InvariantCulture) + "%";
+
+    // 축 상한: 4·{1,2,5}·10^k 중 최댓값 이상인 최소값 → 4분할 눈금이 정수
+    private static int NiceMax(int max)
     {
-        LineStrokeWidth = 2,
-        ChartPalette = new[] { "#5B9BE0", "#3DD068", "#F0564C" }
-    };
+        for (var k = 1; k <= 100_000_000; k *= 10)
+            foreach (var c in new[] { 1, 2, 5 })
+                if (4 * c * k >= max) return 4 * c * k;
+        return max;
+    }
+
+    private void BuildTrend()
+    {
+        var n = _dailySummary.Count;
+        if (n < 2) return;
+
+        var niceMax = NiceMax(Math.Max(1, _dailySummary.Max(s => s.TotalCount)));
+        _trendTicks = new[] { niceMax, niceMax * 3 / 4, niceMax / 2, niceMax / 4, 0 };
+
+        double Y(int v) => 100 - v * 100.0 / niceMax;
+        string Pts(Func<HistorySummaryDto, int> sel) => string.Join(" ",
+            _dailySummary.Select((s, i) =>
+                (i * 100.0 / (n - 1)).ToString("F2", CultureInfo.InvariantCulture) + "," +
+                Y(sel(s)).ToString("F2", CultureInfo.InvariantCulture)));
+
+        _ptsTotal = Pts(s => s.TotalCount);
+        _ptsPass = Pts(s => s.PassCount);
+        _ptsNg = Pts(s => s.NgCount);
+        var last = _dailySummary[^1];
+        _lastY = new[] { Y(last.TotalCount), Y(last.PassCount), Y(last.NgCount) };
+    }
 
     // 도넛 게이지 — SVG 직접 구현 (트랙 #243349, stroke-width 8, r=40, 둘레 251.3)
     private RenderFragment Donut(string label, double? pct, string colorClass, string sub) => __builder =>
     {
         var v = pct.HasValue ? Math.Clamp(pct.Value, 0, 100) : 0;
-        var dash = (251.3 * v / 100).ToString("F1", CultureInfo.InvariantCulture);
+        // 2% 미만은 최소 2% 길이로 — round cap 이 점 하나로 보여 얼룩처럼 읽힌다 (2026-08-12 지시)
+        var arcPct = v > 0 ? Math.Max(v, 2) : 0;
+        var dash = (251.3 * arcPct / 100).ToString("F1", CultureInfo.InvariantCulture);
         <div class="vms-donut">
             <span class="vms-donut-label">@label</span>
             <div class="vms-donut-svg">
@@ -236,12 +302,7 @@
                 }
 
                 _labels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
-                _series = new List<ChartSeries>
-                {
-                    new() { Name = L["chart.total"], Data = summary.Select(s => (double)s.TotalCount).ToArray() },
-                    new() { Name = L["chart.pass"], Data = summary.Select(s => (double)s.PassCount).ToArray() },
-                    new() { Name = L["chart.ng"], Data = summary.Select(s => (double)s.NgCount).ToArray() }
-                };
+                BuildTrend();
             }
         }
         catch
