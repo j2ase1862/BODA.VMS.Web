@@ -308,7 +308,14 @@
     "deletedFmt": "Work Order '{0}' deleted",
     "confirmDeleteFmt": "Delete Work Order '{0}'?\nOnly Planned orders can be deleted.",
     "editTitleFmt": "Edit — {0}",
-    "lotsTitleFmt": "Lots — {0}"
+    "lotsTitleFmt": "Lots — {0}",
+    "subCountFmt": "{0} in progress · {1} planned",
+    "btnStart": "START",
+    "btnComplete": "DONE",
+    "btnClose": "CLOSE",
+    "actEdit": "Edit",
+    "actDelete": "Delete",
+    "transitionHint": "Transitions: Planned → In Progress → Completed → Closed (irreversible) · Edit/Delete only while Planned · LOT available in every state"
   },
   "pareto": {
     "topN": "Top N",

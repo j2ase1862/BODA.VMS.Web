@@ -1790,6 +1790,84 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 8a 작업 지시 — CRUD 기준 화면 (15개 CRUD 페이지의 reference) ---- */
+
+.vms-filter-spacer { flex: 1; }
+
+/* ID 셀 — 모노 700 블루 (지시번호·코드류 공통) */
+.vms-cell-id {
+    font-family: var(--vms-font-mono);
+    font-weight: 700;
+    color: var(--vms-link);
+    font-size: 12.5px;
+}
+
+/* 양품/NG 합성 셀 */
+.vms-qty-pass { font-family: var(--vms-font-mono); color: #7FA98C; font-variant-numeric: tabular-nums; }
+.vms-qty-ng   { font-family: var(--vms-font-mono); color: #C4756E; font-variant-numeric: tabular-nums; }
+.vms-qty-sep  { color: var(--vms-text-mono-caption); }
+
+/* 진행률 — 5px 바 + 아래 모노 11px */
+.vms-wo-prog {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 90px;
+}
+
+.vms-wo-prog-track {
+    height: 5px;
+    border-radius: 3px;
+    background: #243349;
+    overflow: hidden;
+}
+
+.vms-wo-prog-fill { height: 100%; border-radius: 3px; }
+.vms-wo-prog-fill.done { background: #4E8C63; }
+.vms-wo-prog-fill.run  { background: #3C5F80; }
+.vms-wo-prog-fill.none { background: #5F6B7E; }
+
+.vms-wo-prog-pct {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 상태 칩 — 진행 중만 채움, 나머지는 아웃라인 (모든 상태를 채우면 표가 시끄럽다) */
+.vms-wo-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.vms-wo-chip.st-run  { background: #3C5F80; color: #DCE8F5; }
+.vms-wo-chip.st-done { border: 1px solid #4E8C63; color: #7FA98C; }
+.vms-wo-chip.st-flat { border: 1px solid rgba(255, 255, 255, 0.16); color: var(--mud-palette-text-secondary); }
+
+/* 전이 액션 — 모노 10px 아웃라인 버튼 (짧은 텍스트 라벨, 아이콘 금지) */
+.vms-act-btn {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 4px 9px;
+    margin-left: 4px;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: filter 0.13s var(--vms-ease);
+}
+
+.vms-act-btn:hover { filter: brightness(1.3); }
+
+.vms-act-btn.start { border: 1px solid #4E8C63; color: #7FA98C; }
+.vms-act-btn.done  { border: 1px solid #8A6E37; color: #C2A469; }
+.vms-act-btn.close { border: 1px solid rgba(255, 255, 255, 0.2); color: var(--mud-palette-text-secondary); }
+.vms-act-btn.lot   { border: 1px solid #3C5F80; color: #7FA6CC; }
+
 /* ---- 7b 파레토 분석 — 콤보 차트(막대+누적선+80% 기준선) ---- */
 
 .vms-par-chart {

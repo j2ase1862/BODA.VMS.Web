@@ -7,25 +7,33 @@
 
 <PageTitle>@L["page.workorders"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.workorders"]</MudText>
+@* 8a — CRUD 기준 화면: 헤더 부제는 의미 있는 요약, 등록 버튼은 필터 바 우측 끝 *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.workorders"]</MudText>
+        <div class="vms-page-sub">
+            @L.Format("workorder.subCountFmt", CountOf("InProgress"), CountOf("Planned"))
+        </div>
+    </div>
+</div>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2" AlignItems="Center">
-        <MudItem xs="12" sm="4">
-            <MudSelect T="string?" Value="_statusFilter" ValueChanged="OnStatusFilterChanged"
-                       Label="@(L["common.status"])" Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.FilterList">
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.status"]</label>
+            <MudSelect T="string?" Value="_statusFilter" ValueChanged="OnStatusFilterChanged" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Planned")">@L["status.planned"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("InProgress")">@L["status.inProgress"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Completed")">@L["status.completed"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Closed")">@L["status.closed"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="int?" Value="_clientFilter" ValueChanged="OnClientFilterChanged"
-                       Label="@(L["common.line"])" Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" Value="_clientFilter" ValueChanged="OnClientFilterChanged" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
@@ -34,19 +42,18 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <AuthorizeView Roles="Admin,User">
-                <Authorized>
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                               Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
-                        @L["workorder.btnCreate"]
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <div class="vms-filter-spacer"></div>
+        <AuthorizeView Roles="Admin,User">
+            <Authorized>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                    @L["workorder.btnCreate"]
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</MudPaper>
 
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
@@ -64,75 +71,73 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <span class="vms-mono" style="font-weight: 700;">@context.OrderNo</span>
+                <span class="vms-cell-id">@context.OrderNo</span>
             </MudTd>
             <MudTd>
-                <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.ProductCode</MudText>
-                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@context.ProductName</MudText>
+                <div class="vms-cell-title">@context.ProductCode</div>
+                <div class="vms-cell-msg">@context.ProductName</div>
             </MudTd>
             <MudTd>
                 @if (context.ClientIndex.HasValue)
                 {
-                    <span>#@context.ClientIndex.Value.ToString("D2")</span> <span>—</span> <span>@context.ClientName</span>
+                    <span class="vms-mono-dim">#@context.ClientIndex.Value.ToString("D2")</span>
+                    <span style="font-size:12.5px;"> @context.ClientName</span>
                 }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
-            <MudTd>@context.RecipeName</MudTd>
-            <MudTd Style="text-align: right;">@context.PlannedQuantity</MudTd>
-            <MudTd Style="text-align: right;">@context.ProducedQuantity</MudTd>
+            <MudTd><span class="vms-mono-dim">@context.RecipeName</span></MudTd>
+            <MudTd Style="text-align: right;"><span class="vms-mono">@context.PlannedQuantity.ToString("N0")</span></MudTd>
+            <MudTd Style="text-align: right;"><span class="vms-mono">@context.ProducedQuantity.ToString("N0")</span></MudTd>
             <MudTd Style="text-align: right;">
-                <span style="color: var(--mud-palette-success); font-weight: 600;">@context.PassQuantity</span>
-                <span style="color: var(--vms-text-secondary);"> / </span>
-                <span style="color: var(--mud-palette-error); font-weight: 600;">@context.NgQuantity</span>
+                @* 양품/NG 합성 셀 — 저채도 (README 8a) *@
+                <span class="vms-qty-pass">@context.PassQuantity.ToString("N0")</span><span class="vms-qty-sep"> / </span><span class="vms-qty-ng">@context.NgQuantity.ToString("N0")</span>
             </MudTd>
             <MudTd>
-                <div style="min-width: 80px;">
-                    <MudProgressLinear Color="@GetProgressColor(context)"
-                                       Value="@Math.Min(context.Progress, 100)"
-                                       Size="Size.Small" Class="my-1" />
-                    <MudText Typo="Typo.caption">@context.Progress.ToString("F1")%</MudText>
+                <div class="vms-wo-prog">
+                    <div class="vms-wo-prog-track">
+                        <div class="vms-wo-prog-fill @ProgClass(context)"
+                             style="width:@Math.Min(context.Progress, 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <span class="vms-wo-prog-pct">@context.Progress.ToString("F1")%</span>
                 </div>
             </MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)"
-                         Variant="@(context.Status == "InProgress" ? Variant.Filled : Variant.Outlined)">
-                    @StatusLabel(context.Status, L)
-                </MudChip>
+                <span class="vms-wo-chip @StatusClass(context.Status)">@StatusLabel(context.Status, L)</span>
             </MudTd>
             <MudTd Style="text-align: right; white-space: nowrap;">
+                @* 전이는 모노 아웃라인 버튼 + 짧은 텍스트 라벨(아이콘 금지 — 현장 오조작 방지) *@
                 <AuthorizeView Roles="Admin,User">
                     <Authorized Context="auth1">
                         @if (context.Status == "Planned")
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small"
-                                           Color="Color.Success"
-                                           OnClick="@(() => ChangeStatus(context, "Start"))" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                           OnClick="@(() => OpenEditDialog(context))" />
+                            <button type="button" class="vms-act-btn start"
+                                    @onclick="@(() => ChangeStatus(context, "Start"))">@L["workorder.btnStart"]</button>
                         }
                         else if (context.Status == "InProgress")
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small"
-                                           Color="Color.Warning"
-                                           OnClick="@(() => ChangeStatus(context, "Complete"))" />
+                            <button type="button" class="vms-act-btn done"
+                                    @onclick="@(() => ChangeStatus(context, "Complete"))">@L["workorder.btnComplete"]</button>
                         }
                         else if (context.Status == "Completed")
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Lock" Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => ChangeStatus(context, "Close"))" />
+                            <button type="button" class="vms-act-btn close"
+                                    @onclick="@(() => ChangeStatus(context, "Close"))">@L["workorder.btnClose"]</button>
                         }
-                        <MudIconButton Icon="@Icons.Material.Filled.Inventory" Size="Size.Small"
-                                       Color="Color.Info"
-                                       OnClick="@(() => OpenLots(context))" />
+                        <button type="button" class="vms-act-btn lot"
+                                @onclick="@(() => OpenLots(context))">LOT</button>
+                        @if (context.Status == "Planned")
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                       OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
+                        }
                     </Authorized>
                 </AuthorizeView>
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="auth2">
                         @if (context.Status == "Planned")
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="@(() => DeleteItem(context))" />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                       OnClick="@(() => DeleteItem(context))">@L["workorder.actDelete"]</MudButton>
                         }
                     </Authorized>
                 </AuthorizeView>
@@ -146,6 +151,7 @@
             </div>
         </NoRecordsContent>
     </MudTable>
+    <div class="vms-slots-info">@L["workorder.transitionHint"]</div>
 </div>
 
 @code {
@@ -154,6 +160,8 @@
     private bool _loading;
     private string? _statusFilter;
     private int? _clientFilter;
+
+    private int CountOf(string status) => _items.Count(w => w.Status == status);
 
     protected override async Task OnInitializedAsync()
     {
@@ -306,19 +314,19 @@
         _ => s
     };
 
-    private static Color GetStatusColor(string status) => status switch
+    // 상태 칩 — 채움은 '지금 진행 중' 하나만 (README 8a)
+    private static string StatusClass(string status) => status switch
     {
-        "Planned" => Color.Default,
-        "InProgress" => Color.Info,
-        "Completed" => Color.Success,
-        "Closed" => Color.Dark,
-        _ => Color.Default
+        "InProgress" => "st-run",
+        "Completed" => "st-done",
+        _ => "st-flat"
     };
 
-    private static Color GetProgressColor(WorkOrderDto wo)
+    // 진행률 바 — 100% 완료 그린 / 진행 중 블루 / 미착수 회색
+    private static string ProgClass(WorkOrderDto wo)
     {
-        if (wo.Progress >= 100) return Color.Success;
-        if (wo.Status == "InProgress") return Color.Info;
-        return Color.Default;
+        if (wo.Progress >= 100) return "done";
+        if (wo.Status == "InProgress") return "run";
+        return "none";
     }
 }

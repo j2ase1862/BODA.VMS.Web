@@ -308,7 +308,14 @@
     "deletedFmt": "작업 지시 '{0}' 삭제됨",
     "confirmDeleteFmt": "작업 지시 '{0}'를 삭제하시겠습니까?\n계획됨 상태만 삭제 가능합니다.",
     "editTitleFmt": "수정 — {0}",
-    "lotsTitleFmt": "로트 — {0}"
+    "lotsTitleFmt": "로트 — {0}",
+    "subCountFmt": "진행 중 {0}건 · 계획 {1}건",
+    "btnStart": "시작",
+    "btnComplete": "완료",
+    "btnClose": "종료",
+    "actEdit": "수정",
+    "actDelete": "삭제",
+    "transitionHint": "상태 전이: 계획 → 진행 중 → 완료 → 종료 (되돌릴 수 없음) · 수정/삭제는 계획 상태에서만 · LOT은 모든 상태에서 열람 가능"
   },
   "pareto": {
     "topN": "상위 N",
