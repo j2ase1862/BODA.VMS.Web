@@ -1790,6 +1790,147 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 9e 수요 예측 — 예측 카드 + 실적 대조/잔차 관리도 ---- */
+
+.vms-fc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 1100px) {
+    .vms-fc-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+    .vms-fc-grid { grid-template-columns: 1fr; }
+}
+
+/* 좌측 4px 색띠 = 예측 NG율 등급 (저채도) */
+.vms-fc-card {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.vms-fc-card.g-bad  { border-left: 4px solid #A8443C !important; }
+.vms-fc-card.g-warn { border-left: 4px solid #8A6E37 !important; }
+.vms-fc-card.g-ok   { border-left: 4px solid #4E8C63 !important; }
+
+.vms-fc-card.g-bad  .vms-fc-value { color: #DE857D; }
+.vms-fc-card.g-warn .vms-fc-value { color: #C9A05A; }
+.vms-fc-card.g-ok   .vms-fc-value { color: #7FA98C; }
+
+.vms-fc-card.sel { outline: 1px solid var(--vms-primary); }
+
+.vms-fc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vms-fc-line {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-fc-recipe {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 6px;
+}
+
+.vms-fc-status {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-fc-status.ok   { background: rgba(78, 140, 99, 0.14); color: #7FA98C; }
+.vms-fc-status.warn { background: rgba(138, 110, 55, 0.2); color: #C2A469; }
+.vms-fc-status.err  { background: rgba(168, 68, 60, 0.18); color: #DE857D; }
+.vms-fc-status.dim  { background: rgba(255, 255, 255, 0.06); color: var(--mud-palette-text-secondary); }
+
+.vms-fc-value {
+    font-family: var(--vms-font-mono);
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-fc-caption { font-size: 11.5px; color: var(--mud-palette-text-secondary); }
+
+/* ok 가 아니면 수치 대신 사유 문장만 — 0% 오독 방지 */
+.vms-fc-reason { font-size: 12.5px; color: #8C96A6; padding: 8px 0 4px; }
+
+.vms-fc-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--vms-text-mono-caption);
+    border-top: 1px solid var(--vms-hairline);
+    padding-top: 8px;
+    margin-top: 2px;
+}
+
+/* 실적 대조 — 실측 실선 + 예측 점선 연장 */
+.vms-fc-line-actual {
+    fill: none;
+    stroke: #7FA6CC;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.vms-fc-line-pred {
+    stroke: #FF7A3D;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 2.4 1.8;
+    stroke-linecap: round;
+}
+
+.vms-fc-pred-pt {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vms-primary);
+    transform: translate(-50%, -50%);
+}
+
+.vms-fc-pred-label {
+    position: absolute;
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--vms-primary);
+    white-space: nowrap;
+    transform: translate(-50%, -170%);
+}
+
+/* 잔차 데이터 라인/이탈점은 SPC 공통 스타일에 저채도 변형만 추가 */
+.vms-spc-line.dim { stroke: #C9D3E0; }
+.vms-spc-pt.ooc.muted { background: #C4756E; }
+
 /* ---- 9d PDF 리포트 — 생성 범위 + 라이트 지면 문서 미리보기 ---- */
 
 /* 계산된 기간 — 잉크 박스에 모노 16px 크게 */

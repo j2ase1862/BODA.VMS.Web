@@ -958,6 +958,9 @@
     "selectClient": "Select a client card above to view its time series.",
     "noHistory": "No recent data.",
     "actualNgRate": "Actual NG Rate (%)",
+    "refresh": "Refresh",
+    "predictedWindow": "Predicted NG rate (next 1h)",
+    "oocLabel": "OOC",
     "status": {
       "ok": "OK",
       "noModel": "No model",
