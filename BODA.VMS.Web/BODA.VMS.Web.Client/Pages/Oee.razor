@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @inject ILocalizer L
 
 <PageTitle>@L["page.oee"] - BODA VMS</PageTitle>
@@ -37,10 +38,123 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Calculate"
                    OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
+
+        @* 11b — 13대 이상: 정렬/미달만/전환/Excel *@
+        @if (FleetEligible)
+        {
+            @if (TableMode)
+            {
+                <div class="vms-filter-field" style="min-width:130px;">
+                    <label class="vms-filter-label">@L["fleet.sort"]</label>
+                    <MudSelect T="bool" @bind-Value="_sortWorst"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="bool" Value="true">@L["fleet.sortWorst"]</MudSelectItem>
+                        <MudSelectItem T="bool" Value="false">@L["fleet.sortName"]</MudSelectItem>
+                    </MudSelect>
+                </div>
+                <label class="vms-toggle" style="margin-bottom:10px;">
+                    <input type="checkbox" @bind="_belowOnly" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["fleet.belowOnly"]</span>
+                </label>
+            }
+            <div class="vms-filter-spacer"></div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                       OnClick="@(() => _viewTable = !TableMode)">
+                @(TableMode ? L["fleet.viewCards"] : L["fleet.viewTable"])
+            </MudButton>
+            @if (TableMode)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                           StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsv">
+                    @L["fleet.excel"]
+                </MudButton>
+            }
+        }
     </div>
 </MudPaper>
 
-@if (_result is not null && _result.Clients.Count > 0)
+@if (_result is not null && _result.Clients.Count > 0 && TableMode)
+{
+    <div class="vms-banner info mb-4">
+        <span class="vms-banner-label">FORMULA</span>
+        <span class="vms-banner-text">@L["oee.formulaAlert"]</span>
+    </div>
+
+    @* 요약 밴드 — 수치는 전부 표 데이터에서 계산 *@
+    <div class="vms-sum-grid mb-4">
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.avg"] · OEE</span>
+            <span class="vms-sum-value mono">@((AvgOee * 100).ToString("F1"))%</span>
+        </MudPaper>
+        <MudPaper Class="@AlertCardClass">
+            <span class="vms-sum-label">@L.Format("fleet.belowTargetFmt", "85%")</span>
+            <span class="vms-sum-value mono">@L.Format("fleet.unitsFmt", BelowCount)</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.worst"]</span>
+            <span class="vms-sum-value mono">@(Worst is null ? "—" : $"#{Worst.ClientIndex:D2}")</span>
+            <span class="vms-sum-sub">@(Worst is null ? "" : $"{Worst.ClientName} · {(Worst.Oee * 100):F1}%")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.totalInsp"]</span>
+            <span class="vms-sum-value mono">@_result.Clients.Sum(c => c.TotalInspections).ToString("N0")</span>
+        </MudPaper>
+    </div>
+
+    <MudPaper Class="vms-panel pa-0">
+        <div class="vms-flt-scroll">
+            <table class="vms-flt-table">
+                <thead>
+                    <tr>
+                        <th>@L["common.line"]</th>
+                        <th>@L["fleet.colEquip"]</th>
+                        <th>OEE</th>
+                        <th class="num">@L["oee.availability"]</th>
+                        <th class="num">@L["oee.performance"]</th>
+                        <th class="num">@L["oee.quality"]</th>
+                        <th>@L["fleet.colStack"]</th>
+                        <th class="num">@L["fleet.colInspNg"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in VisibleRows)
+                    {
+                        var g = FltGrade(c.Oee);
+                        var below = c.Oee < Target;
+                        var runPct = c.PeriodSeconds > 0 ? c.RunningSeconds / c.PeriodSeconds * 100 : 0;
+                        var idlePct = c.PeriodSeconds > 0 ? c.IdleSeconds / c.PeriodSeconds * 100 : 0;
+                        var downPct = c.PeriodSeconds > 0 ? c.DownSeconds / c.PeriodSeconds * 100 : 0;
+                        <tr class="@(below ? $"below {g}" : "")">
+                            <td class="vms-flt-num vms-flt-dim" style="text-align:left;">#@c.ClientIndex.ToString("D2")</td>
+                            <td>@c.ClientName</td>
+                            <td>
+                                <div class="vms-flt-gauge @g">
+                                    <div class="track"><div class="fill" style="width:@Pctw(c.Oee)"></div></div>
+                                    <span class="val">@((c.Oee * 100).ToString("F1"))%</span>
+                                </div>
+                            </td>
+                            <td class="vms-flt-num">@((c.Availability * 100).ToString("F1"))%</td>
+                            <td class="vms-flt-num">@((c.Performance * 100).ToString("F1"))%</td>
+                            <td class="vms-flt-num">@((c.Quality * 100).ToString("F1"))%</td>
+                            <td>
+                                <div class="vms-flt-stack">
+                                    @if (runPct > 0)  { <div class="seg run"  style="width:@Pctw(runPct / 100)"></div> }
+                                    @if (idlePct > 0) { <div class="seg idle" style="width:@Pctw(idlePct / 100)"></div> }
+                                    @if (downPct > 0) { <div class="seg down" style="width:@Pctw(downPct / 100)"></div> }
+                                </div>
+                            </td>
+                            <td class="vms-flt-num">
+                                @c.TotalInspections.ToString("N0") · <span style="color:#C4756E">@c.NgCount.ToString("N0")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </MudPaper>
+}
+else if (_result is not null && _result.Clients.Count > 0)
 {
     @* 공식 안내 — FORMULA 정보 배너 (README 6b) *@
     <div class="vms-banner info mb-4">
@@ -134,12 +248,80 @@ else
 }
 
 @code {
+    private const int TableThreshold = 13;
+    private const double Target = 0.85;
+
     private DateTime? _startDate = DateTime.Today;
     private DateTime? _endDate = DateTime.Today.AddDays(1);
     private int? _clientId;
 
     private List<ClientDto> _clients = new();
     private OeeResultDto? _result;
+
+    private bool? _viewTable;
+    private bool _sortWorst = true;
+    private bool _belowOnly;
+
+    private string AlertCardClass =>
+        "vms-panel vms-sum-card vms-flt-alert " + (BelowCount > 0 ? WorstGrade : "");
+
+    private bool FleetEligible => (_result?.Clients.Count ?? 0) >= TableThreshold;
+    private bool TableMode => FleetEligible && (_viewTable ?? true);
+
+    // 기본 정렬은 나쁜 순 (OEE 오름차순)
+    private IEnumerable<OeeClientResultDto> VisibleRows
+    {
+        get
+        {
+            var rows = _belowOnly
+                ? _result!.Clients.Where(c => c.Oee < Target)
+                : _result!.Clients.AsEnumerable();
+            return _sortWorst
+                ? rows.OrderBy(c => c.Oee)
+                : rows.OrderBy(c => c.ClientName, StringComparer.Ordinal);
+        }
+    }
+
+    private double AvgOee => _result!.Clients.Count > 0 ? _result.Clients.Average(c => c.Oee) : 0;
+    private int BelowCount => _result!.Clients.Count(c => c.Oee < Target);
+    private OeeClientResultDto? Worst => _result!.Clients.OrderBy(c => c.Oee).FirstOrDefault();
+    private string WorstGrade => Worst is null ? "" : FltGrade(Worst.Oee);
+
+    private static string Pctw(double ratio) =>
+        (Math.Clamp(ratio, 0, 1) * 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    // 게이지/행 틴트용 등급 — 임계값은 기존 OeeGrade 와 동일, 공용 색 클래스로 매핑
+    private static string FltGrade(double oee)
+    {
+        if (oee >= 0.85) return "g95";
+        if (oee >= 0.60) return "g85";
+        if (oee >= 0.40) return "g70";
+        return "g-bad";
+    }
+
+    private async Task ExportCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{L["common.line"]},{L["fleet.colEquip"]},OEE(%),{L["oee.availability"]}(%),{L["oee.performance"]}(%),{L["oee.quality"]}(%),{L["common.total"]},NG");
+        foreach (var c in VisibleRows)
+        {
+            sb.AppendLine(string.Join(",",
+                $"#{c.ClientIndex:D2}", CsvField(c.ClientName),
+                (c.Oee * 100).ToString("F1"), (c.Availability * 100).ToString("F1"),
+                (c.Performance * 100).ToString("F1"), (c.Quality * 100).ToString("F1"),
+                c.TotalInspections, c.NgCount));
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes("﻿" + sb);
+        await JS.InvokeVoidAsync("downloadFileFromBytes",
+            $"oee_{DateTime.Now:yyyyMMdd_HHmmss}.csv", "text/csv", Convert.ToBase64String(bytes));
+    }
+
+    private static string CsvField(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        var dq = '"'.ToString();
+        return v.Contains(',') ? dq + v.Replace(dq, dq + dq) + dq : v;
+    }
 
     protected override async Task OnInitializedAsync()
     {

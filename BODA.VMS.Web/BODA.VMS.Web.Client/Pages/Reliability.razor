@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @inject ILocalizer L
 
 <PageTitle>@L["page.reliability"] - BODA VMS</PageTitle>
@@ -42,12 +43,120 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Calculate"
                    OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
+
+        @* 10a — 13대 이상: 정렬/미달만/전환/Excel *@
+        @if (FleetEligible)
+        {
+            @if (TableMode)
+            {
+                <div class="vms-filter-field" style="min-width:130px;">
+                    <label class="vms-filter-label">@L["fleet.sort"]</label>
+                    <MudSelect T="bool" @bind-Value="_sortWorst"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="bool" Value="true">@L["fleet.sortWorst"]</MudSelectItem>
+                        <MudSelectItem T="bool" Value="false">@L["fleet.sortName"]</MudSelectItem>
+                    </MudSelect>
+                </div>
+                <label class="vms-toggle" style="margin-bottom:10px;">
+                    <input type="checkbox" @bind="_belowOnly" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["fleet.belowOnly"]</span>
+                </label>
+            }
+            <div class="vms-filter-spacer"></div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                       OnClick="ToggleView">
+                @(TableMode ? L["fleet.viewCards"] : L["fleet.viewTable"])
+            </MudButton>
+            @if (TableMode)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                           StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsv">
+                    @L["fleet.excel"]
+                </MudButton>
+            }
+        }
     </div>
 </MudPaper>
 
-@if (_stats.Count > 0)
+@if (_stats.Count > 0 && TableMode)
 {
-    @* 라인 카드 — 상단 3px 색띠 = 가용률 등급 (기존 임계값 유지, 저채도) *@
+    @* 요약 밴드 — 수치는 전부 표 데이터에서 계산 *@
+    <div class="vms-sum-grid mb-4">
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.avg"] · @L["reliability.availability"]</span>
+            <span class="vms-sum-value mono">@(AvgAvail.HasValue ? (AvgAvail.Value * 100).ToString("F2") + "%" : "—")</span>
+        </MudPaper>
+        <MudPaper Class="@AlertCardClass">
+            <span class="vms-sum-label">@L.Format("fleet.belowTargetFmt", "85%")</span>
+            <span class="vms-sum-value mono">@L.Format("fleet.unitsFmt", BelowCount)</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.worst"]</span>
+            <span class="vms-sum-value mono">@(Worst is null ? "—" : $"#{Worst.ClientIndex:D2}")</span>
+            <span class="vms-sum-sub">@(Worst is null ? "" : $"{Worst.ClientName} · {(Worst.Availability!.Value * 100):F2}%")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.totalFailures"]</span>
+            <span class="vms-sum-value mono">@_stats.Sum(s => s.FailureCount)</span>
+        </MudPaper>
+    </div>
+
+    <MudPaper Class="vms-panel pa-0">
+        <div class="vms-flt-scroll">
+            <table class="vms-flt-table">
+                <thead>
+                    <tr>
+                        <th>@L["common.line"]</th>
+                        <th>@L["fleet.colEquip"]</th>
+                        <th class="num">@L["reliability.failureCount"]</th>
+                        <th class="num">@L["reliability.mtbf"]</th>
+                        <th class="num">@L["reliability.mttr"]</th>
+                        <th>@L["reliability.availability"]</th>
+                        <th>@L["fleet.trend7d"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in VisibleRows)
+                    {
+                        var g = Grade(s.Availability);
+                        var below = s.Availability.HasValue && s.Availability < Target;
+                        <tr class="@(below ? $"below {g}" : "")">
+                            <td class="vms-flt-num vms-flt-dim" style="text-align:left;">#@s.ClientIndex.ToString("D2")</td>
+                            <td>@s.ClientName</td>
+                            <td class="vms-flt-num" style="color:@(s.FailureCount > 0 ? "#C4756E" : "#7FA98C")">@s.FailureCount</td>
+                            <td class="vms-flt-num">@(s.MtbfHours.HasValue ? $"{s.MtbfHours.Value:F1}h" : "—")</td>
+                            <td class="vms-flt-num">@(s.MttrHours.HasValue ? $"{s.MttrHours.Value:F1}h" : "—")</td>
+                            <td>
+                                @if (s.Availability.HasValue)
+                                {
+                                    <div class="vms-flt-gauge @g">
+                                        <div class="track"><div class="fill" style="width:@Pctw(s.Availability.Value)"></div></div>
+                                        <span class="val">@((s.Availability.Value * 100).ToString("F2"))%</span>
+                                    </div>
+                                }
+                                else { <span class="vms-flt-dim">—</span> }
+                            </td>
+                            <td>
+                                @{ var spark = SparkPoints(s.ClientIndex); }
+                                @if (spark is not null)
+                                {
+                                    <svg class="vms-flt-spark @g" viewBox="0 0 86 22" preserveAspectRatio="none">
+                                        <polyline points="@spark" />
+                                    </svg>
+                                }
+                                else { <span class="vms-flt-dim">—</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </MudPaper>
+}
+else if (_stats.Count > 0)
+{
+    @* 9f 카드 그리드 (12대 이하 기본) *@
     <div class="vms-rel-grid">
         @foreach (var s in _stats)
         {
@@ -111,12 +220,58 @@ else
 }
 
 @code {
+    private const int TableThreshold = 13;
+    private const double Target = 0.85;
+
     private DateTime? _startDate = DateTime.Today.AddDays(-7);
     private DateTime? _endDate = DateTime.Today.AddDays(1);
     private int? _clientId;
     private List<ClientDto> _clients = new();
     private List<ReliabilityStatsDto> _stats = new();
     private bool _loaded;
+
+    private bool? _viewTable;
+    private bool _sortWorst = true;
+    private bool _belowOnly;
+    private Dictionary<int, double?[]> _spark = new();
+
+    private string AlertCardClass =>
+        "vms-panel vms-sum-card vms-flt-alert " + (BelowCount > 0 ? WorstGrade : "");
+
+    private bool FleetEligible => _stats.Count >= TableThreshold;
+    private bool TableMode => FleetEligible && (_viewTable ?? true);
+
+    // 기본 정렬은 나쁜 순 (가용률 오름차순, 값 없는 행은 맨 뒤)
+    private IEnumerable<ReliabilityStatsDto> VisibleRows
+    {
+        get
+        {
+            var rows = _belowOnly
+                ? _stats.Where(s => s.Availability.HasValue && s.Availability < Target)
+                : _stats.AsEnumerable();
+            return _sortWorst
+                ? rows.OrderBy(s => s.Availability ?? double.MaxValue)
+                : rows.OrderBy(s => s.ClientName, StringComparer.Ordinal);
+        }
+    }
+
+    private double? AvgAvail
+    {
+        get
+        {
+            var vals = _stats.Where(s => s.Availability.HasValue).Select(s => s.Availability!.Value).ToList();
+            return vals.Count > 0 ? vals.Average() : null;
+        }
+    }
+
+    private int BelowCount => _stats.Count(s => s.Availability.HasValue && s.Availability < Target);
+
+    private ReliabilityStatsDto? Worst => _stats
+        .Where(s => s.Availability.HasValue)
+        .OrderBy(s => s.Availability)
+        .FirstOrDefault();
+
+    private string WorstGrade => Grade(Worst?.Availability);
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,11 +293,95 @@ else
             _stats = await Api.PostAsync<ReliabilityRequestDto, List<ReliabilityStatsDto>>(
                 "/api/reliability/calculate", req) ?? new();
             _loaded = true;
+            if (TableMode) await LoadSparkAsync();
         }
         catch (HttpRequestException ex)
         {
             Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
+    }
+
+    private async Task ToggleView()
+    {
+        _viewTable = !TableMode;
+        if (TableMode && _spark.Count == 0) await LoadSparkAsync();
+    }
+
+    // 7일 추이 — 일 단위 재계산 7회 (전체 라인 일괄이라 호출 수는 7)
+    private async Task LoadSparkAsync()
+    {
+        var dict = new Dictionary<int, double?[]>();
+        for (var d = 0; d < 7; d++)
+        {
+            var day = DateTime.Today.AddDays(d - 6);
+            try
+            {
+                var stats = await Api.PostAsync<ReliabilityRequestDto, List<ReliabilityStatsDto>>(
+                    "/api/reliability/calculate",
+                    new ReliabilityRequestDto
+                    {
+                        StartDate = day.ToUniversalTime(),
+                        EndDate = day.AddDays(1).ToUniversalTime(),
+                        ClientId = _clientId
+                    }) ?? new();
+                foreach (var s in stats)
+                {
+                    if (!dict.TryGetValue(s.ClientIndex, out var arr))
+                        dict[s.ClientIndex] = arr = new double?[7];
+                    arr[d] = s.Availability;
+                }
+            }
+            catch { /* 해당 일 실패 — 그 칸만 비움 */ }
+        }
+        _spark = dict;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // 86×22 스파크라인 — 값 없는 설비는 null (— 로 렌더)
+    private string? SparkPoints(int clientIndex)
+    {
+        if (!_spark.TryGetValue(clientIndex, out var arr)) return null;
+        var vals = arr.Select((v, i) => (v, i)).Where(t => t.v.HasValue).ToList();
+        if (vals.Count < 2) return null;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var (v, i) in vals)
+        {
+            var x = 2 + i / 6.0 * 82.0;
+            var y = 20 - v!.Value * 18.0;   // 0~1 → 20~2
+            sb.Append(x.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
+              .Append(',')
+              .Append(y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
+              .Append(' ');
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string Pctw(double ratio) =>
+        (ratio * 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    private async Task ExportCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{L["common.line"]},{L["fleet.colEquip"]},{L["reliability.failureCount"]},MTBF(h),MTTR(h),{L["reliability.availability"]}(%)");
+        foreach (var s in VisibleRows)
+        {
+            sb.AppendLine(string.Join(",",
+                $"#{s.ClientIndex:D2}", Csv(s.ClientName), s.FailureCount,
+                s.MtbfHours?.ToString("F2") ?? "",
+                s.MttrHours?.ToString("F2") ?? "",
+                s.Availability.HasValue ? (s.Availability.Value * 100).ToString("F2") : ""));
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes("﻿" + sb);
+        await JS.InvokeVoidAsync("downloadFileFromBytes",
+            $"reliability_{DateTime.Now:yyyyMMdd_HHmmss}.csv", "text/csv", Convert.ToBase64String(bytes));
+    }
+
+    private static string Csv(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        var dq = '"'.ToString();
+        return v.Contains(',') ? dq + v.Replace(dq, dq + dq) + dq : v;
     }
 
     // 가용률 등급 — 기존 임계값 유지 (≥95 / ≥85 / ≥70 / 미달)

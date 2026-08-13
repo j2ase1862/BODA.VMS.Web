@@ -1,6 +1,7 @@
 @page "/forecast"
 @attribute [Authorize]
 @inject ApiClient Api
+@inject IJSRuntime JS
 @inject ILocalizer L
 @implements IAsyncDisposable
 
@@ -67,6 +68,135 @@ else if (_snapshot is null || _snapshot.Items.Count == 0)
 }
 else
 {
+    @* 11a — 13대 이상: 정렬/초과만/전환/Excel 툴바 *@
+    @if (FleetEligible)
+    {
+        <MudPaper Class="vms-filter-bar pa-0 mb-4">
+            <div class="vms-filter-flex">
+                @if (TableMode)
+                {
+                    <div class="vms-filter-field" style="min-width:130px;">
+                        <label class="vms-filter-label">@L["fleet.sort"]</label>
+                        <MudSelect T="bool" @bind-Value="_sortWorst"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="bool" Value="true">@L["fleet.sortWorst"]</MudSelectItem>
+                            <MudSelectItem T="bool" Value="false">@L["fleet.sortName"]</MudSelectItem>
+                        </MudSelect>
+                    </div>
+                    <label class="vms-toggle" style="margin-bottom:10px;">
+                        <input type="checkbox" @bind="_belowOnly" />
+                        <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                        <span class="vms-toggle-label">@L["fleet.belowOnly"]</span>
+                    </label>
+                }
+                <div class="vms-filter-spacer"></div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                           OnClick="ToggleView">
+                    @(TableMode ? L["fleet.viewCards"] : L["fleet.viewTable"])
+                </MudButton>
+                @if (TableMode)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                               StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsv">
+                        @L["fleet.excel"]
+                    </MudButton>
+                }
+            </div>
+        </MudPaper>
+    }
+
+    @if (TableMode)
+    {
+        @* 요약 밴드 — 수치는 전부 표 데이터에서 계산 *@
+        <div class="vms-sum-grid mb-4">
+            <MudPaper Class="vms-panel vms-sum-card">
+                <span class="vms-sum-label">@L["fleet.avg"] · @L["fleet.colPredNg"]</span>
+                <span class="vms-sum-value mono">@(AvgPred.HasValue ? AvgPred.Value.ToString("F1") + "%" : "—")</span>
+            </MudPaper>
+            <MudPaper Class="@AlertCardClass">
+                <span class="vms-sum-label">@L.Format("fleet.belowTargetFmt", "5%")</span>
+                <span class="vms-sum-value mono">@L.Format("fleet.unitsFmt", BelowCount)</span>
+            </MudPaper>
+            <MudPaper Class="vms-panel vms-sum-card">
+                <span class="vms-sum-label">@L["fleet.worst"]</span>
+                <span class="vms-sum-value mono">@(WorstItem is null ? "—" : $"#{WorstItem.ClientIndex:D2}")</span>
+                <span class="vms-sum-sub">@(WorstItem is null ? "" : $"{(WorstItem.PredictedNgRate!.Value * 100):F1}%")</span>
+            </MudPaper>
+            <MudPaper Class="vms-panel vms-sum-card">
+                <span class="vms-sum-label">@L["fleet.totalInsp"]</span>
+                <span class="vms-sum-value mono">@_snapshot.Items.Sum(i => i.InspectionCountThisHour).ToString("N0")</span>
+            </MudPaper>
+        </div>
+
+        <MudPaper Class="vms-panel pa-0 mb-4">
+            <div class="vms-flt-scroll">
+                <table class="vms-flt-table">
+                    <thead>
+                        <tr>
+                            <th>@L["common.line"]</th>
+                            <th>@L["common.recipe"]</th>
+                            <th>@L["fleet.colPredNg"]</th>
+                            <th class="num">@L["fleet.colActual"]</th>
+                            <th class="num">@L["fleet.colDelta"]</th>
+                            <th class="num">@L["forecast.inspectionsThisHour"]</th>
+                            <th>@L["fleet.trend24h"]</th>
+                            <th>@L["fleet.remark"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in VisibleRows)
+                        {
+                            var ok = item.Status == "ok" && item.PredictedNgRate.HasValue;
+                            var pct = ok ? item.PredictedNgRate!.Value * 100.0 : 0;
+                            var g = ok ? FltGrade(pct) : "";
+                            var below = ok && pct >= Target;
+                            _fleetActuals.TryGetValue(item.ClientIndex, out var act);
+                            <tr class="@(below ? $"below {g}" : "")" style="cursor:pointer;"
+                                @onclick="@(() => SelectClient(item.ClientIndex))">
+                                <td class="vms-flt-num vms-flt-dim" style="text-align:left;">#@item.ClientIndex.ToString("D2")</td>
+                                <td>@(string.IsNullOrEmpty(item.RecipeName) ? "—" : item.RecipeName)</td>
+                                <td>
+                                    @if (ok)
+                                    {
+                                        <div class="vms-flt-gauge @g">
+                                            <div class="track"><div class="fill" style="width:@Pctw(Math.Min(pct, 20) / 20)"></div></div>
+                                            <span class="val">@pct.ToString("F1")%</span>
+                                        </div>
+                                    }
+                                    else { <span class="vms-flt-dim">—</span> }
+                                </td>
+                                <td class="vms-flt-num">@(act?.LastPct is double a ? a.ToString("F1") + "%" : "—")</td>
+                                <td class="vms-flt-num">
+                                    @if (ok && act?.LastPct is double av)
+                                    {
+                                        var delta = pct - av;
+                                        <span style="color:@(delta > 0 ? "#C4756E" : "#7FA98C")">@(delta >= 0 ? "+" : "")@delta.ToString("F1")%p</span>
+                                    }
+                                    else { <span class="vms-flt-dim">—</span> }
+                                </td>
+                                <td class="vms-flt-num">@item.InspectionCountThisHour.ToString("N0")</td>
+                                <td>
+                                    @if (act?.Spark is string sp)
+                                    {
+                                        <svg class="vms-flt-spark @(ok ? g : "g-ok")" viewBox="0 0 86 22" preserveAspectRatio="none">
+                                            <polyline points="@sp" />
+                                        </svg>
+                                    }
+                                    else { <span class="vms-flt-dim">—</span> }
+                                </td>
+                                <td style="font-size:12px; color:#8C96A6; white-space:normal; min-width:180px;">
+                                    @(ok ? "" : (item.Message ?? L["forecast.noData"]))
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+
     @* 예측 카드 — 좌측 4px 색띠 = 등급, ok 아니면 사유 문장만 (0% 오독 방지) *@
     <div class="vms-fc-grid mb-4">
         @foreach (var item in _snapshot.Items)
@@ -98,6 +228,8 @@ else
             </div>
         }
     </div>
+
+    }
 
     @* 실적 대조 — 실선 실측 + 마지막 점→예측 점선 연장 + 예측 점/라벨 *@
     <MudPaper Class="vms-panel pa-5 mb-4">
@@ -217,6 +349,9 @@ else
 }
 
 @code {
+    private const int TableThreshold = 13;
+    private const double Target = 5.0;   // 예측 NG율 % — 경고 임계값과 동일
+
     private PredictionSnapshotResponse? _snapshot;
     private RecentActualsResponse? _actuals;
     private ResidualsResponse? _residuals;
@@ -224,6 +359,144 @@ else
     private int? _selectedClientIndex;
     private bool _loading;
     private Timer? _refreshTimer;
+
+    // 11a 표 모드
+    private bool? _viewTable;
+    private bool _sortWorst = true;
+    private bool _belowOnly;
+    private sealed record FleetActual(double? LastPct, string? Spark);
+    private Dictionary<int, FleetActual> _fleetActuals = new();
+
+    private string AlertCardClass =>
+        "vms-panel vms-sum-card vms-flt-alert " + (BelowCount > 0 ? WorstGrade : "");
+
+    private bool FleetEligible => (_snapshot?.Items.Count ?? 0) >= TableThreshold;
+    private bool TableMode => FleetEligible && (_viewTable ?? true);
+
+    // 기본 정렬은 나쁜 순 (예측 NG율 내림차순, 예측 불가 행은 맨 뒤)
+    private IEnumerable<PredictionCurrentResponse> VisibleRows
+    {
+        get
+        {
+            var items = _snapshot!.Items.AsEnumerable();
+            if (_belowOnly)
+                items = items.Where(i => i.Status == "ok" && i.PredictedNgRate.HasValue
+                                         && i.PredictedNgRate.Value * 100 >= Target);
+            return _sortWorst
+                ? items.OrderByDescending(i => i.Status == "ok" ? i.PredictedNgRate ?? double.MinValue : double.MinValue)
+                : items.OrderBy(i => i.ClientIndex);
+        }
+    }
+
+    private double? AvgPred
+    {
+        get
+        {
+            var vals = _snapshot!.Items
+                .Where(i => i.Status == "ok" && i.PredictedNgRate.HasValue)
+                .Select(i => i.PredictedNgRate!.Value * 100).ToList();
+            return vals.Count > 0 ? vals.Average() : null;
+        }
+    }
+
+    private int BelowCount => _snapshot!.Items.Count(i =>
+        i.Status == "ok" && i.PredictedNgRate.HasValue && i.PredictedNgRate.Value * 100 >= Target);
+
+    private PredictionCurrentResponse? WorstItem => _snapshot!.Items
+        .Where(i => i.Status == "ok" && i.PredictedNgRate.HasValue)
+        .OrderByDescending(i => i.PredictedNgRate)
+        .FirstOrDefault();
+
+    private string WorstGrade => WorstItem is null ? "" : FltGrade(WorstItem.PredictedNgRate!.Value * 100);
+
+    // 게이지/행/스파크 공용 등급 — 기존 임계값(≥10/≥5) 유지
+    private static string FltGrade(double pct)
+    {
+        if (pct >= 10.0) return "g-bad";
+        if (pct >= 5.0) return "g70";
+        return "g-ok";
+    }
+
+    private static string Pctw(double ratio) =>
+        (Math.Clamp(ratio, 0, 1) * 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    private async Task ToggleView()
+    {
+        _viewTable = !TableMode;
+        if (TableMode && _fleetActuals.Count == 0) await LoadFleetActualsAsync();
+    }
+
+    // 24h 실적 — 표 모드에서만 라인별 병렬 조회 (실적·편차·스파크라인)
+    private async Task LoadFleetActualsAsync()
+    {
+        if (_snapshot is null) return;
+        var tasks = _snapshot.Items.Select(async item =>
+        {
+            try
+            {
+                var a = await Api.GetAsync<RecentActualsResponse>(
+                    $"/api/predictions/actuals/{item.ClientIndex}?hours=24");
+                if (a is null || a.Points.Count == 0)
+                    return (item.ClientIndex, (FleetActual?)new FleetActual(null, null));
+                var pcts = a.Points.Select(p => p.NgRate * 100.0).ToList();
+                return (item.ClientIndex, (FleetActual?)new FleetActual(pcts[^1], SparkOf(pcts)));
+            }
+            catch
+            {
+                return (item.ClientIndex, (FleetActual?)null);
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        _fleetActuals = results
+            .Where(r => r.Item2 is not null)
+            .ToDictionary(r => r.ClientIndex, r => r.Item2!);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // 86×22 스파크라인 (값 2개 미만이면 null → — 렌더)
+    private static string? SparkOf(List<double> vals)
+    {
+        if (vals.Count < 2) return null;
+        var max = Math.Max(vals.Max(), 0.001);
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < vals.Count; i++)
+        {
+            var x = 2 + i / (double)(vals.Count - 1) * 82.0;
+            var y = 20 - vals[i] / max * 18.0;
+            sb.Append(x.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
+              .Append(',')
+              .Append(y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
+              .Append(' ');
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private async Task ExportCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{L["common.line"]},{L["common.recipe"]},{L["fleet.colPredNg"]}(%),{L["fleet.colActual"]}(%),{L["fleet.colDelta"]}(%p),{L["forecast.inspectionsThisHour"]},{L["fleet.remark"]}");
+        foreach (var i in VisibleRows)
+        {
+            var ok = i.Status == "ok" && i.PredictedNgRate.HasValue;
+            _fleetActuals.TryGetValue(i.ClientIndex, out var act);
+            var pred = ok ? (i.PredictedNgRate!.Value * 100).ToString("F1") : "";
+            var actual = act?.LastPct?.ToString("F1") ?? "";
+            var delta = ok && act?.LastPct is double av ? (i.PredictedNgRate!.Value * 100 - av).ToString("F1") : "";
+            sb.AppendLine(string.Join(",",
+                $"#{i.ClientIndex:D2}", CsvField(i.RecipeName), pred, actual, delta,
+                i.InspectionCountThisHour, ok ? "" : CsvField(i.Message ?? "")));
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes("﻿" + sb);
+        await JS.InvokeVoidAsync("downloadFileFromBytes",
+            $"forecast_{DateTime.Now:yyyyMMdd_HHmmss}.csv", "text/csv", Convert.ToBase64String(bytes));
+    }
+
+    private static string CsvField(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        var dq = '"'.ToString();
+        return v.Contains(',') ? dq + v.Replace(dq, dq + dq) + dq : v;
+    }
 
     // 실적 대조 차트 지오메트리 (0~100 백분율)
     private string _actualPolyline = "";
@@ -276,6 +549,9 @@ else
                 await LoadActualsAsync(_selectedClientIndex.Value);
                 await LoadResidualsAsync(_selectedClientIndex.Value);
             }
+
+            // 11a 표 모드 — 실적/편차/24h 스파크라인용 라인별 실측
+            if (TableMode) await LoadFleetActualsAsync();
         }
         catch
         {

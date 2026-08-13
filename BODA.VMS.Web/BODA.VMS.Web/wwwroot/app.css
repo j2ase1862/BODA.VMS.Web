@@ -1790,6 +1790,160 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 10a/11a/11b 설비 다수(13대+) 표 모드 — 요약 밴드 + 스크롤 표 + 스파크라인 ---- */
+
+/* 요약 밴드 — vms-sum-card 재사용, 목표 미달 카드만 등급 색 강조 */
+.vms-flt-alert.g70 {
+    background: rgba(138, 110, 55, 0.1) !important;
+    border-color: rgba(138, 110, 55, 0.35) !important;
+}
+
+.vms-flt-alert.g70 .vms-sum-label,
+.vms-flt-alert.g70 .vms-sum-value { color: #C9A05A; }
+
+.vms-flt-alert.g-bad {
+    background: rgba(168, 68, 60, 0.1) !important;
+    border-color: rgba(168, 68, 60, 0.35) !important;
+}
+
+.vms-flt-alert.g-bad .vms-sum-label,
+.vms-flt-alert.g-bad .vms-sum-value { color: #C4756E; }
+
+/* 스크롤 표 — 헤더는 컨테이너 '안'에서 sticky (스크롤바 폭 어긋남 방지) */
+.vms-flt-scroll {
+    max-height: 484px;
+    overflow-y: auto;
+}
+
+.vms-flt-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.vms-flt-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--mud-palette-surface);
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+    text-align: left;
+    height: 36px;
+    padding: 0 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    white-space: nowrap;
+}
+
+.vms-flt-table thead th.num { text-align: right; }
+
+.vms-flt-table tbody td {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+}
+
+.vms-flt-table tbody tr { transition: background 0.13s var(--vms-ease); }
+.vms-flt-table tbody tr:hover { background: rgba(255, 122, 61, 0.06); }
+
+/* 목표 미달 행 — 색띠·틴트·수치 모두 같은 등급 함수에서 파생 */
+.vms-flt-table tbody tr.below.g70 {
+    box-shadow: inset 3px 0 0 #8A6E37;
+    background: rgba(138, 110, 55, 0.06);
+}
+
+.vms-flt-table tbody tr.below.g-bad {
+    box-shadow: inset 3px 0 0 #A8443C;
+    background: rgba(168, 68, 60, 0.07);
+}
+
+.vms-flt-table tbody tr.below.g85 {
+    box-shadow: inset 3px 0 0 #3C5F80;
+    background: rgba(60, 95, 128, 0.07);
+}
+
+.vms-flt-num {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.vms-flt-dim { color: var(--vms-text-mono-caption); }
+
+/* 게이지 셀 — 바+수치, 등급 단일 소스 */
+.vms-flt-gauge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+}
+
+.vms-flt-gauge .track {
+    flex: 1;
+    height: 5px;
+    border-radius: 3px;
+    background: #243349;
+    overflow: hidden;
+}
+
+.vms-flt-gauge .fill { height: 100%; border-radius: 3px; }
+
+.vms-flt-gauge.g95 .fill,  .vms-flt-gauge.g-ok .fill  { background: #4E8C63; }
+.vms-flt-gauge.g85 .fill                               { background: #3C5F80; }
+.vms-flt-gauge.g70 .fill,  .vms-flt-gauge.g-warn .fill { background: #8A6E37; }
+.vms-flt-gauge.g-bad .fill                             { background: #A8443C; }
+
+.vms-flt-gauge .val {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    min-width: 52px;
+    text-align: right;
+}
+
+.vms-flt-gauge.g95 .val,  .vms-flt-gauge.g-ok .val  { color: #7FA98C; }
+.vms-flt-gauge.g85 .val                              { color: #7FA6CC; }
+.vms-flt-gauge.g70 .val,  .vms-flt-gauge.g-warn .val { color: #C9A05A; }
+.vms-flt-gauge.g-bad .val                            { color: #C4756E; }
+
+/* 행 끝 스파크라인 — 86×22, 등급 색, opacity .85 */
+.vms-flt-spark { width: 86px; height: 22px; display: block; }
+
+.vms-flt-spark polyline {
+    fill: none;
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    opacity: 0.85;
+}
+
+.vms-flt-spark.g95 polyline,  .vms-flt-spark.g-ok polyline  { stroke: #4E8C63; }
+.vms-flt-spark.g85 polyline                                  { stroke: #3C5F80; }
+.vms-flt-spark.g70 polyline,  .vms-flt-spark.g-warn polyline { stroke: #8A6E37; }
+.vms-flt-spark.g-bad polyline                                { stroke: #A8443C; }
+
+/* 11b 상태 분포 미니 스택 바 */
+.vms-flt-stack {
+    display: flex;
+    width: 120px;
+    height: 10px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #243349;
+}
+
+.vms-flt-stack .seg.run  { background: #4E8C63; }
+.vms-flt-stack .seg.idle { background: #8A6E37; }
+.vms-flt-stack .seg.down { background: #A8443C; }
+
 /* ---- 9f 신뢰성 분석 — MTBF/MTTR 라인 카드 (저채도 가용률 등급) ---- */
 
 .vms-rel-grid {
