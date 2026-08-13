@@ -1792,51 +1792,98 @@ body {
 
 /* ---- 12b 승인 관리 — 역할 승인 버튼·역할 칩·상태 LED·임시 비밀번호 ---- */
 
-/* 대기 배지 — 앰버 (경고이지 오류가 아님) */
-.vms-appr-tabs .mud-badge {
-    background: rgba(138, 110, 55, 0.22) !important;
-    color: #C2A469 !important;
+/* 헤더 우측 부제 — 모노 캡션 */
+.vms-appr-pagesub {
+    font-family: var(--vms-font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--vms-text-mono-caption);
+    white-space: nowrap;
 }
 
-/* 모노 500 변형 (전체 사용자 탭 사용자명) */
-.vms-cell-id.w500 { font-weight: 500; }
+/* 대기 탭 인라인 배지 — 앰버 (경고이지 오류가 아님) */
+.vms-tab-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(138, 110, 55, 0.22);
+    color: #C2A469;
+    padding: 1px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+}
 
-/* 역할 지정 승인 버튼 — 전부 아웃라인, 테두리 색으로만 강도 구분, 간격 6px */
+/* 승인 관리 표 — 시안 밀도(행 높이 여유) + 사용자명/이름 강조 */
+.vms-appr-table .mud-table-cell {
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+}
+
+.vms-appr-id {
+    font-family: var(--vms-font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--vms-link);
+}
+
+.vms-appr-id.w500 { font-weight: 500; }
+
+.vms-appr-name { font-size: 14.5px; font-weight: 600; color: var(--mud-palette-text-primary); }
+
+/* 역할 지정 승인 버튼 — 전부 아웃라인, 모노, 테두리 색으로만 강도 구분 (시안 크기) */
 .vms-role-btn {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 5px 11px;
-    margin-left: 6px;
+    font-family: var(--vms-font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 9px 20px;
+    margin-left: 8px;
     border-radius: 8px;
     background: transparent;
     cursor: pointer;
-    transition: filter 0.13s var(--vms-ease);
+    transition: background 0.13s var(--vms-ease);
 }
 
-.vms-role-btn:hover { filter: brightness(1.3); }
-
-.vms-role-btn.guest { border: 1px solid rgba(255, 255, 255, 0.2); color: var(--mud-palette-text-secondary); }
+.vms-role-btn.guest { border: 1px solid rgba(255, 255, 255, 0.28); color: #C9D3E0; }
 .vms-role-btn.user  { border: 1px solid #7FA6CC; color: #7FA6CC; }
 .vms-role-btn.admin { border: 1px solid var(--vms-primary); color: var(--vms-primary); }
 
-/* 세로 구분선 — 거부 링크 분리 */
+.vms-role-btn.guest:hover { background: rgba(255, 255, 255, 0.06); }
+.vms-role-btn.user:hover  { background: rgba(127, 166, 204, 0.1); }
+.vms-role-btn.admin:hover { background: rgba(255, 122, 61, 0.1); }
+
+/* 거부 — 세로 구분선 뒤 레드 텍스트 */
+.vms-appr-reject {
+    font-size: 14px;
+    font-weight: 700;
+    color: #C4756E;
+    background: transparent;
+    border: none;
+    padding: 9px 10px;
+    cursor: pointer;
+    transition: color 0.13s var(--vms-ease);
+}
+
+.vms-appr-reject:hover { color: #DE857D; }
+
 .vms-vdiv {
     display: inline-block;
     width: 1px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.12);
-    margin: 0 8px 0 12px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.14);
+    margin: 0 8px 0 14px;
     vertical-align: middle;
 }
 
-/* 역할 칩 — 전부 아웃라인, 대문자. 클릭 가능한 칩은 ▼ 포함 렌더 */
+/* 역할 칩 — 전부 아웃라인 모노 대문자. 클릭 가능한 칩은 ▼ 포함 렌더 */
 .vms-role-chip {
     display: inline-block;
-    font-size: 10.5px;
-    font-weight: 600;
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    font-weight: 700;
     letter-spacing: 0.08em;
-    padding: 3px 10px;
-    border-radius: 6px;
+    padding: 5px 14px;
+    border-radius: 7px;
     white-space: nowrap;
     cursor: pointer;
 }

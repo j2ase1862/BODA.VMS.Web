@@ -6,14 +6,26 @@
 
 <PageTitle>@L["page.approvals"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.approvals"]</MudText>
+@* 12b — 헤더 우측 부제: 권한 범위 + 승인 방식 안내 (시안) *@
+<div class="vms-page-head" style="align-items:baseline;">
+    <MudText Typo="Typo.h4" Class="vms-page-title" Style="margin-bottom:0 !important;">@L["page.approvals"]</MudText>
+    <span class="vms-appr-pagesub">@L["approval.pageSub"]</span>
+</div>
 
-@* 12b — 탭 2개 (오렌지 언더라인은 .vms-tabs), 대기 배지는 앰버(경고이지 오류가 아님) *@
+@* 탭 2개 (오렌지 언더라인은 .vms-tabs), 대기 배지는 인라인 앰버(경고이지 오류가 아님) *@
 <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4"
          SliderColor="Color.Primary"
          Class="vms-tabs vms-appr-tabs"
          Style="background: transparent;">
-    <MudTabPanel Text="@(L["approval.tabPending"])" BadgeData="@_pendingUsers.Count" BadgeColor="Color.Warning">
+    <MudTabPanel>
+        <TabContent>
+            <span>@L["approval.tabPending"]</span>
+            @if (_pendingUsers.Count > 0)
+            {
+                <span class="vms-tab-badge">@_pendingUsers.Count</span>
+            }
+        </TabContent>
+        <ChildContent>
         @if (_pendingUsers.Count == 0)
         {
             <MudPaper Class="vms-panel">
@@ -25,23 +37,23 @@
         }
         else
         {
-            <div class="vms-table">
-                <MudTable Items="_pendingUsers" Dense="true" Hover="true" Elevation="0">
+            <div class="vms-table vms-appr-table">
+                <MudTable Items="_pendingUsers" Dense="false" Hover="true" Elevation="0">
                     <HeaderContent>
                         <MudTh>@L["approval.colUsername"]</MudTh>
                         <MudTh>@L["approval.colDisplayName"]</MudTh>
                         <MudTh>@L["approval.colCreatedAt"]</MudTh>
-                        <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+                        <MudTh Style="text-align: right;">@L["approval.colApproveActions"]</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd><span class="vms-cell-id">@context.Username</span></MudTd>
-                        <MudTd>@context.DisplayName</MudTd>
+                        <MudTd><span class="vms-appr-id">@context.Username</span></MudTd>
+                        <MudTd><span class="vms-appr-name">@context.DisplayName</span></MudTd>
                         <MudTd>
-                            <span class="vms-mono-dim">@context.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                            <span class="vms-mono-dim" style="font-size:13px;">@context.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
                         </MudTd>
                         <MudTd Style="text-align: right; white-space: nowrap;">
                             @* 역할 지정 승인 — 전부 아웃라인, 권한 강도 순 좌→우, 테두리 색으로만 강도 구분.
-                               채운 버튼 금지(최고 권한 강조 = 오조작 위험). 개별 버튼 간격 6px *@
+                               채운 버튼 금지(최고 권한 강조 = 오조작 위험) *@
                             <button type="button" class="vms-role-btn guest"
                                     @onclick="@(() => ApproveUser(context, "Guest"))">@L["approval.btnApproveGuest"]</button>
                             <button type="button" class="vms-role-btn user"
@@ -49,19 +61,20 @@
                             <button type="button" class="vms-role-btn admin"
                                     @onclick="@(() => ApproveUser(context, "Admin"))">@L["approval.btnApproveAdmin"]</button>
                             <span class="vms-vdiv"></span>
-                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
-                                       OnClick="@(() => RejectUser(context))">@L["approval.btnReject"]</MudButton>
+                            <button type="button" class="vms-appr-reject"
+                                    @onclick="@(() => RejectUser(context))">@L["approval.btnReject"]</button>
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
                 <div class="vms-slots-info">@L["approval.rejectWarning"]</div>
             </div>
         }
+        </ChildContent>
     </MudTabPanel>
 
     <MudTabPanel Text="@(L["approval.tabAll"])">
-        <div class="vms-table">
-            <MudTable Items="_allUsers" Dense="true" Hover="true" Elevation="0"
+        <div class="vms-table vms-appr-table">
+            <MudTable Items="_allUsers" Dense="false" Hover="true" Elevation="0"
                       Filter="new Func<UserDto, bool>(FilterFunc)">
                 <ToolBarContent>
                     <MudSpacer />
@@ -70,7 +83,7 @@
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                                   Variant="Variant.Outlined" Margin="Margin.Dense"
                                   IconSize="Size.Small" Class="mt-0" Immediate="true"
-                                  Style="max-width: 300px;" />
+                                  Style="width: 440px; max-width: 100%;" />
                 </ToolBarContent>
                 <HeaderContent>
                     <MudTh>@L["approval.colUsername"]</MudTh>
@@ -80,8 +93,8 @@
                     <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd><span class="vms-cell-id w500">@context.Username</span></MudTd>
-                    <MudTd>@context.DisplayName</MudTd>
+                    <MudTd><span class="vms-appr-id w500">@context.Username</span></MudTd>
+                    <MudTd><span class="vms-appr-name">@context.DisplayName</span></MudTd>
                     <MudTd>
                         @if (context.IsApproved && context.Username != "admin")
                         {
