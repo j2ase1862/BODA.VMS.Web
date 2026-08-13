@@ -3171,14 +3171,15 @@ body {
     top: 0 !important;
 }
 
+/* 같은 줄의 입력류(40px)와 높이 통일 — 버튼만 42px 이던 불일치 수정 (사용자 피드백 2026-08-13) */
 .vms-panel .mud-button-filled,
 .vms-panel .mud-button-outlined,
 .vms-filter-bar .mud-button-filled,
 .vms-filter-bar .mud-button-outlined,
 .vms-table .mud-table-toolbar .mud-button-filled,
 .vms-table .mud-table-toolbar .mud-button-outlined {
-    min-height: 42px !important;
-    height: 42px !important;
+    min-height: 40px !important;
+    height: 40px !important;
     font-size: 13px !important;
     line-height: 1 !important;
 }
@@ -3186,8 +3187,8 @@ body {
 .vms-panel .mud-icon-button:not(.mud-button-text),
 .vms-filter-bar .mud-icon-button:not(.mud-button-text),
 .vms-table .mud-table-toolbar .mud-icon-button:not(.mud-button-text) {
-    height: 42px !important;
-    width: 42px !important;
+    height: 40px !important;
+    width: 40px !important;
 }
 
 .vms-panel .mud-input-adornment,
