@@ -25,6 +25,12 @@
     </MudButton>
 </div>
 
+@* 용어 도움말 — 항상 표시 (사용자 요청 2026-08-13) *@
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">HELP</span>
+    <span class="vms-banner-text">@L["forecast.helpBanner"]</span>
+</div>
+
 @* 모델 상태 — 앰버 배너 (적색은 실제 오류에만) *@
 @if (_status is not null && !_status.ModelLoaded)
 {

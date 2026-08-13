@@ -15,16 +15,13 @@
     "quality": "품질 관리",
     "equipment": "설비 관리",
     "system": "시스템 관리",
-
     "dashboard": "대시보드",
     "andon": "안돈 보드",
     "alarms": "알람",
     "history": "생산 이력",
-
     "workorders": "작업 지시",
     "products": "제품",
     "operators": "작업자",
-
     "paretoAnalysis": "파레토 분석",
     "spc": "SPC 관리도",
     "defectCodes": "불량 코드",
@@ -32,13 +29,11 @@
     "outboundOrders": "출고 피킹",
     "shiftReport": "교대 리포트",
     "pdfReports": "PDF 리포트",
-
     "clients": "비전 클라이언트",
     "oee": "OEE 설비종합효율",
     "reliability": "설비 신뢰성 (MTBF/MTTR)",
     "maintenance": "예방 보전",
     "forecast": "불량률 예측",
-
     "inspectionItems": "검사 항목",
     "shifts": "교대 마스터",
     "approvals": "사용자 승인",
@@ -229,7 +224,6 @@
     "ngRate": "불량률",
     "defectRate": "NG 비율",
     "trend7days": "최근 7일 생산 추세",
-
     "todayPerf": "금일 성과",
     "todayPerfSub": "검사 {0}건",
     "passRate": "양품률",
@@ -306,7 +300,8 @@
     "quality": "품질",
     "statusDistribution": "상태 분포",
     "noActiveLines": "선택한 기간에 활성 라인이 없습니다.",
-    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요."
+    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요.",
+    "helpBanner": "OEE(설비 종합 효율)는 설비가 이론상 최대 능력 대비 실제로 얼마나 가치 있게 가동됐는지를 하나의 숫자로 보여주는 지표입니다. 가용성(멈추지 않았는가) × 성능(제 속도를 냈는가) × 품질(합격품을 만들었는가)의 곱으로, 세 요소 중 어디서 손실이 나는지 짚어줍니다. 일반적으로 85% 이상을 세계적 수준으로 봅니다."
   },
   "history": {
     "filterPeriod": "기간",
@@ -371,7 +366,8 @@
     "noNgData": "선택한 기간에 NG 데이터가 없습니다.",
     "promptRun": "기간을 선택하고 실행 버튼을 눌러 파레토 분석을 시작하세요.",
     "seriesCount": "건수",
-    "bottomSummaryFmt": "상위 {0}개 코드가 전체 NG의 {1}% — 개선 우선순위"
+    "bottomSummaryFmt": "상위 {0}개 코드가 전체 NG의 {1}% — 개선 우선순위",
+    "helpBanner": "파레토 분석은 '불량의 대부분은 소수의 원인에서 나온다'(80/20 법칙)는 원리로 개선 우선순위를 찾는 도구입니다. 막대는 불량 코드별 발생 건수(많은 순), 꺾은선은 누적 비율입니다. 누적선이 80% 기준선에 닿기 전까지의 코드들부터 개선하면 적은 노력으로 큰 효과를 얻을 수 있습니다."
   },
   "spc": {
     "parameter": "파라미터 코드",
@@ -411,7 +407,8 @@
     "specSet": "규격 설정됨",
     "xbarChart": "X̄ 관리도",
     "rChart": "R 관리도",
-    "oocFmt": "#{0} 이탈"
+    "oocFmt": "#{0} 이탈",
+    "helpBanner": "SPC 관리도는 공정이 안정 상태인지 통계적으로 감시하는 차트입니다. 가운데 실선은 중심선(CL, 평균), 위아래 점선은 관리 한계선(UCL/LCL)으로 정상적인 흔들림의 범위를 뜻합니다. 점이 한계선을 벗어나면 우연이 아닌 특별한 원인(설비·자재·조건 변화)이 생겼다는 신호이므로 원인을 확인해야 합니다."
   },
   "reliability": {
     "formulaAlert": "설비 상태 로그에서 정지(Down) 전이를 고장(Failure)으로 카운트합니다.",
@@ -425,10 +422,11 @@
     "runningHoursFmt": "가동 {0} h",
     "downHoursFmt": "정지 {0} h",
     "noData": "선택한 기간에 데이터가 없습니다.",
-    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요."
+    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요.",
+    "helpBanner": "설비 신뢰성은 '얼마나 고장 없이 오래 돌고, 고장 나면 얼마나 빨리 복구되는가'를 보는 화면입니다. MTBF(평균 고장 간격)는 길수록 좋고, MTTR(평균 수리 시간)는 짧을수록 좋습니다. 두 값으로 계산한 가용성이 설비를 믿고 쓸 수 있는 정도를 나타냅니다."
   },
   "maintenance": {
-    "alertSemi": "예방 보전(PM) 일정 등록 + 수행 기록 관리. SEMI E10 신뢰성/가용성 표준 기반의 계획적 정지 관리.",
+    "alertSemi": "예방 보전(PM)은 고장이 난 뒤 고치는 것이 아니라, 고장 나기 전에 정해진 주기로 점검·정비해 갑작스러운 정지를 막는 활동입니다. 이 화면에서 PM 일정 등록과 수행 기록을 관리합니다 (SEMI E10 신뢰성/가용성 표준 기반).",
     "tabSchedulesFmt": "PM 일정 ({0})",
     "tabDueFmt": "임박 ({0})",
     "tabHistory": "수행 이력",
@@ -1019,7 +1017,8 @@
       "lcl": "LCL (−3σ)",
       "mae": "잔차 MAE",
       "samples": "샘플 수"
-    }
+    },
+    "helpBanner": "불량률 예측은 최근 검사 데이터의 흐름(불량률 추이·검사량·시간대 등)을 학습한 ML 모델로 다음 시간대의 불량률을 미리 추정하는 화면입니다. 예측값이 관리 기준을 넘으면 문제가 커지기 전에 점검할 수 있습니다. 데이터가 충분히 쌓여 모델이 등록되기 전에는 예측이 표시되지 않습니다."
   },
   "andon": {
     "predictiveInsights": "예측 사전 경보",
