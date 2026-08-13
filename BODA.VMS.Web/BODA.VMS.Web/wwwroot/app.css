@@ -1136,6 +1136,9 @@ body {
 
 .vms-filter-field.wide { min-width: 240px; }
 
+/* 검색 등 placeholder 가 긴 필드 — 잘림 방지 (2026-08-13 피드백) */
+.vms-filter-field.xwide { min-width: 400px; }
+
 .vms-filter-label {
     font-family: var(--vms-font-mono);
     font-size: 9.5px;

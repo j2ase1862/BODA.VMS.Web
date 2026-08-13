@@ -475,7 +475,7 @@
   "product": {
     "header": "제품 마스터",
     "totalCountFmt": "총 {0} 건",
-    "searchPlaceholder": "제품 코드 또는 이름 검색...",
+    "searchPlaceholder": "제품 코드 또는 이름",
     "btnCreate": "제품 등록",
     "colCode": "제품 코드",
     "colName": "제품명",

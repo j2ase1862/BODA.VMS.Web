@@ -475,7 +475,7 @@
   "product": {
     "header": "Products",
     "totalCountFmt": "{0} items",
-    "searchPlaceholder": "Search by code or name...",
+    "searchPlaceholder": "Product code or name",
     "btnCreate": "Add Product",
     "colCode": "Code",
     "colName": "Name",
