@@ -290,6 +290,10 @@ body {
 .vms-logo .navy { color: var(--mud-palette-appbar-text) !important; }
 .vms-logo-accent { color: var(--vms-primary) !important; }
 
+/* 로고 홈 링크 — 링크 기본 스타일 제거, 호버만 살짝 */
+.vms-logo-link { text-decoration: none; color: inherit; cursor: pointer; }
+.vms-logo-link:hover { opacity: 0.85; }
+
 /* 버전 라벨 — 모노 9px .28em */
 .vms-logo-sub {
     font-family: var(--vms-font-mono);
