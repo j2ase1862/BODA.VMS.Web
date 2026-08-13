@@ -9,9 +9,10 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.maintenance"]</MudText>
 
-<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-    @L["maintenance.alertSemi"]
-</MudAlert>
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">INFO</span>
+    <span class="vms-banner-text">@L["maintenance.alertSemi"]</span>
+</div>
 
 <MudTabs Elevation="0" Rounded="true" PanelClass="pa-0 mt-3" Outlined="true">
     <MudTabPanel Text="@(L.Format("maintenance.tabSchedulesFmt", _schedules.Count))" Icon="@Icons.Material.Filled.EventRepeat">
@@ -20,7 +21,11 @@
                 <ToolBarContent>
                     <MudText Class="vms-panel-header">@L["maintenance.panelHeader"]</MudText>
                     <MudSpacer />
-                    <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
+                    <label class="vms-toggle mr-4">
+                        <input type="checkbox" checked="@_showInactive" @onchange="OnShowInactiveChanged" />
+                        <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                        <span class="vms-toggle-label">@L["common.showInactive"]</span>
+                    </label>
                     <AuthorizeView Roles="Admin,User">
                         <Authorized>
                             <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
@@ -40,10 +45,10 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <strong>@context.Name</strong>
+                        <div class="vms-cell-title" style="font-weight:500;">@context.Name</div>
                         @if (!string.IsNullOrEmpty(context.Description))
                         {
-                            <div style="font-size:11px; color: var(--vms-text-secondary);">@context.Description</div>
+                            <div class="vms-cell-when">@context.Description</div>
                         }
                     </MudTd>
                     <MudTd>
@@ -53,55 +58,52 @@
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@L["maintenance.lineAll"]</MudChip>
+                            <span class="vms-state-chip st-ack">@L["maintenance.lineAll"]</span>
                         }
                     </MudTd>
                     <MudTd Style="text-align:right;">
                         <span class="vms-mono">@L.Format("maintenance.intervalDaysFmt", context.IntervalDays)</span>
-                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L.Format("maintenance.durationMinutesFmt", context.EstimatedDurationMinutes)</div>
+                        <div class="vms-cell-when">@L.Format("maintenance.durationMinutesFmt", context.EstimatedDurationMinutes)</div>
                     </MudTd>
                     <MudTd>
                         @if (context.LastPerformedAt.HasValue)
                         {
-                            <span class="vms-mono" style="font-size:12px;">@context.LastPerformedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")</span>
+                            <span class="vms-mono-dim">@context.LastPerformedAt.Value.ToLocalTime().ToString("MM-dd HH:mm")</span>
                         }
                         else
                         {
-                            <span style="color: var(--vms-text-secondary); font-style: italic;">@L["maintenance.lastPerformedNone"]</span>
+                            <span class="vms-cell-empty">@L["maintenance.lastPerformedNone"]</span>
                         }
                     </MudTd>
                     <MudTd>
                         <span class="vms-mono" style="font-size:12px;">@context.NextDueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
-                        <div style="font-size:10px;">@FormatDueIn(context.DueInDays, L)</div>
+                        <div style="font-size:10px; font-weight:700; color:@DueText(context.Status);">@FormatDueIn(context.DueInDays, L)</div>
                     </MudTd>
                     <MudTd>
-                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)"
-                                 Variant="@(context.Status == "Overdue" ? Variant.Filled : Variant.Outlined)">
-                            @StatusLabel(context.Status, L)
-                        </MudChip>
+                        <span class="vms-due-chip @DueChipClass(context.Status)">@StatusLabel(context.Status, L)</span>
                     </MudTd>
                     <MudTd Style="text-align:right; white-space:nowrap;">
                         @{ var row = context; }
                         <AuthorizeView Roles="Admin,User" Context="auth1">
                             <Authorized>
-                                <MudIconButton Icon="@Icons.Material.Filled.PlayCircle" Size="Size.Small"
-                                               Color="Color.Success" Title="@(L["maintenance.tooltipPerform"])"
-                                               OnClick="@(() => PerformPm(row))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                               OnClick="@(() => OpenEditDialog(row))" />
+                                <button class="vms-act-btn start" @onclick="@(() => PerformPm(row))">@L["maintenance.btnPerformShort"]</button>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                           OnClick="@(() => OpenEditDialog(row))">@L["workorder.actEdit"]</MudButton>
                             </Authorized>
                         </AuthorizeView>
                         <AuthorizeView Roles="Admin" Context="auth2">
                             <Authorized>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                               Color="Color.Error"
-                                               OnClick="@(() => DeleteSchedule(row))" />
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                           OnClick="@(() => DeleteSchedule(row))">@L["workorder.actDelete"]</MudButton>
                             </Authorized>
                         </AuthorizeView>
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["maintenance.noSchedules"]</div>
+                    <div class="vms-empty">
+                        <MudIcon Icon="@Icons.Material.Outlined.EventRepeat" />
+                        <span class="vms-empty-text">@L["maintenance.noSchedules"]</span>
+                    </div>
                 </NoRecordsContent>
             </MudTable>
         </div>
@@ -110,35 +112,32 @@
     <MudTabPanel Text="@(L.Format("maintenance.tabDueFmt", _due.Count))" Icon="@Icons.Material.Filled.Warning">
         @if (_due.Count == 0)
         {
-            <div class="vms-panel pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"
-                         Color="Color.Success" Class="mb-2" />
-                <MudText>@L["maintenance.allHealthy"]</MudText>
-            </div>
+            <MudPaper Class="vms-panel">
+                <div class="vms-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Style="color:#7FA98C; opacity:1;" />
+                    <span class="vms-empty-text" style="color:#7FA98C;">@L["maintenance.allHealthy"]</span>
+                </div>
+            </MudPaper>
         }
         else
         {
             <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:10px;">
                 @foreach (var d in _due)
                 {
-                    <div class="vms-panel pa-3" style="border-left: 4px solid @(DueColor(d.Status));">
-                        <div style="font-weight:700;">@d.Name</div>
-                        <div style="font-size:11px; color: var(--vms-text-secondary);">
+                    <div class="vms-panel pa-3" style="border-top: 3px solid @(DueBorder(d.Status)) !important;">
+                        <div style="font-weight:600;">@d.Name</div>
+                        <div class="vms-cell-when">
                             @(d.ClientId.HasValue ? $"#{d.ClientIndex:D2} {d.ClientName}" : L["maintenance.lineAllText"])
                         </div>
                         <div class="vms-mono mt-1" style="font-size:13px;">
                             @d.NextDueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                         </div>
-                        <div style="font-size:11px; font-weight:700; color: @(DueColor(d.Status));">
+                        <div style="font-size:11px; font-weight:700; color: @(DueText(d.Status));">
                             @FormatDueIn(d.DueInDays, L)
                         </div>
                         <AuthorizeView Roles="Admin,User" Context="authDue">
                             <Authorized>
-                                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success"
-                                           StartIcon="@Icons.Material.Filled.PlayCircle"
-                                           OnClick="@(() => PerformPm(d))" Class="mt-2 vms-btn">
-                                    @L["maintenance.btnPerformShort"]
-                                </MudButton>
+                                <button class="vms-act-btn start mt-2" @onclick="@(() => PerformPm(d))">@L["maintenance.btnPerformShort"]</button>
                             </Authorized>
                         </AuthorizeView>
                     </div>
@@ -148,23 +147,23 @@
     </MudTabPanel>
 
     <MudTabPanel Text="@(L["maintenance.tabHistory"])" Icon="@Icons.Material.Filled.History">
-        <div class="vms-panel pa-3 mb-3">
-            <MudGrid Spacing="2">
-                <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="_histStart" Label="@(L["common.startDate"])"
+        <MudPaper Class="vms-filter-bar pa-0 mb-4 mt-3">
+            <div class="vms-filter-flex">
+                <div class="vms-filter-field">
+                    <label class="vms-filter-label">@L["common.startDate"]</label>
+                    <MudDatePicker @bind-Date="_histStart"
                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
-                <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="_histEnd" Label="@(L["common.endDate"])"
+                </div>
+                <div class="vms-filter-field">
+                    <label class="vms-filter-label">@L["common.endDate"]</label>
+                    <MudDatePicker @bind-Date="_histEnd"
                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
-                <MudItem xs="12" sm="3" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Search"
-                               OnClick="LoadHistory" Class="vms-btn">@L["action.search"]</MudButton>
-                </MudItem>
-            </MudGrid>
-        </div>
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Search"
+                           OnClick="LoadHistory" Class="vms-btn">@L["action.search"]</MudButton>
+            </div>
+        </MudPaper>
 
         <div class="vms-table">
             <MudTable Items="_history" Dense="true" Hover="true" Loading="_loadingHist" Elevation="0">
@@ -178,9 +177,9 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <span class="vms-mono" style="font-size:12px;">@context.PerformedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                        <span class="vms-mono-dim">@context.PerformedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
                     </MudTd>
-                    <MudTd><strong>@context.ScheduleName</strong></MudTd>
+                    <MudTd><span style="font-weight:500;">@context.ScheduleName</span></MudTd>
                     <MudTd>@context.ClientName</MudTd>
                     <MudTd>@context.PerformedByName</MudTd>
                     <MudTd Style="text-align:right;">
@@ -188,7 +187,7 @@
                         {
                             <span class="vms-mono">@L.Format("maintenance.minutesShortFmt", context.ActualDurationMinutes)</span>
                         }
-                        else { <span style="color: var(--vms-text-secondary);">—</span> }
+                        else { <span class="vms-cell-empty">—</span> }
                     </MudTd>
                     <MudTd>
                         @if (!string.IsNullOrEmpty(context.Notes))
@@ -198,7 +197,10 @@
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["maintenance.histNoData"]</div>
+                    <div class="vms-empty">
+                        <MudIcon Icon="@Icons.Material.Outlined.History" />
+                        <span class="vms-empty-text">@L["maintenance.histNoData"]</span>
+                    </div>
                 </NoRecordsContent>
             </MudTable>
         </div>
@@ -220,6 +222,12 @@
         await LoadSchedules();
         await LoadDue();
         await LoadHistory();
+    }
+
+    private async Task OnShowInactiveChanged(ChangeEventArgs e)
+    {
+        _showInactive = e.Value is true;
+        await LoadSchedules();
     }
 
     private async Task LoadSchedules()
@@ -339,9 +347,16 @@
 
     private async Task DeleteSchedule(MaintenanceScheduleDto s)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["maintenance.confirmDeleteTitle"],
-            L.Format("maintenance.confirmDeleteMsgFmt", s.Name), L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, s.Name },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["maintenance.confirmDeleteTitle"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
         try
         {
             await Api.DeleteAsync($"/api/maintenance/schedules/{s.Id}");
@@ -371,19 +386,28 @@
         _ => L["maintenance.statusNormal"]
     };
 
-    private static Color StatusColor(string status) => status switch
+    // 저채도 등급 — 칩 클래스 / 테두리 진한 톤 / 텍스트 밝은 톤 (기존 상태 매핑 유지)
+    private static string DueChipClass(string status) => status switch
     {
-        "Overdue" => Color.Error,
-        "DueToday" => Color.Warning,
-        "Soon" => Color.Info,
-        _ => Color.Success
+        "Overdue" => "overdue",
+        "DueToday" => "today",
+        "Soon" => "soon",
+        _ => "ok"
     };
 
-    private static string DueColor(string status) => status switch
+    private static string DueBorder(string status) => status switch
     {
-        "Overdue" => "var(--mud-palette-error)",
-        "DueToday" => "var(--mud-palette-warning)",
-        "Soon" => "var(--mud-palette-info)",
-        _ => "var(--mud-palette-success)"
+        "Overdue" => "#A8443C",
+        "DueToday" => "#8A6E37",
+        "Soon" => "#3C5F80",
+        _ => "#4E8C63"
+    };
+
+    private static string DueText(string status) => status switch
+    {
+        "Overdue" => "#C4756E",
+        "DueToday" => "#C9A05A",
+        "Soon" => "#7FA6CC",
+        _ => "#7FA98C"
     };
 }

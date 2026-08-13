@@ -603,7 +603,7 @@
   "warehouse": {
     "header": "Inbound Location Master",
     "totalCountFmt": "{0} items",
-    "searchPlaceholder": "Search barcode / code / name / location",
+    "searchPlaceholder": "Barcode / name / location",
     "colBarcode": "Barcode",
     "colCode": "Item Code",
     "colName": "Item Name",
@@ -623,7 +623,7 @@
   "outbound": {
     "header": "Outbound Orders",
     "totalCountFmt": "{0} orders",
-    "searchPlaceholder": "Search order no / customer / destination",
+    "searchPlaceholder": "Order no / customer / destination",
     "colOrderNo": "Order No",
     "colCustomer": "Customer",
     "colDestination": "Destination",

@@ -2883,6 +2883,24 @@ body {
 .vms-act-btn.close { border: 1px solid rgba(255, 255, 255, 0.2); color: var(--mud-palette-text-secondary); }
 .vms-act-btn.lot   { border: 1px solid #3C5F80; color: #7FA6CC; }
 
+/* ---- 설비 보전 — 예정 상태 칩 (저채도: 지연 채움 레드 / 오늘 앰버 / 임박 블루 / 정상 그린) ---- */
+.vms-due-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.vms-due-chip.overdue { background: #A8443C; color: #F7E3E1; }
+.vms-due-chip.today   { border: 1px solid #8A6E37; color: #C9A05A; }
+.vms-due-chip.soon    { border: 1px solid #3C5F80; color: #7FA6CC; }
+.vms-due-chip.ok      { border: 1px solid #4E8C63; color: #7FA98C; }
+
 /* ---- 7b 파레토 분석 — 콤보 차트(막대+누적선+80% 기준선) ---- */
 
 .vms-par-chart {

@@ -10,31 +10,37 @@
 
 <PageTitle>@L["page.outboundOrders"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.outboundOrders"]</MudText>
+@* 8a CRUD 패턴 — 헤더 부제, 필터 바(검색) 우측 끝 등록 *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.outboundOrders"]</MudText>
+        <div class="vms-page-sub">@L.Format("outbound.totalCountFmt", _items.Count)</div>
+    </div>
+</div>
+
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field xwide">
+            <label class="vms-filter-label">@L["common.search"]</label>
+            <MudTextField @bind-Value="_search" Placeholder="@(L["outbound.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+        </div>
+        <div class="vms-filter-spacer"></div>
+        <AuthorizeView Roles="Admin,User">
+            <Authorized>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                    @L["outbound.btnCreate"]
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</MudPaper>
 
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
               Filter="new Func<OutboundOrderDto, bool>(FilterFunc)">
-        <ToolBarContent>
-            <MudText Class="vms-panel-header">@L["outbound.header"]</MudText>
-            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
-                @L.Format("outbound.totalCountFmt", _items.Count)
-            </MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_search" Placeholder="@(L["outbound.searchPlaceholder"])"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
-                          Style="max-width: 260px;" />
-            <AuthorizeView Roles="Admin,User">
-                <Authorized>
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                               Variant="Variant.Filled" Size="Size.Small"
-                               OnClick="OpenCreateDialog" Class="vms-btn">
-                        @L["outbound.btnCreate"]
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-        </ToolBarContent>
         <HeaderContent>
             <MudTh>@L["outbound.colOrderNo"]</MudTh>
             <MudTh>@L["outbound.colCustomer"]</MudTh>
@@ -44,44 +50,47 @@
             <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd><span class="vms-mono" style="font-weight: 700;">@context.OrderNo</span></MudTd>
-            <MudTd>@(string.IsNullOrEmpty(context.CustomerName) ? "—" : context.CustomerName)</MudTd>
+            <MudTd><span class="vms-cell-id">@context.OrderNo</span></MudTd>
+            <MudTd>
+                @if (string.IsNullOrEmpty(context.CustomerName))
+                {
+                    <span class="vms-cell-empty">—</span>
+                }
+                else
+                {
+                    <span style="font-weight:500;">@context.CustomerName</span>
+                }
+            </MudTd>
             <MudTd>
                 @if (!string.IsNullOrEmpty(context.Destination))
                 {
-                    <span class="vms-mono" style="color: var(--mud-palette-warning);">@context.Destination</span>
+                    <span class="vms-mono" style="color: #C9A05A;">@context.Destination</span>
                 }
-                else { <span style="color: var(--vms-text-secondary);">—</span> }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
-            <MudTd>@L.Format("outbound.lineCountFmt", context.LineCount)</MudTd>
+            <MudTd><span class="vms-mono">@L.Format("outbound.lineCountFmt", context.LineCount)</span></MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@StatusColor(context.Status)">
-                    @StatusLabel(context.Status)
-                </MudChip>
+                <span class="vms-wo-chip @StatusChipClass(context.Status)">@StatusLabel(context.Status)</span>
             </MudTd>
             <MudTd Style="text-align: right; white-space: nowrap;">
                 <AuthorizeView Roles="Admin,User">
                     <Authorized Context="auth1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       OnClick="@(() => OpenEditDialog(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                   OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="auth2">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                       Color="Color.Error" OnClick="@(() => DeleteItem(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                   OnClick="@(() => DeleteItem(context))">@L["workorder.actDelete"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Large"
-                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["outbound.noItems"]</MudText>
-                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
-                    @L["outbound.noItemsHint"]
-                </MudText>
+            <div class="vms-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.LocalShipping" />
+                <span class="vms-empty-text">@L["outbound.noItems"] — @L["outbound.noItemsHint"]</span>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -198,9 +207,16 @@
 
     private async Task DeleteItem(OutboundOrderDto o)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("outbound.confirmDeleteFmt", o.OrderNo), L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, o.OrderNo },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {
@@ -222,11 +238,11 @@
         _ => s
     };
 
-    private static Color StatusColor(string s) => s switch
+    private static string StatusChipClass(string s) => s switch
     {
-        "Pending" => Color.Default,
-        "Picking" => Color.Info,
-        "Done"    => Color.Success,
-        _ => Color.Default
+        "Pending" => "st-flat",
+        "Picking" => "st-run",
+        "Done"    => "st-done",
+        _ => "st-flat"
     };
 }

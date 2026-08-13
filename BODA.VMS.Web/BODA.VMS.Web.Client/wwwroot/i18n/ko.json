@@ -603,7 +603,7 @@
   "warehouse": {
     "header": "입고 위치 마스터",
     "totalCountFmt": "총 {0}건",
-    "searchPlaceholder": "바코드 / 코드 / 품목명 / 위치 검색",
+    "searchPlaceholder": "바코드 / 품목명 / 위치",
     "colBarcode": "바코드",
     "colCode": "품목 코드",
     "colName": "품목명",
@@ -623,7 +623,7 @@
   "outbound": {
     "header": "출고 오더",
     "totalCountFmt": "총 {0}건",
-    "searchPlaceholder": "주문번호 / 고객 / 목적지 검색",
+    "searchPlaceholder": "주문번호 / 고객 / 목적지",
     "colOrderNo": "주문번호",
     "colCustomer": "고객",
     "colDestination": "출고 목적지",
