@@ -10,36 +10,50 @@
 
 <PageTitle>@L["page.operators"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.operators"]</MudText>
+@* 8a CRUD 패턴 적용 — 헤더 부제, INFO 배너, vms-tabs *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.operators"]</MudText>
+        <div class="vms-page-sub">@L.Format("operator.totalCountFmt", _items.Count)</div>
+    </div>
+</div>
 
-<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-    @L["operator.alertInfo"]
-</MudAlert>
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">INFO</span>
+    <span class="vms-banner-text">@L["operator.alertInfo"]</span>
+</div>
 
-<MudTabs Elevation="0" Rounded="true" PanelClass="pa-0 mt-3" Outlined="true">
-    <MudTabPanel Text="@(L["operator.tabMaster"])" Icon="@Icons.Material.Filled.Person">
+<MudTabs Elevation="0" Rounded="false" PanelClass="pa-0 mt-3" Class="vms-tabs"
+         SliderColor="Color.Primary" Style="background: transparent;">
+    <MudTabPanel Text="@(L["operator.tabMaster"])">
+        <MudPaper Class="vms-filter-bar pa-0 mb-4 mt-3">
+            <div class="vms-filter-flex">
+                <div class="vms-filter-field wide">
+                    <label class="vms-filter-label">@L["common.search"]</label>
+                    <MudTextField @bind-Value="_search" Placeholder="@(L["defect.searchPlaceholder"])"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+                </div>
+                <label class="vms-toggle" style="margin-bottom:10px;">
+                    <input type="checkbox" checked="@_showInactive" @onchange="OnShowInactiveChanged" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["common.showInactive"]</span>
+                </label>
+                <div class="vms-filter-spacer"></div>
+                <AuthorizeView Roles="Admin,User">
+                    <Authorized>
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                                   Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                            @L["operator.btnCreate"]
+                        </MudButton>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </MudPaper>
+
         <div class="vms-table">
             <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
                       Filter="new Func<OperatorDto, bool>(FilterFunc)">
-                <ToolBarContent>
-                    <MudText Class="vms-panel-header">@L["operator.header"]</MudText>
-                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
-                        @L.Format("operator.totalCountFmt", _items.Count)
-                    </MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_search" Placeholder="@(L["defect.searchPlaceholder"])"
-                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
-                                  Style="max-width: 240px;" />
-                    <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
-                    <AuthorizeView Roles="Admin,User">
-                        <Authorized>
-                            <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                                       Variant="Variant.Filled" Size="Size.Small"
-                                       OnClick="OpenCreateDialog" Class="vms-btn">@L["operator.btnCreate"]</MudButton>
-                        </Authorized>
-                    </AuthorizeView>
-                </ToolBarContent>
                 <HeaderContent>
                     <MudTh>@L["operator.colEmployeeNumber"]</MudTh>
                     <MudTh>@L["common.name"]</MudTh>
@@ -48,53 +62,51 @@
                     <MudTh Style="text-align:right;">@L["common.actions"]</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd><span class="vms-mono" style="font-weight:700;">@context.EmployeeNumber</span></MudTd>
-                    <MudTd><strong>@context.Name</strong></MudTd>
+                    <MudTd><span class="vms-cell-id">@context.EmployeeNumber</span></MudTd>
+                    <MudTd><span style="font-weight:500;">@context.Name</span></MudTd>
                     <MudTd>
                         @if (!string.IsNullOrEmpty(context.Department))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Department</MudChip>
+                            <span class="vms-type-chip">@context.Department</span>
                         }
-                        else { <span style="color: var(--vms-text-secondary);">—</span> }
+                        else { <span class="vms-cell-empty">—</span> }
                     </MudTd>
                     <MudTd>
-                        @if (context.IsActive)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
-                        }
+                        <span class="vms-wo-chip @(context.IsActive ? "st-done" : "st-flat")">
+                            @(context.IsActive ? L["status.active"] : L["status.inactive"])
+                        </span>
                     </MudTd>
                     <MudTd Style="text-align:right; white-space:nowrap;">
                         <AuthorizeView Roles="Admin,User">
                             <Authorized Context="auth1">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                               OnClick="@(() => OpenEditDialog(context))" />
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                           OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
                             </Authorized>
                         </AuthorizeView>
                         <AuthorizeView Roles="Admin">
                             <Authorized Context="auth2">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                               Color="Color.Error"
-                                               OnClick="@(() => DeleteItem(context))" />
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                           OnClick="@(() => DeleteItem(context))">@L["workorder.actDelete"]</MudButton>
                             </Authorized>
                         </AuthorizeView>
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["operator.noOperators"]</div>
+                    <div class="vms-empty">
+                        <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                        <span class="vms-empty-text">@L["operator.noOperators"]</span>
+                    </div>
                 </NoRecordsContent>
             </MudTable>
         </div>
     </MudTabPanel>
 
-    <MudTabPanel Text="@(L["operator.tabSessions"])" Icon="@Icons.Material.Filled.History">
-        <div class="vms-panel pa-3 mb-3">
-            <MudGrid Spacing="2">
-                <MudItem xs="12" sm="3">
-                    <MudSelect T="int?" @bind-Value="_filterClientId" Label="@(L["common.line"])" Clearable="true"
+    <MudTabPanel Text="@(L["operator.tabSessions"])">
+        <MudPaper Class="vms-filter-bar pa-0 mb-4 mt-3">
+            <div class="vms-filter-flex">
+                <div class="vms-filter-field">
+                    <label class="vms-filter-label">@L["common.line"]</label>
+                    <MudSelect T="int?" @bind-Value="_filterClientId" Clearable="true"
                                Variant="Variant.Outlined" Margin="Margin.Dense">
                         <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                         @foreach (var c in _clients)
@@ -104,22 +116,22 @@
                             </MudSelectItem>
                         }
                     </MudSelect>
-                </MudItem>
-                <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="_filterStart" Label="@(L["common.startDate"])"
+                </div>
+                <div class="vms-filter-field">
+                    <label class="vms-filter-label">@L["common.startDate"]</label>
+                    <MudDatePicker @bind-Date="_filterStart"
                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
-                <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="_filterEnd" Label="@(L["common.endDate"])"
+                </div>
+                <div class="vms-filter-field">
+                    <label class="vms-filter-label">@L["common.endDate"]</label>
+                    <MudDatePicker @bind-Date="_filterEnd"
                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
-                <MudItem xs="12" sm="3" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Search"
-                               OnClick="LoadSessions" Class="vms-btn">@L["action.search"]</MudButton>
-                </MudItem>
-            </MudGrid>
-        </div>
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Search"
+                           OnClick="LoadSessions" Class="vms-btn">@L["action.search"]</MudButton>
+            </div>
+        </MudPaper>
 
         <div class="vms-table">
             <MudTable Items="_sessions" Dense="true" Hover="true" Loading="_loadingSessions" Elevation="0">
@@ -133,18 +145,21 @@
                     <MudTh>@L["operator.colEndReason"]</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd><strong>@context.OperatorName</strong></MudTd>
-                    <MudTd><span class="vms-mono">@context.EmployeeNumber</span></MudTd>
-                    <MudTd>#@context.ClientIndex.ToString("D2") @context.ClientName</MudTd>
-                    <MudTd><span class="vms-mono" style="font-size:12px;">@context.StartedAt.ToLocalTime().ToString("MM-dd HH:mm:ss")</span></MudTd>
+                    <MudTd><span style="font-weight:500;">@context.OperatorName</span></MudTd>
+                    <MudTd><span class="vms-mono-dim">@context.EmployeeNumber</span></MudTd>
+                    <MudTd>
+                        <span class="vms-mono-dim">#@context.ClientIndex.ToString("D2")</span>
+                        <span style="font-size:12.5px;"> @context.ClientName</span>
+                    </MudTd>
+                    <MudTd><span class="vms-mono-dim">@context.StartedAt.ToLocalTime().ToString("MM-dd HH:mm:ss")</span></MudTd>
                     <MudTd>
                         @if (context.EndedAt.HasValue)
                         {
-                            <span class="vms-mono" style="font-size:12px;">@context.EndedAt.Value.ToLocalTime().ToString("MM-dd HH:mm:ss")</span>
+                            <span class="vms-mono-dim">@context.EndedAt.Value.ToLocalTime().ToString("MM-dd HH:mm:ss")</span>
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@L["operator.currentlyWorking"]</MudChip>
+                            <span class="vms-wo-chip st-run">@L["operator.currentlyWorking"]</span>
                         }
                     </MudTd>
                     <MudTd Style="text-align:right;">
@@ -153,51 +168,51 @@
                     <MudTd>
                         @if (!string.IsNullOrEmpty(context.EndReason))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@ReasonColor(context.EndReason)">@ReasonLabel(context.EndReason, L)</MudChip>
+                            <span class="vms-type-chip">@ReasonLabel(context.EndReason, L)</span>
                         }
+                        else { <span class="vms-cell-empty">—</span> }
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
-                    <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["operator.noSessions"]</div>
+                    <div class="vms-empty">
+                        <MudIcon Icon="@Icons.Material.Outlined.History" />
+                        <span class="vms-empty-text">@L["operator.noSessions"]</span>
+                    </div>
                 </NoRecordsContent>
             </MudTable>
         </div>
     </MudTabPanel>
 
-    <MudTabPanel Text="@(L["operator.tabKiosk"])" Icon="@Icons.Material.Filled.Tv">
-        <div class="vms-panel pa-4">
-            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["operator.kioskTitle"]</MudText>
-            <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);" Class="mb-3">
+    <MudTabPanel Text="@(L["operator.tabKiosk"])">
+        <MudPaper Class="vms-panel pa-5 mt-3">
+            <div class="vms-set-title">@L["operator.kioskTitle"]</div>
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);" Class="mb-4">
                 @L["operator.kioskInstruction"]
             </MudText>
             @if (_clients.Count == 0)
             {
-                <MudText Style="color: var(--vms-text-secondary);">@L["operator.kioskNoLines"]</MudText>
+                <div class="vms-empty"><span class="vms-empty-text">@L["operator.kioskNoLines"]</span></div>
             }
             else
             {
                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:10px;">
                     @foreach (var c in _clients)
                     {
-                        <div class="vms-panel pa-3" style="background: rgba(79,195,247,0.06);">
-                            <div style="font-family: 'Roboto Mono', monospace; font-weight:700; font-size:18px; color: var(--mud-palette-warning);">
-                                #@c.ClientIndex.ToString("D2")
-                            </div>
+                        <div class="vms-panel pa-3" style="background: #0C121D;">
+                            <div class="vms-oee-idx" style="font-size:18px;">#@c.ClientIndex.ToString("D2")</div>
                             <div style="font-weight:600; margin: 2px 0;">@c.Name</div>
-                            <div style="font-family: 'Roboto Mono', monospace; font-size:11px; color: var(--mud-palette-primary); word-break: break-all;">
+                            <div class="vms-mono-dim" style="font-size:11px; word-break: break-all;">
                                 @KioskUrl(c.ClientIndex)
                             </div>
-                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.OpenInNew"
-                                       OnClick="@(() => Nav.NavigateTo(KioskUrl(c.ClientIndex), forceLoad: false))"
-                                       Class="mt-1">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action mt-1"
+                                       OnClick="@(() => Nav.NavigateTo(KioskUrl(c.ClientIndex), forceLoad: false))">
                                 @L["operator.btnOpen"]
                             </MudButton>
                         </div>
                     }
                 </div>
             }
-        </div>
+        </MudPaper>
     </MudTabPanel>
 </MudTabs>
 
@@ -327,12 +342,25 @@
         }
     }
 
+    private async Task OnShowInactiveChanged(ChangeEventArgs e)
+    {
+        _showInactive = e.Value is true;
+        await Load();
+    }
+
     private async Task DeleteItem(OperatorDto o)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("operator.confirmDeleteFmt", o.Name),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        // 8b 파괴적 확인 — 대상 식별자 모노 명시
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, $"{o.EmployeeNumber} — {o.Name}" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
         try
         {
             await Api.DeleteAsync($"/api/operators/{o.Id}");
@@ -363,11 +391,4 @@
         _ => r
     };
 
-    private static Color ReasonColor(string r) => r switch
-    {
-        "Logout" => Color.Info,
-        "ShiftChange" => Color.Warning,
-        "Auto" => Color.Default,
-        _ => Color.Default
-    };
 }

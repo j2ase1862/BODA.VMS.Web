@@ -7,20 +7,23 @@
 
 <PageTitle>@L["page.defectCodes"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.defectCodes"]</MudText>
+@* 8a CRUD 패턴 적용 — 헤더 부제 요약, 필터 바 우측 끝 등록 *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.defectCodes"]</MudText>
+        <div class="vms-page-sub">@L.Format("defect.totalCountFmt", _items.Count)</div>
+    </div>
+</div>
 
 @if (_unregistered.Count > 0)
 {
-    <div class="vms-panel pa-3 mb-3" style="border-left: 4px solid var(--mud-palette-warning);">
-        <div class="d-flex align-center mb-2">
-            <MudIcon Icon="@Icons.Material.Filled.NotificationImportant"
-                     Color="Color.Warning" Class="mr-2" />
+    @* 미등록 NG 코드 — 저채도 앰버 (원색 주황 제거) *@
+    <div class="vms-panel pa-4 mb-4" style="border-left: 3px solid #8A6E37;">
+        <div class="d-flex align-center mb-3" style="gap:10px;">
             <MudText Typo="Typo.subtitle1" Style="font-weight:700;">
                 @L.Format("defect.unregisteredTitleFmt", _unregisteredDays)
             </MudText>
-            <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); margin-left: 8px;">
-                @L.Format("defect.unregisteredHint", _unregistered.Count)
-            </MudText>
+            <span class="vms-mono-dim" style="font-size:11px;">@L.Format("defect.unregisteredHint", _unregistered.Count)</span>
             <MudSpacer />
             <MudSelect T="int" Value="_unregisteredDays" ValueChanged="OnDaysChanged"
                        Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -35,15 +38,15 @@
             @foreach (var u in _unregistered)
             {
                 <div class="vms-panel pa-3"
-                     style="cursor: pointer; background: rgba(255, 152, 0, 0.06); border: 1px solid rgba(255, 152, 0, 0.2);"
+                     style="cursor: pointer; background: rgba(138, 110, 55, 0.08); border: 1px solid rgba(138, 110, 55, 0.3);"
                      @onclick="@(() => RegisterFromUnregistered(u))">
                     <div class="d-flex align-center justify-space-between mb-1">
                         <span class="vms-mono" style="font-size:16px; font-weight:700;">@u.Code</span>
-                        <span style="color: var(--mud-palette-error); font-family: 'Roboto Mono', monospace; font-size:13px; font-weight:700;">
+                        <span style="color: #C4756E; font-family: var(--vms-font-mono); font-size:13px; font-weight:700;">
                             @L.Format("defect.occurrenceCountFmt", u.OccurrenceCount)
                         </span>
                     </div>
-                    <div style="font-size:12px; color: var(--vms-text-secondary); min-height: 32px;">
+                    <div style="font-size:12px; color: var(--mud-palette-text-secondary); min-height: 32px;">
                         @if (!string.IsNullOrEmpty(u.SuggestedDescription))
                         {
                             <span>@u.SuggestedDescription</span>
@@ -56,11 +59,10 @@
                     <div class="d-flex align-center justify-space-between mt-1" style="font-size:11px;">
                         @if (!string.IsNullOrEmpty(u.SuggestedCategory))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                     Style="height:16px; font-size:10px;">@u.SuggestedCategory</MudChip>
+                            <span class="vms-type-chip" style="font-size:10px;">@u.SuggestedCategory</span>
                         }
                         else { <span></span> }
-                        <span style="color: var(--vms-text-secondary);">
+                        <span class="vms-mono-dim">
                             @L.Format("defect.lastSeenFmt", u.LastSeenAt.ToLocalTime().ToString("MM-dd HH:mm"))
                         </span>
                     </div>
@@ -70,31 +72,34 @@
     </div>
 }
 
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field wide">
+            <label class="vms-filter-label">@L["common.search"]</label>
+            <MudTextField @bind-Value="_search" Placeholder="@(L["defect.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+        </div>
+        <label class="vms-toggle" style="margin-bottom:10px;">
+            <input type="checkbox" checked="@_showInactive" @onchange="OnShowInactiveChanged" />
+            <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+            <span class="vms-toggle-label">@L["common.showInactive"]</span>
+        </label>
+        <div class="vms-filter-spacer"></div>
+        <AuthorizeView Roles="Admin,User">
+            <Authorized>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                    @L["defect.btnCreate"]
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</MudPaper>
+
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
               Filter="new Func<DefectCodeDto, bool>(FilterFunc)">
-        <ToolBarContent>
-            <MudText Class="vms-panel-header">@L["defect.header"]</MudText>
-            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
-                @L.Format("defect.totalCountFmt", _items.Count)
-            </MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_search" Placeholder="@(L["defect.searchPlaceholder"])"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
-                          Style="max-width: 240px;" />
-            <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary"
-                       Class="mr-2" />
-            <AuthorizeView Roles="Admin,User">
-                <Authorized>
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                               Variant="Variant.Filled" Size="Size.Small"
-                               OnClick="OpenCreateDialog" Class="vms-btn">
-                        @L["defect.btnCreate"]
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-        </ToolBarContent>
         <HeaderContent>
             <MudTh>@L["defect.colCode"]</MudTh>
             <MudTh>@L["defect.colDescription"]</MudTh>
@@ -104,57 +109,42 @@
             <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>
-                <span class="vms-mono" style="font-weight: 700;">@context.Code</span>
-            </MudTd>
-            <MudTd>@context.Description</MudTd>
+            <MudTd><span class="vms-cell-id">@context.Code</span></MudTd>
+            <MudTd><span style="font-weight:500;">@context.Description</span></MudTd>
             <MudTd>
                 @if (!string.IsNullOrEmpty(context.Category))
                 {
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Category</MudChip>
+                    <span class="vms-type-chip">@context.Category</span>
                 }
-                else { <span style="color: var(--vms-text-secondary);">—</span> }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                         Color="@GetSeverityColor(context.Severity)">
-                    @SevLabel(context.Severity, L)
-                </MudChip>
+                <span class="vms-sev-badge @SevClass(context.Severity)">@context.Severity.ToUpperInvariant()</span>
             </MudTd>
             <MudTd>
-                @if (context.IsActive)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
-                }
+                <span class="vms-wo-chip @(context.IsActive ? "st-done" : "st-flat")">
+                    @(context.IsActive ? L["status.active"] : L["status.inactive"])
+                </span>
             </MudTd>
             <MudTd Style="text-align: right; white-space: nowrap;">
                 <AuthorizeView Roles="Admin,User">
                     <Authorized Context="auth1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       OnClick="@(() => OpenEditDialog(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                   OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="auth2">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteItem(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                   OnClick="@(() => DeleteItem(context))">@L["workorder.actDelete"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.BugReport" Size="Size.Large"
-                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["defect.noDefects"]</MudText>
-                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
-                    @L["defect.noDefectsHint"]
-                </MudText>
+            <div class="vms-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.BugReport" />
+                <span class="vms-empty-text">@L["defect.noDefects"] — @L["defect.noDefectsHint"]</span>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -302,9 +292,17 @@
 
     private async Task DeleteItem(DefectCodeDto d)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("defect.confirmDeleteFmt", d.Code), L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        // 8b 파괴적 확인 — 대상 식별자 모노 명시
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, $"{d.Code} — {d.Description}" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {
@@ -318,19 +316,16 @@
         }
     }
 
-    private static string SevLabel(string s, ILocalizer L) => s switch
+    private async Task OnShowInactiveChanged(ChangeEventArgs e)
     {
-        "Critical" => L["status.critical"],
-        "Major" => L["status.major"],
-        "Minor" => L["status.minor"],
-        _ => s
-    };
+        _showInactive = e.Value is true;
+        await Load();
+    }
 
-    private static Color GetSeverityColor(string sev) => sev switch
+    private static string SevClass(string sev) => sev switch
     {
-        "Critical" => Color.Error,
-        "Major" => Color.Warning,
-        "Minor" => Color.Info,
-        _ => Color.Default
+        "Critical" => "crit",
+        "Major" => "warn",
+        _ => "info"
     };
 }

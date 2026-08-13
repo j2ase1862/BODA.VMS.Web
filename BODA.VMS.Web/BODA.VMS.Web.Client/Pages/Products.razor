@@ -7,33 +7,42 @@
 
 <PageTitle>@L["page.products"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.products"]</MudText>
+@* 8a CRUD 패턴 적용 — 헤더 부제 요약, 필터 바(검색·토글) 우측 끝 등록 버튼 *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.products"]</MudText>
+        <div class="vms-page-sub">@L.Format("product.totalCountFmt", _items.Count)</div>
+    </div>
+</div>
+
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field wide">
+            <label class="vms-filter-label">@L["common.search"]</label>
+            <MudTextField @bind-Value="_search" Placeholder="@(L["product.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+        </div>
+        <label class="vms-toggle" style="margin-bottom:10px;">
+            <input type="checkbox" checked="@_showInactive" @onchange="OnShowInactiveChanged" />
+            <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+            <span class="vms-toggle-label">@L["common.showInactive"]</span>
+        </label>
+        <div class="vms-filter-spacer"></div>
+        <AuthorizeView Roles="Admin,User">
+            <Authorized>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                    @L["product.btnCreate"]
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</MudPaper>
 
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
               Filter="new Func<ProductDto, bool>(FilterFunc)">
-        <ToolBarContent>
-            <MudText Class="vms-panel-header">@L["product.header"]</MudText>
-            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
-                @L.Format("product.totalCountFmt", _items.Count)
-            </MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_search" Placeholder="@(L["product.searchPlaceholder"])"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
-                          Style="max-width: 280px;" />
-            <MudSwitch @bind-Value="_showInactive" Label="@(L["common.showInactive"])" Color="Color.Primary"
-                       Class="mr-2" />
-            <AuthorizeView Roles="Admin,User">
-                <Authorized>
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                               Variant="Variant.Filled" Size="Size.Small"
-                               OnClick="OpenCreateDialog" Class="vms-btn">
-                        @L["product.btnCreate"]
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-        </ToolBarContent>
         <HeaderContent>
             <MudTh>@L["product.colCode"]</MudTh>
             <MudTh>@L["product.colName"]</MudTh>
@@ -43,58 +52,49 @@
             <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd><span class="vms-cell-id">@context.Code</span></MudTd>
+            <MudTd><span style="font-weight:500;">@context.Name</span></MudTd>
             <MudTd>
-                <span class="vms-mono" style="font-weight: 700;">@context.Code</span>
-            </MudTd>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>
-                <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
-                    @(string.IsNullOrEmpty(context.Specification) ? "—" : context.Specification)
-                </MudText>
+                @if (string.IsNullOrEmpty(context.Specification))
+                {
+                    <span class="vms-cell-empty">—</span>
+                }
+                else
+                {
+                    <span style="color: var(--mud-palette-text-secondary); font-size:12.5px;">@context.Specification</span>
+                }
             </MudTd>
             <MudTd>
                 @if (context.DefaultRecipeId.HasValue)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
-                        @context.DefaultRecipeName
-                    </MudChip>
+                    <span class="vms-type-chip">@context.DefaultRecipeName</span>
                 }
-                else
-                {
-                    <span style="color: var(--vms-text-secondary);">—</span>
-                }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
             <MudTd>
-                @if (context.IsActive)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
-                }
+                <span class="vms-wo-chip @(context.IsActive ? "st-done" : "st-flat")">
+                    @(context.IsActive ? L["status.active"] : L["status.inactive"])
+                </span>
             </MudTd>
             <MudTd Style="text-align: right; white-space: nowrap;">
                 <AuthorizeView Roles="Admin,User">
                     <Authorized Context="auth1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       OnClick="@(() => OpenEditDialog(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                   OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="auth2">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteItem(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                   OnClick="@(() => DeleteItem(context))">@L["workorder.actDelete"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large"
-                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["product.noProducts"]</MudText>
+            <div class="vms-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                <span class="vms-empty-text">@L["product.noProducts"]</span>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -114,6 +114,12 @@
         _items = await Api.GetAsync<List<ProductDto>>(
             $"/api/products?includeInactive={_showInactive}") ?? new();
         _loading = false;
+    }
+
+    private async Task OnShowInactiveChanged(ChangeEventArgs e)
+    {
+        _showInactive = e.Value is true;
+        await Load();
     }
 
     private bool FilterFunc(ProductDto p)
@@ -185,10 +191,17 @@
 
     private async Task DeleteItem(ProductDto p)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("product.confirmDeleteFmt", p.Code, p.Name),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        // 8b 파괴적 확인 — 대상 식별자 모노 명시
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, $"{p.Code} — {p.Name}" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {
