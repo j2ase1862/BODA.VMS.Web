@@ -8,18 +8,22 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.shiftReport"]</MudText>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+@* 8a 패턴 — 4b 필터 바 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.startDate"]</label>
+            <MudDatePicker @bind-Date="_startDate"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.endDate"]</label>
+            <MudDatePicker @bind-Date="_endDate"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" @bind-Value="_clientId" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
@@ -29,38 +33,35 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Schedule"
-                       OnClick="Load" Class="vms-btn">@L["action.run"]</MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Schedule"
+                   OnClick="Load" Class="vms-btn">@L["action.run"]</MudButton>
+    </div>
+</MudPaper>
 
 @if (_rows.Count > 0)
 {
     @* Shift별 집계 카드 *@
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;" class="mb-3">
+    @* 교대별 집계 — 상단 3px 등급 색띠 + 저채도 (6b 카드 규칙) *@
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;" class="mb-4">
         @foreach (var grp in _rows.GroupBy(r => r.ShiftId))
         {
             var total = grp.Sum(g => g.TotalCount);
             var pass = grp.Sum(g => g.PassCount);
             var ng = total - pass;
             var rate = total > 0 ? Math.Round((double)ng / total * 100, 2) : 0;
-            <div class="vms-panel pa-3" style="border-top: 4px solid @(GetRateColor(rate));">
-                <div style="font-size:12px; color: var(--vms-text-secondary);">@(grp.First().ShiftName)</div>
-                <div style="font-size:24px; font-weight:800; font-family: 'Roboto Mono', monospace;">
-                    @total.ToString("N0")
-                </div>
-                <div style="font-size:12px;">
-                    <span style="color: var(--mud-palette-success);">@L["shiftReport.passLabel"] @pass.ToString("N0")</span>
+            <div class="vms-panel vms-sum-card" style="border-top: 3px solid @RateBorder(rate) !important;">
+                <span class="vms-sum-label">@(grp.First().ShiftName)</span>
+                <span class="vms-sum-value mono">@total.ToString("N0")</span>
+                <span class="vms-sum-sub">
+                    <span style="color:#7FA98C;">@L["shiftReport.passLabel"] @pass.ToString("N0")</span>
                     ·
-                    <span style="color: var(--mud-palette-error);">@L["shiftReport.ngLabel"] @ng.ToString("N0")</span>
-                </div>
-                <div style="font-size:14px; font-weight:700; color: @(GetRateColor(rate)); margin-top:4px;">
+                    <span style="color:#C4756E;">@L["shiftReport.ngLabel"] @ng.ToString("N0")</span>
+                </span>
+                <span class="vms-sum-sub" style="color:@RateText(rate); font-weight:700;">
                     @L["shiftReport.ngRateLabel"] @rate.ToString("F2")%
-                </div>
+                </span>
             </div>
         }
     </div>
@@ -80,17 +81,17 @@
                 <MudTh Style="text-align:right;">@L["shiftReport.colNgRate"]</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd><span class="vms-mono">@context.Date.ToString("yyyy-MM-dd")</span></MudTd>
-                <MudTd><strong>@context.ShiftName</strong></MudTd>
+                <MudTd><span class="vms-mono-dim">@context.Date.ToString("yyyy-MM-dd")</span></MudTd>
+                <MudTd><span style="font-weight:500;">@context.ShiftName</span></MudTd>
                 <MudTd Style="text-align:right;"><span class="vms-mono">@context.TotalCount.ToString("N0")</span></MudTd>
-                <MudTd Style="text-align:right; color: var(--mud-palette-success);">
-                    <span class="vms-mono">@context.PassCount.ToString("N0")</span>
-                </MudTd>
-                <MudTd Style="text-align:right; color: var(--mud-palette-error);">
-                    <span class="vms-mono">@context.NgCount.ToString("N0")</span>
+                <MudTd Style="text-align:right;">
+                    <span class="vms-qty-pass">@context.PassCount.ToString("N0")</span>
                 </MudTd>
                 <MudTd Style="text-align:right;">
-                    <span class="vms-mono" style="color: @(GetRateColor(context.NgRate)); font-weight: 600;">
+                    <span class="vms-qty-ng">@context.NgCount.ToString("N0")</span>
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    <span class="vms-mono" style="color: @RateText(context.NgRate); font-weight: 600;">
                         @context.NgRate.ToString("F2")%
                     </span>
                 </MudTd>
@@ -100,18 +101,21 @@
 }
 else if (_loaded)
 {
-    <div class="vms-panel pa-8 d-flex flex-column align-center">
-        <MudText Style="color: var(--vms-text-secondary);">@L["shiftReport.noData"]</MudText>
-        <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
-            @L["shiftReport.noDataHint"]
-        </MudText>
-    </div>
+    <MudPaper Class="vms-panel">
+        <div class="vms-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Schedule" />
+            <span class="vms-empty-text">@L["shiftReport.noData"] — @L["shiftReport.noDataHint"]</span>
+        </div>
+    </MudPaper>
 }
 else
 {
-    <div class="vms-panel pa-8 d-flex flex-column align-center">
-        <MudText Style="color: var(--vms-text-secondary);">@L["shiftReport.promptRun"]</MudText>
-    </div>
+    <MudPaper Class="vms-panel">
+        <div class="vms-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Schedule" />
+            <span class="vms-empty-text">@L["shiftReport.promptRun"]</span>
+        </div>
+    </MudPaper>
 }
 
 @code {
@@ -150,10 +154,18 @@ else
         }
     }
 
-    private static string GetRateColor(double rate)
+    // 저채도 등급 — 테두리 진한 톤 / 텍스트 밝은 톤 (기존 임계값 유지: ≥5 오류 / ≥1 경고)
+    private static string RateBorder(double rate)
     {
-        if (rate >= 5) return "var(--mud-palette-error)";
-        if (rate >= 1) return "var(--mud-palette-warning)";
-        return "var(--mud-palette-success)";
+        if (rate >= 5) return "#A8443C";
+        if (rate >= 1) return "#8A6E37";
+        return "#4E8C63";
+    }
+
+    private static string RateText(double rate)
+    {
+        if (rate >= 5) return "#C4756E";
+        if (rate >= 1) return "#C9A05A";
+        return "#7FA98C";
     }
 }
