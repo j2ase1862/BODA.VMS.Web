@@ -1,34 +1,42 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 안내는 vms-banner *@
 <MudDialog>
     <DialogContent>
         @* 대상 라인 명시 — VMS 는 자기 ClientIndex 의 레시피만 내려받으므로, 다른
            라인을 선택한 채 만들면 현장에서 "만들었는데 VMS 에 안 보임"이 된다 (2026-08-10) *@
-        @if (!string.IsNullOrEmpty(TargetClientLabel))
-        {
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Dense="true" Class="mb-4">
-                @L.Format("dialog.recipeTargetClientFmt", TargetClientLabel)
-            </MudAlert>
-        }
-
-        <MudTextField @bind-Value="Name" Label="@(L["dialog.recipeFieldName"])"
-                      Variant="Variant.Outlined" Class="mb-4"
-                      Placeholder="S25_BackGlass, APPLE_I15_CASE"
-                      Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.MenuBook" />
-
-        <MudTextField @bind-Value="Description" Label="@(L["dialog.recipeFieldDescription"])"
-                      Variant="Variant.Outlined" Class="mb-4"
-                      Placeholder="@(L["dialog.recipeFieldDescriptionPlaceholder"])"
-                      Lines="2" />
-
-        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mt-2">
-            @L["dialog.recipeAlertInfo"]
-        </MudAlert>
+        <div class="vms-form">
+            @if (!string.IsNullOrEmpty(TargetClientLabel))
+            {
+                <div class="vms-banner warn">
+                    <span class="vms-banner-label">WARN</span>
+                    <span class="vms-banner-text">@L.Format("dialog.recipeTargetClientFmt", TargetClientLabel)</span>
+                </div>
+            }
+            <div>
+                <label class="vms-form-label">@L["dialog.recipeFieldName"]<span class="req">*</span></label>
+                <MudTextField @bind-Value="Name"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Placeholder="S25_BackGlass, APPLE_I15_CASE" />
+            </div>
+            <div>
+                <label class="vms-form-label">@L["dialog.recipeFieldDescription"]</label>
+                <MudTextField @bind-Value="Description"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Placeholder="@(L["dialog.recipeFieldDescriptionPlaceholder"])"
+                              Lines="2" />
+            </div>
+            <div class="vms-banner info">
+                <span class="vms-banner-label">INFO</span>
+                <span class="vms-banner-text">@L["dialog.recipeAlertInfo"]</span>
+            </div>
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@string.IsNullOrWhiteSpace(Name)"
                    Class="vms-btn">

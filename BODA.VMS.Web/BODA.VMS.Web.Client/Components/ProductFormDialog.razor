@@ -2,51 +2,55 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 푸터 취소 아웃라인+저장 오렌지 *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
-
-            <MudTextField @bind-Value="Model.Code" Label="@(L["dialog.productFieldCode"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.QrCode2"
-                          HelperText="@(L["dialog.productFieldCodeHint"])" />
-
-            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.productFieldName"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Inventory" />
-
-            <MudTextField @bind-Value="Model.Specification" Label="@(L["dialog.productFieldSpec"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Lines="2"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Description"
-                          HelperText="@(L["dialog.productFieldSpecHint"])" />
-
-            <MudSelect T="int?" @bind-Value="Model.DefaultRecipeId" Label="@(L["dialog.productFieldDefaultRecipe"])"
-                       Variant="Variant.Outlined" Class="mb-4"
-                       Clearable="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.MenuBook"
-                       HelperText="@(L["dialog.productFieldDefaultRecipeHint"])">
-                <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.selectNone"]</MudSelectItem>
-                @foreach (var r in _allRecipes)
-                {
-                    <MudSelectItem T="int?" Value="@((int?)r.Id)">
-                        @r.Name @(string.IsNullOrEmpty(r.Description) ? "" : $"— {r.Description}")
-                    </MudSelectItem>
-                }
-            </MudSelect>
-
-            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
+            <div class="vms-form">
+                <div>
+                    <label class="vms-form-label">@L["dialog.productFieldCode"]<span class="req">*</span></label>
+                    <MudTextField @bind-Value="Model.Code"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                                  HelperText="@(L["dialog.productFieldCodeHint"])" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.productFieldName"]<span class="req">*</span></label>
+                    <MudTextField @bind-Value="Model.Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.productFieldSpec"]</label>
+                    <MudTextField @bind-Value="Model.Specification"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+                                  HelperText="@(L["dialog.productFieldSpecHint"])" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.productFieldDefaultRecipe"]</label>
+                    <MudSelect T="int?" @bind-Value="Model.DefaultRecipeId"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                               HelperText="@(L["dialog.productFieldDefaultRecipeHint"])">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.selectNone"]</MudSelectItem>
+                        @foreach (var r in _allRecipes)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)r.Id)">
+                                @r.Name @(string.IsNullOrEmpty(r.Description) ? "" : $"— {r.Description}")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <label class="vms-toggle">
+                    <input type="checkbox" checked="@Model.IsActive" @onchange="@(e => Model.IsActive = e.Value is true)" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["status.active"]</span>
+                </label>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
             @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>

@@ -1,6 +1,7 @@
 @inject ApiClient Api
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지) *@
 <MudDialog>
     <DialogContent>
         <div style="min-width: 420px;">
@@ -9,34 +10,45 @@
                 @L.Format("dialog.performInfoFmt", Schedule.IntervalDays, Schedule.EstimatedDurationMinutes)
             </MudText>
 
-            @if (!Schedule.ClientId.HasValue)
-            {
-                <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["dialog.performFieldClient"])"
-                           Variant="Variant.Outlined" Class="mb-3" Required="true"
-                           HelperText="@(L["dialog.performFieldClientHint"])">
-                    <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.selectPlaceholder"]</MudSelectItem>
-                    @foreach (var c in _clients)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)c.Id)">
-                            #@c.ClientIndex.ToString("D2") @c.Name
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-            }
-
-            <MudNumericField T="int?" @bind-Value="_duration" Label="@(L["dialog.performFieldDuration"])"
-                             Variant="Variant.Outlined" Class="mb-3"
-                             Min="1" Clearable="true"
-                             HelperText="@(L["dialog.performFieldDurationHint"])" />
-
-            <MudTextField @bind-Value="_notes" Label="@(L["dialog.performFieldNotes"])"
-                          Variant="Variant.Outlined" Lines="3"
-                          HelperText="@(L["dialog.performFieldNotesHint"])" />
+            <div class="vms-form">
+                @if (!Schedule.ClientId.HasValue)
+                {
+                    <div>
+                        <label class="vms-form-label">@L["dialog.performFieldClient"]<span class="req">*</span></label>
+                        <MudSelect T="int?" @bind-Value="_clientId"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                                   HelperText="@(L["dialog.performFieldClientHint"])">
+                            <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.selectPlaceholder"]</MudSelectItem>
+                            @foreach (var c in _clients)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                                    #@c.ClientIndex.ToString("D2") @c.Name
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                }
+                <div>
+                    <label class="vms-form-label">@L["dialog.performFieldDuration"]</label>
+                    <MudNumericField T="int?" @bind-Value="_duration"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Min="1" Clearable="true"
+                                     HelperText="@(L["dialog.performFieldDurationHint"])" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.performFieldNotes"]</label>
+                    <MudTextField @bind-Value="_notes"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3"
+                                  HelperText="@(L["dialog.performFieldNotesHint"])" />
+                </div>
+            </div>
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
-        <MudButton Color="Color.Success" Variant="Variant.Filled"
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
                    OnClick="Submit"
                    Disabled="@(!Schedule.ClientId.HasValue && !_clientId.HasValue)"
                    Class="vms-btn">

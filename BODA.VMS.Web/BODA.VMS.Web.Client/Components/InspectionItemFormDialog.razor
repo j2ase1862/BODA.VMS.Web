@@ -1,80 +1,88 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 카테고리 설명은 vms-banner *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
+            <div class="vms-form">
+                <div>
+                    <label class="vms-form-label">@L["dialog.inspParamCategory"]</label>
+                    <MudSelect T="string" Value="Model.Category" ValueChanged="OnCategoryChanged"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="string" Value="@("Pattern")">@L["dialog.inspCategoryPattern"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Blob")">@L["dialog.inspCategoryBlob"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Dimension")">@L["dialog.inspCategoryDimension"]</MudSelectItem>
+                    </MudSelect>
+                </div>
 
-            <MudSelect T="string" Value="Model.Category" ValueChanged="OnCategoryChanged"
-                       Label="@(L["dialog.inspParamCategory"])"
-                       Variant="Variant.Outlined" Class="mb-4"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.Category">
-                <MudSelectItem T="string" Value="@("Pattern")">@L["dialog.inspCategoryPattern"]</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Blob")">@L["dialog.inspCategoryBlob"]</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Dimension")">@L["dialog.inspCategoryDimension"]</MudSelectItem>
-            </MudSelect>
+                @if (!string.IsNullOrEmpty(Model.Category))
+                {
+                    <div class="vms-banner @GetCategoryBannerClass(Model.Category)">
+                        <span class="vms-banner-label">@Model.Category.ToUpperInvariant()</span>
+                        <span class="vms-banner-text">@(ParameterPresetGroup.GetCategoryDescription(Model.Category))</span>
+                    </div>
+                }
 
-            @if (!string.IsNullOrEmpty(Model.Category))
-            {
-                <MudAlert Severity="@GetCategorySeverity(Model.Category)" Variant="Variant.Text"
-                          Dense="true" Class="mb-4" NoIcon="false">
-                    @(ParameterPresetGroup.GetCategoryDescription(Model.Category))
-                </MudAlert>
-            }
-
-            <MudNumericField T="int" Value="Model.ParamCode" ValueChanged="OnParamCodeChanged"
-                             Label="@(L["dialog.inspFieldParamCode"])"
-                             Variant="Variant.Outlined" Class="mb-4"
-                             Min="1"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Filled.Tag"
-                             Style="font-family: 'Roboto Mono', monospace;"
-                             Error="@_isDuplicate"
-                             ErrorText="@_duplicateMessage"
-                             HelperText="@(_isDuplicate ? "" : L["dialog.inspFieldParamCodeHint"])" />
-
-            <MudNumericField @bind-Value="Model.ParamValue" Label="@(L["dialog.inspFieldValue"])"
-                             Variant="Variant.Outlined" Class="mb-4"
-                             Format="F4"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Filled.Numbers" />
-
-            <MudTextField @bind-Value="Model.Description" Label="@(L["dialog.inspFieldDescription"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Placeholder="@GetDescPlaceholder(Model.Category, L)"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Description" />
-
-            <MudTextField @bind-Value="Model.Unit" Label="@(L["dialog.inspFieldUnit"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Placeholder="@GetUnitPlaceholder(Model.Category)"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Straighten" />
-
-            <MudGrid Spacing="2" Class="mb-2">
-                <MudItem xs="6">
-                    <MudNumericField T="double?" @bind-Value="Model.LowerLimit" Label="@(L["dialog.inspFieldLowerLimit"])"
-                                     Variant="Variant.Outlined" Format="F4" Clearable="true"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Filled.VerticalAlignBottom"
-                                     HelperText="@(L["dialog.inspFieldLowerLimitHint"])" />
-                </MudItem>
-                <MudItem xs="6">
-                    <MudNumericField T="double?" @bind-Value="Model.UpperLimit" Label="@(L["dialog.inspFieldUpperLimit"])"
-                                     Variant="Variant.Outlined" Format="F4" Clearable="true"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Filled.VerticalAlignTop"
-                                     HelperText="@(L["dialog.inspFieldUpperLimitHint"])" />
-                </MudItem>
-            </MudGrid>
-
-            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.inspFieldParamCode"]<span class="req">*</span></label>
+                        <MudNumericField T="int" Value="Model.ParamCode" ValueChanged="OnParamCodeChanged"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Min="1"
+                                         Style="font-family: var(--vms-font-mono);"
+                                         Error="@_isDuplicate"
+                                         ErrorText="@_duplicateMessage"
+                                         HelperText="@(_isDuplicate ? "" : L["dialog.inspFieldParamCodeHint"])" />
+                    </div>
+                    <div>
+                        <label class="vms-form-label">@L["dialog.inspFieldValue"]</label>
+                        <MudNumericField @bind-Value="Model.ParamValue"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Format="F4" />
+                    </div>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.inspFieldDescription"]</label>
+                    <MudTextField @bind-Value="Model.Description"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Placeholder="@GetDescPlaceholder(Model.Category, L)" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.inspFieldUnit"]</label>
+                    <MudTextField @bind-Value="Model.Unit"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Placeholder="@GetUnitPlaceholder(Model.Category)" />
+                </div>
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.inspFieldLowerLimit"]</label>
+                        <MudNumericField T="double?" @bind-Value="Model.LowerLimit"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Format="F4" Clearable="true"
+                                         HelperText="@(L["dialog.inspFieldLowerLimitHint"])" />
+                    </div>
+                    <div>
+                        <label class="vms-form-label">@L["dialog.inspFieldUpperLimit"]</label>
+                        <MudNumericField T="double?" @bind-Value="Model.UpperLimit"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Format="F4" Clearable="true"
+                                         HelperText="@(L["dialog.inspFieldUpperLimitHint"])" />
+                    </div>
+                </div>
+                <label class="vms-toggle">
+                    <input type="checkbox" checked="@Model.IsActive" @onchange="@(e => Model.IsActive = e.Value is true)" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["status.active"]</span>
+                </label>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@(_isDuplicate && !IsEdit)"
                    Class="vms-btn">
@@ -135,12 +143,12 @@
         Model.Category = newCategory;
     }
 
-    private static Severity GetCategorySeverity(string category) => category switch
+    private static string GetCategoryBannerClass(string category) => category switch
     {
-        "Pattern" => Severity.Info,
-        "Blob" => Severity.Warning,
-        "Dimension" => Severity.Success,
-        _ => Severity.Normal
+        "Pattern" => "info",
+        "Blob" => "warn",
+        "Dimension" => "check",
+        _ => "info"
     };
 
     private static string GetDescPlaceholder(string category, ILocalizer L) => category switch

@@ -2,96 +2,102 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 후보 자동완성 ItemTemplate 유지 *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
-
-            <MudAutocomplete T="string" @bind-Value="Model.Code"
-                             Label="@(L["dialog.defectFieldCode"])"
-                             Variant="Variant.Outlined" Class="mb-4" Required="true"
-                             SearchFunc="SearchCodes"
-                             CoerceText="true" CoerceValue="true"
-                             ShowProgressIndicator="true"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Filled.Tag"
-                             HelperText="@(L["dialog.defectFieldCodeHint"])"
-                             ResetValueOnEmptyText="false"
-                             MaxItems="50"
-                             Dense="true">
-                <ItemTemplate Context="cand">
-                    @{
-                        var c = _candidatesByCode.GetValueOrDefault(cand);
-                    }
-                    <div class="d-flex align-center" style="gap:8px; width:100%;">
-                        <span class="vms-mono" style="font-weight:700; min-width:60px;">@cand</span>
-                        @if (c is not null)
-                        {
-                            @if (c.Source == "Param")
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info"
-                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">@L["dialog.defectCandidateRecipe"]</MudChip>
+            <div class="vms-form">
+                <div>
+                    <label class="vms-form-label">@L["dialog.defectFieldCode"]<span class="req">*</span></label>
+                    <MudAutocomplete T="string" @bind-Value="Model.Code"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                                     SearchFunc="SearchCodes"
+                                     CoerceText="true" CoerceValue="true"
+                                     ShowProgressIndicator="true"
+                                     HelperText="@(L["dialog.defectFieldCodeHint"])"
+                                     ResetValueOnEmptyText="false"
+                                     MaxItems="50"
+                                     Dense="true">
+                        <ItemTemplate Context="cand">
+                            @{
+                                var c = _candidatesByCode.GetValueOrDefault(cand);
                             }
-                            else
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Warning"
-                                         Variant="Variant.Outlined" Style="height:18px; font-size:10px;">@L["dialog.defectCandidateHistory"]</MudChip>
-                            }
-                            @if (c.IsRegistered)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default"
-                                         Variant="Variant.Filled" Style="height:18px; font-size:10px;">@L["dialog.defectCandidateRegistered"]</MudChip>
-                            }
-                            <span style="flex-grow:1; color: var(--vms-text-secondary); font-size:13px;">
-                                @(c.SuggestedDescription ?? L["dialog.defectCandidateNoDesc"])
-                            </span>
-                            @if (c.OccurrenceCount > 0)
-                            {
-                                <span style="color: var(--mud-palette-error); font-family: 'Roboto Mono', monospace; font-size:12px;">
-                                    @L.Format("dialog.defectCandidateCountFmt", c.OccurrenceCount)
-                                </span>
-                            }
-                        }
-                        else
-                        {
-                            <span style="color: var(--mud-palette-success); font-size:13px;">@L["dialog.defectCandidateNew"]</span>
-                        }
+                            <div class="d-flex align-center" style="gap:8px; width:100%;">
+                                <span class="vms-mono" style="font-weight:700; min-width:60px;">@cand</span>
+                                @if (c is not null)
+                                {
+                                    @if (c.Source == "Param")
+                                    {
+                                        <span class="vms-state-chip st-ack">@L["dialog.defectCandidateRecipe"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="vms-state-chip st-new">@L["dialog.defectCandidateHistory"]</span>
+                                    }
+                                    @if (c.IsRegistered)
+                                    {
+                                        <span class="vms-wo-chip st-flat">@L["dialog.defectCandidateRegistered"]</span>
+                                    }
+                                    <span style="flex-grow:1; color: var(--vms-text-secondary); font-size:13px;">
+                                        @(c.SuggestedDescription ?? L["dialog.defectCandidateNoDesc"])
+                                    </span>
+                                    @if (c.OccurrenceCount > 0)
+                                    {
+                                        <span style="color: #C4756E; font-family: var(--vms-font-mono); font-size:12px;">
+                                            @L.Format("dialog.defectCandidateCountFmt", c.OccurrenceCount)
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span style="color: #7FA98C; font-size:13px;">@L["dialog.defectCandidateNew"]</span>
+                                }
+                            </div>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.defectFieldDescription"]<span class="req">*</span></label>
+                    <MudTextField @bind-Value="Model.Description"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                </div>
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.defectFieldCategory"]</label>
+                        <MudSelect T="string?" @bind-Value="Model.Category"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                            <MudSelectItem T="string?" Value="@((string?)null)">@L["dialog.selectNone"]</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Pattern")">@L["dialog.defectCategoryPattern"]</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Blob")">@L["dialog.defectCategoryBlob"]</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Dimension")">@L["dialog.defectCategoryDimension"]</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Surface")">@L["dialog.defectCategorySurface"]</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Mechanical")">@L["dialog.defectCategoryMechanical"]</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Other")">@L["dialog.defectCategoryOther"]</MudSelectItem>
+                        </MudSelect>
                     </div>
-                </ItemTemplate>
-            </MudAutocomplete>
-
-            <MudTextField @bind-Value="Model.Description" Label="@(L["dialog.defectFieldDescription"])"
-                          Variant="Variant.Outlined" Class="mb-4" Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Description" />
-
-            <MudSelect T="string?" @bind-Value="Model.Category" Label="@(L["dialog.defectFieldCategory"])"
-                       Variant="Variant.Outlined" Class="mb-4" Clearable="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.Category">
-                <MudSelectItem T="string?" Value="@((string?)null)">@L["dialog.selectNone"]</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Pattern")">@L["dialog.defectCategoryPattern"]</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Blob")">@L["dialog.defectCategoryBlob"]</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Dimension")">@L["dialog.defectCategoryDimension"]</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Surface")">@L["dialog.defectCategorySurface"]</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Mechanical")">@L["dialog.defectCategoryMechanical"]</MudSelectItem>
-                <MudSelectItem T="string?" Value="@("Other")">@L["dialog.defectCategoryOther"]</MudSelectItem>
-            </MudSelect>
-
-            <MudSelect T="string" @bind-Value="Model.Severity" Label="@(L["dialog.defectFieldSeverity"])"
-                       Variant="Variant.Outlined" Class="mb-4" Required="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.PriorityHigh">
-                <MudSelectItem T="string" Value="@("Critical")">@L["dialog.defectSeverityCritical"]</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Major")">@L["dialog.defectSeverityMajor"]</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Minor")">@L["dialog.defectSeverityMinor"]</MudSelectItem>
-            </MudSelect>
-
-            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
+                    <div>
+                        <label class="vms-form-label">@L["dialog.defectFieldSeverity"]<span class="req">*</span></label>
+                        <MudSelect T="string" @bind-Value="Model.Severity"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                            <MudSelectItem T="string" Value="@("Critical")">@L["dialog.defectSeverityCritical"]</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Major")">@L["dialog.defectSeverityMajor"]</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Minor")">@L["dialog.defectSeverityMinor"]</MudSelectItem>
+                        </MudSelect>
+                    </div>
+                </div>
+                <label class="vms-toggle">
+                    <input type="checkbox" checked="@Model.IsActive" @onchange="@(e => Model.IsActive = e.Value is true)" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["status.active"]</span>
+                </label>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
             @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>

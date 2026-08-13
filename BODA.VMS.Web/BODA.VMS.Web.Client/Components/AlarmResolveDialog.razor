@@ -2,12 +2,14 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 안내는 vms-banner *@
 <MudDialog>
     <DialogContent>
         <div style="min-width: 420px;">
-            <MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-3">
-                @L["dialog.alarmResolveInfo"]
-            </MudAlert>
+            <div class="vms-banner info mb-3">
+                <span class="vms-banner-label">INFO</span>
+                <span class="vms-banner-text">@L["dialog.alarmResolveInfo"]</span>
+            </div>
 
             <MudText Typo="Typo.subtitle2" Class="mb-1">@Alarm.Title</MudText>
             <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);" Class="mb-3">
@@ -15,14 +17,17 @@
                 @(string.IsNullOrEmpty(Alarm.ClientName) ? "" : $" · {Alarm.ClientName}")
             </MudText>
 
-            <MudTextField @bind-Value="_resolution" Label="@(L["dialog.alarmResolveField"])"
-                          Variant="Variant.Outlined" Lines="4" Required="true"
+            <label class="vms-form-label">@L["dialog.alarmResolveField"]<span class="req">*</span></label>
+            <MudTextField @bind-Value="_resolution"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Lines="4" Required="true"
                           Placeholder="@(L["dialog.alarmResolveFieldPlaceholder"])" />
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
-        <MudButton Color="Color.Success" Variant="Variant.Filled"
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
                    OnClick="Submit" Disabled="@(string.IsNullOrWhiteSpace(_resolution))"
                    Class="vms-btn">
             @L["dialog.alarmResolveBtn"]
