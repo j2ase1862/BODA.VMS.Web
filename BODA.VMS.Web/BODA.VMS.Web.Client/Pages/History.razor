@@ -9,57 +9,66 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.history"]</MudText>
 
-<!-- Filters -->
-<MudPaper Class="vms-filter-bar pa-4 mb-4">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_filter.ClientId" Label="@(L["common.line"])" Clearable="true"
+@* 4b — 필터 바 패턴: 외부 모노 라벨 + 컨트롤, 주 액션(검색) 오렌지 / 보조(Excel) 아웃라인 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" @bind-Value="_filter.ClientId" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var client in _clients)
                 {
                     <MudSelectItem Value="@((int?)client.Id)">@client.Name</MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDateRangePicker @bind-DateRange="_dateRange" Label="@(L["history.filterPeriod"])"
+        </div>
+        <div class="vms-filter-field wide">
+            <label class="vms-filter-label">@L["history.filterPeriod"]</label>
+            <MudDateRangePicker @bind-DateRange="_dateRange"
                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudSelect T="bool?" @bind-Value="_filter.IsPass" Label="@(L["common.result"])" Clearable="true"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.result"]</label>
+            <MudSelect T="bool?" @bind-Value="_filter.IsPass" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@((bool?)true)">@L["status.pass"]</MudSelectItem>
                 <MudSelectItem Value="@((bool?)false)">@L["status.ng"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="6" sm="2" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Search"
-                       FullWidth="true"
-                       StartIcon="@Icons.Material.Filled.Search"
-                       Class="vms-btn">
-                @L["action.search"]
-            </MudButton>
-        </MudItem>
-        <MudItem xs="6" sm="2" Class="d-flex align-center">
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Download"
-                       OnClick="ExportExcel" FullWidth="true"
-                       Class="vms-btn">
-                @L["history.exportExcel"]
-            </MudButton>
-        </MudItem>
-    </MudGrid>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Search"
+                   StartIcon="@Icons.Material.Filled.Search" Class="vms-btn">
+            @L["action.search"]
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="ExportExcel" Class="vms-btn">
+            @L["history.exportExcel"]
+        </MudButton>
+    </div>
 </MudPaper>
 
-<!-- Summary Chart -->
+@* 요약 4카드 — 기간 총 검사 / 양품(녹) / NG(적) / 평균 불량률 (README 4b) *@
 @if (_summary.Count > 0)
 {
-    <MudPaper Class="vms-panel pa-5 mb-4">
-        <MudText Class="vms-panel-header mb-3">@L["history.dailySummary"]</MudText>
-        <MudChart ChartType="ChartType.Line" ChartSeries="@_chartSeries" XAxisLabels="@_chartLabels"
-                  Width="100%" Height="250px"
-                  ChartOptions="@(new ChartOptions { LineStrokeWidth = 2 })" />
-    </MudPaper>
+    <div class="vms-sum-grid mb-4">
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["history.sumTotal"]</span>
+            <span class="vms-sum-value">@_sumTotal.ToString("N0")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["history.sumPass"]</span>
+            @* good/bad — green/red 는 MudBlazor 팔레트 헬퍼(배경색 !important)와 충돌 *@
+            <span class="vms-sum-value good">@_sumPass.ToString("N0")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["history.sumNg"]</span>
+            <span class="vms-sum-value bad">@_sumNg.ToString("N0")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["history.sumNgRate"]</span>
+            <span class="vms-sum-value">@_sumNgRate.ToString("0.##")%</span>
+        </MudPaper>
+    </div>
 }
 
 <!-- Data Table -->
@@ -85,7 +94,9 @@
                     @context.RecipeName
                 </MudText>
             </MudTd>
-            <MudTd Class="d-none d-sm-table-cell">@context.RecipeName</MudTd>
+            <MudTd Class="d-none d-sm-table-cell">
+                <span class="vms-mono-dim">@context.RecipeName</span>
+            </MudTd>
             <MudTd>
                 @if (context.IsPass)
                 {
@@ -97,26 +108,42 @@
                 }
             </MudTd>
             <MudTd Class="d-none d-sm-table-cell">
-                <span class="vms-mono">@context.NgCode</span>
+                <span class="vms-mono-dim">@context.NgCode</span>
             </MudTd>
             <MudTd>
-                <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
+                <span class="vms-mono-dim">
                     <span class="d-none d-sm-inline">@context.InspectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
                     <span class="d-sm-none">@context.InspectedAt.ToLocalTime().ToString("HH:mm:ss")</span>
-                </MudText>
+                </span>
             </MudTd>
             <MudTd Style="text-align: right;">
-                @* NG 는 항상, OK 는 업로드된 이미지가 있을 때만 상세(이미지 열람) 버튼 노출 *@
+                @* NG 는 항상, OK 는 업로드된 이미지가 있을 때만 상세(이미지 열람) 노출 — 기존 로직 유지 *@
                 @if (!context.IsPass || !string.IsNullOrEmpty(context.ImagePath))
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
-                                   Color="Color.Primary"
-                                   OnClick="@(() => ShowDetail(context))" />
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                               OnClick="@(() => ShowDetail(context))">
+                        @L["history.colDetail"]
+                    </MudButton>
                 }
             </MudTd>
         </RowTemplate>
         <PagerContent>
-            <MudTablePager />
+            @* README 4b 페이지네이션 — 좌 모노 "1–50 / N", 우 페이지 버튼(활성 오렌지) *@
+            <div class="vms-pager">
+                <span class="vms-pager-info">@PageInfo()</span>
+                <div class="vms-pager-btns">
+                    <button type="button" class="vms-pager-btn" disabled="@(_page <= 0)"
+                            @onclick="@(() => GoTo(_page - 1))">‹</button>
+                    @foreach (var p in PageWindow())
+                    {
+                        var page = p;
+                        <button type="button" class="vms-pager-btn @(page == _page ? "active" : "")"
+                                @onclick="@(() => GoTo(page))">@(page + 1)</button>
+                    }
+                    <button type="button" class="vms-pager-btn" disabled="@(_page >= TotalPages - 1)"
+                            @onclick="@(() => GoTo(_page + 1))">›</button>
+                </div>
+            </div>
         </PagerContent>
         <NoRecordsContent>
             <div class="pa-8 d-flex flex-column align-center">
@@ -134,14 +161,22 @@
     private DateRange? _dateRange;
     private List<ClientDto> _clients = new();
     private List<HistorySummaryDto> _summary = new();
-    private List<ChartSeries> _chartSeries = new();
-    private string[] _chartLabels = Array.Empty<string>();
     private bool _loading;
+    private int _page;
+    private int _pageSize = 50;
+    private int _total;
+
+    private int _sumTotal, _sumPass, _sumNg;
+    private double _sumNgRate;
+
+    private int TotalPages => _total > 0 ? (int)Math.Ceiling(_total / (double)_pageSize) : 1;
 
     protected override async Task OnInitializedAsync()
     {
         _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
         _dateRange = new DateRange(DateTime.Today.AddDays(-7), DateTime.Today);
+        ApplyDateRange();
+        await LoadSummary();
     }
 
     private async Task<TableData<HistoryDetailDto>> LoadServerData(TableState state, CancellationToken ct)
@@ -155,14 +190,43 @@
         var result = await Api.GetAsync<PagedResult<HistoryDetailDto>>($"/api/history?{qs}");
 
         _loading = false;
+        _page = state.Page;
+        _pageSize = state.PageSize;
         if (result is null)
+        {
+            _total = 0;
             return new TableData<HistoryDetailDto> { Items = new List<HistoryDetailDto>(), TotalItems = 0 };
+        }
 
+        _total = result.TotalCount;
         return new TableData<HistoryDetailDto>
         {
             Items = result.Items,
             TotalItems = result.TotalCount
         };
+    }
+
+    private string PageInfo()
+    {
+        if (_total == 0) return L.Format("history.pageInfoFmt", 0, 0, "0");
+        var start = _page * _pageSize + 1;
+        var end = Math.Min(_total, (_page + 1) * _pageSize);
+        return L.Format("history.pageInfoFmt", start.ToString("N0"), end.ToString("N0"), _total.ToString("N0"));
+    }
+
+    // 현재 페이지 중심 최대 5개 버튼
+    private IEnumerable<int> PageWindow()
+    {
+        var tp = TotalPages;
+        var from = Math.Max(0, Math.Min(_page - 2, tp - 5));
+        var to = Math.Min(tp - 1, from + 4);
+        for (var p = from; p <= to; p++) yield return p;
+    }
+
+    private void GoTo(int page)
+    {
+        if (page < 0 || page > TotalPages - 1 || page == _page) return;
+        _table?.NavigateTo(page);
     }
 
     private async Task Search()
@@ -177,19 +241,18 @@
     {
         if (_filter.StartDate is null || _filter.EndDate is null) return;
 
+        // clientId 미선택 시 파라미터 자체를 생략 — "clientId=" 빈 값은 int? 바인딩 400
+        var clientPart = _filter.ClientId.HasValue ? $"clientId={_filter.ClientId}&" : "";
         var summary = await Api.GetAsync<List<HistorySummaryDto>>(
-            $"/api/history/summary?clientId={_filter.ClientId}&startDate={_filter.StartDate:yyyy-MM-dd}&endDate={_filter.EndDate:yyyy-MM-dd}");
+            $"/api/history/summary?{clientPart}startDate={_filter.StartDate:yyyy-MM-dd}&endDate={_filter.EndDate:yyyy-MM-dd}");
 
         if (summary is not null)
         {
             _summary = summary;
-            _chartLabels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
-            _chartSeries = new List<ChartSeries>
-            {
-                new() { Name = L["chart.total"], Data = summary.Select(s => (double)s.TotalCount).ToArray() },
-                new() { Name = L["chart.pass"], Data = summary.Select(s => (double)s.PassCount).ToArray() },
-                new() { Name = L["chart.ng"], Data = summary.Select(s => (double)s.NgCount).ToArray() }
-            };
+            _sumTotal = summary.Sum(s => s.TotalCount);
+            _sumPass = summary.Sum(s => s.PassCount);
+            _sumNg = summary.Sum(s => s.NgCount);
+            _sumNgRate = _sumTotal > 0 ? _sumNg * 100.0 / _sumTotal : 0;
         }
     }
 

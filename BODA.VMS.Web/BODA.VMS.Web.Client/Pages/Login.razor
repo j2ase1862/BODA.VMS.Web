@@ -9,46 +9,57 @@
 
 <PageTitle>@L["page.login"] - BODA VMS</PageTitle>
 
+@* 4a — 로그인. 배경/카드/십자 장식은 app.css .vms-login-* (테마 무관 다크 고정).
+   라벨은 필드 위 외부 라벨(모노 10px .14em uppercase) — floating label 미사용 (README 4a). *@
 <div class="vms-login-bg">
-    <MudCard Class="vms-login-card pa-8">
-        <MudCardContent>
+    <MudCard Class="vms-login-card">
+        <MudCardContent Class="vms-login-content">
             <div class="vms-login-logo mb-1">
-                <span class="navy">BODA</span> <span class="orange">VMS</span>
+                @* "orange"는 MudBlazor 팔레트 헬퍼(배경 #FF9800)와 충돌 — accent 로 명명 *@
+                <span class="navy">BODA</span> <span class="accent">VMS</span>
             </div>
             <div class="vms-login-subtitle mb-8">Vision Management System</div>
 
             <EditForm Model="_model" OnValidSubmit="HandleLogin">
                 <DataAnnotationsValidator />
 
-                <MudTextField @bind-Value="_model.Username" Label="Username"
-                              Variant="Variant.Outlined" Class="mb-4"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Person"
-                              For="@(() => _model.Username)" />
+                <div class="vms-login-field">
+                    <label class="vms-field-label" for="login-username">@L["login.username"]</label>
+                    <MudTextField @bind-Value="_model.Username"
+                                  Variant="Variant.Outlined" Class="vms-login-input"
+                                  InputId="login-username"
+                                  For="@(() => _model.Username)" />
+                </div>
 
-                <MudTextField @bind-Value="_model.Password" Label="Password"
-                              Variant="Variant.Outlined" Class="mb-6"
-                              InputType="@(_showPassword ? InputType.Text : InputType.Password)"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                              OnAdornmentClick="@(() => _showPassword = !_showPassword)"
-                              For="@(() => _model.Password)" />
+                <div class="vms-login-field">
+                    <label class="vms-field-label" for="login-password">@L["login.password"]</label>
+                    <MudTextField @bind-Value="_model.Password"
+                                  Variant="Variant.Outlined" Class="vms-login-input"
+                                  InputId="login-password"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                                  For="@(() => _model.Password)" />
+                </div>
 
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                            Color="Color.Primary" FullWidth="true" Disabled="_loading"
-                           Size="Size.Large" Class="vms-btn mb-4">
+                           Class="vms-btn vms-login-submit">
                     @if (_loading)
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                     }
-                    Sign In
+                    @L["login.signIn"]
                 </MudButton>
             </EditForm>
 
-            <div class="d-flex justify-center">
-                <MudLink Href="/register" Typo="Typo.body2" Color="Color.Secondary">
-                    Don't have an account? Register
-                </MudLink>
+            <div class="vms-login-register">
+                <MudLink Href="/register" Class="vms-login-register-link">@L["login.noAccount"]</MudLink>
+            </div>
+
+            <div class="vms-login-footer">
+                @_versionLabel · @L["login.footerNote"]
             </div>
         </MudCardContent>
     </MudCard>
@@ -58,6 +69,12 @@
     private LoginRequest _model = new();
     private bool _loading;
     private bool _showPassword;
+
+    private static readonly string _versionLabel = "VMS " +
+        (typeof(Login).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion?.Split('+')[0] ?? "1.0.0");
 
     private async Task HandleLogin()
     {
@@ -83,11 +100,11 @@
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            Snackbar.Add("Invalid credentials or account not approved", Severity.Error);
+            Snackbar.Add(L["login.invalidCreds"], Severity.Error);
         }
         catch
         {
-            Snackbar.Add("Login failed. Please try again.", Severity.Error);
+            Snackbar.Add(L["login.failed"], Severity.Error);
         }
         finally
         {

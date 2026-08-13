@@ -1,65 +1,84 @@
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지); 라인 편집 행은 콤팩트 그리드라 인라인 라벨 유지 *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
-
-            <div class="d-flex" style="gap:12px;">
-                <MudTextField @bind-Value="Model.OrderNo" Label="@(L["dialog.outboundFieldOrderNo"])"
-                              Variant="Variant.Outlined" Class="mb-3" Required="true"
-                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Receipt"
-                              HelperText="@(L["dialog.outboundFieldOrderNoHint"])" />
-                <MudSelect T="string" @bind-Value="Model.Status" Label="@(L["dialog.outboundFieldStatus"])"
-                           Variant="Variant.Outlined" Class="mb-3" Style="max-width: 160px;">
-                    <MudSelectItem T="string" Value="@("Pending")">@L["outbound.statusPending"]</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Picking")">@L["outbound.statusPicking"]</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Done")">@L["outbound.statusDone"]</MudSelectItem>
-                </MudSelect>
-            </div>
-
-            <div class="d-flex" style="gap:12px;">
-                <MudTextField @bind-Value="Model.CustomerName" Label="@(L["dialog.outboundFieldCustomer"])"
-                              Variant="Variant.Outlined" Class="mb-3" />
-                <MudTextField @bind-Value="Model.ShipTo" Label="@(L["dialog.outboundFieldShipTo"])"
-                              Variant="Variant.Outlined" Class="mb-3" />
-            </div>
-
-            <MudTextField @bind-Value="Model.Destination" Label="@(L["dialog.outboundFieldDestination"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LocalShipping"
-                          HelperText="@(L["dialog.outboundFieldDestinationHint"])" />
-
-            <div class="d-flex align-center mb-2">
-                <MudText Typo="Typo.subtitle2">@L["dialog.outboundSectionLines"]</MudText>
-                <MudSpacer />
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
-                           Variant="Variant.Outlined" OnClick="AddLine">@L["dialog.outboundAddLine"]</MudButton>
-            </div>
-
-            @foreach (var line in Model.Lines)
-            {
-                <div class="d-flex align-center" style="gap:8px;" @key="line">
-                    <MudTextField @bind-Value="line.Barcode" Label="@(L["dialog.outboundLineBarcode"])"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
-                    <MudTextField @bind-Value="line.ItemName" Label="@(L["dialog.outboundLineItem"])"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
-                                  HelperText="@(L["dialog.outboundLineItemHint"])" />
-                    <MudNumericField @bind-Value="line.Qty" Label="@(L["dialog.outboundLineQty"])" Min="1"
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
-                                     Style="max-width: 90px;" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                   OnClick="@(() => RemoveLine(line))" />
+            <div class="vms-form">
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.outboundFieldOrderNo"]<span class="req">*</span></label>
+                        <MudTextField @bind-Value="Model.OrderNo"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                                      Style="font-family: var(--vms-font-mono);"
+                                      HelperText="@(L["dialog.outboundFieldOrderNoHint"])" />
+                    </div>
+                    <div>
+                        <label class="vms-form-label">@L["dialog.outboundFieldStatus"]</label>
+                        <MudSelect T="string" @bind-Value="Model.Status"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="string" Value="@("Pending")">@L["outbound.statusPending"]</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Picking")">@L["outbound.statusPicking"]</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Done")">@L["outbound.statusDone"]</MudSelectItem>
+                        </MudSelect>
+                    </div>
                 </div>
-            }
-            @if (Model.Lines.Count == 0)
-            {
-                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary);">@L["dialog.outboundNoLines"]</MudText>
-            }
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.outboundFieldCustomer"]</label>
+                        <MudTextField @bind-Value="Model.CustomerName"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
+                    <div>
+                        <label class="vms-form-label">@L["dialog.outboundFieldShipTo"]</label>
+                        <MudTextField @bind-Value="Model.ShipTo"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.outboundFieldDestination"]</label>
+                    <MudTextField @bind-Value="Model.Destination"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  HelperText="@(L["dialog.outboundFieldDestinationHint"])" />
+                </div>
+
+                <div>
+                    <div class="d-flex align-center mb-2">
+                        <label class="vms-form-label" style="margin-bottom:0;">@L["dialog.outboundSectionLines"]</label>
+                        <MudSpacer />
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                                   Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                                   OnClick="AddLine">@L["dialog.outboundAddLine"]</MudButton>
+                    </div>
+
+                    @foreach (var line in Model.Lines)
+                    {
+                        <div class="d-flex align-center" style="gap:8px;" @key="line">
+                            <MudTextField @bind-Value="line.Barcode" Label="@(L["dialog.outboundLineBarcode"])"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                            <MudTextField @bind-Value="line.ItemName" Label="@(L["dialog.outboundLineItem"])"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
+                                          HelperText="@(L["dialog.outboundLineItemHint"])" />
+                            <MudNumericField @bind-Value="line.Qty" Label="@(L["dialog.outboundLineQty"])" Min="1"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
+                                             Style="max-width: 90px;" />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                       OnClick="@(() => RemoveLine(line))">@L["workorder.actDelete"]</MudButton>
+                        </div>
+                    }
+                    @if (Model.Lines.Count == 0)
+                    {
+                        <div class="vms-cell-empty">@L["dialog.outboundNoLines"]</div>
+                    }
+                </div>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
             @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>

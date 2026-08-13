@@ -7,16 +7,28 @@
 
 
 <MudLayout>
+    @* 3a 공통 셸 (2026-08-12) — 58px 상단바: 로고 + 데스크톱 pill 내비(TopNav),
+       우측 시각 → 다크/언어 → ALM 배지 → 사용자.
+       md 미만은 햄버거 + MudDrawer(Temporary) 폴백 — pill은 데스크톱 전용.
+       알림 벨은 5a 에서 제거 — ALM 배지가 유일한 알람 진입점, '모두 확인'은 /alarms 헤더로 이동. *@
     <MudAppBar Elevation="0" Dense="true" Class="vms-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       OnClick="@ToggleDrawer" />
+                       Class="d-md-none" OnClick="@ToggleDrawer" />
         <div class="d-flex align-center">
             <MudText Class="vms-logo ml-2">
                 <span class="navy">BODA</span><span class="vms-logo-accent"> VMS</span>
             </MudText>
-            <MudText Class="vms-logo-sub d-none d-sm-block">Vision Management System</MudText>
+            @* 셸 부제는 버전 라벨 — "Vision Management System" 문구는 로그인/키오스크에만 (2026-08-12 지시) *@
+            <MudText Class="vms-logo-sub d-none d-lg-block">@_versionLabel</MudText>
         </div>
+
+        <div class="d-none d-md-flex align-center" style="min-width:0;">
+            <TopNav />
+        </div>
+
         <MudSpacer />
+
+        <span class="d-none d-lg-inline"><ShellClock /></span>
 
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                        Color="Color.Inherit" OnClick="@HandleToggleDarkMode"
@@ -26,19 +38,26 @@
 
         <AuthorizeView>
             <Authorized>
-                <NotificationBell />
-                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Secondary" Dense="true"
-                         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                    <MudMenuItem Disabled="true">
-                        <div class="d-flex align-center gap-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Secondary" />
-                            <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.User.Identity?.Name</MudText>
-                        </div>
-                    </MudMenuItem>
-                    <MudDivider Class="my-1" />
-                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="Logout">
-                        @L["action.close"]@(L.CurrentLanguage == "ko" ? " (로그아웃)" : " / Logout")
-                    </MudMenuItem>
+                <AlarmBadge />
+                <MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <button type="button" class="vms-user-chip" title="@context.User.Identity?.Name">
+                            <span class="vms-user-avatar">@UserInitial(context.User.Identity?.Name)</span>
+                            <span class="vms-user-name d-none d-lg-inline">@context.User.Identity?.Name</span>
+                        </button>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Disabled="true">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Secondary" />
+                                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.User.Identity?.Name</MudText>
+                            </div>
+                        </MudMenuItem>
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="Logout">
+                            @L["action.close"]@(L.CurrentLanguage == "ko" ? " (로그아웃)" : " / Logout")
+                        </MudMenuItem>
+                    </ChildContent>
                 </MudMenu>
             </Authorized>
             <NotAuthorized>
@@ -51,19 +70,27 @@
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
-               Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
+    @* 모바일 폴백 드로어 — 데스크톱에서는 햄버거가 숨겨져 열 수 없다 *@
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0"
+               Variant="DrawerVariant.Temporary"
                Class="vms-drawer">
         <NavMenu OnNavClick="OnMobileNavClick" />
     </MudDrawer>
 
-    <MudMainContent Class="@(_drawerOpen ? "pa-6" : "pa-3")" Style="min-height: 100vh; padding-top: 80px !important;">
+    <MudMainContent Class="vms-main">
         @Body
     </MudMainContent>
 </MudLayout>
 
 @code {
-    private bool _drawerOpen = true;
+    private bool _drawerOpen = false;
+
+    // Directory.Build.props 의 <Version> 이 InformationalVersion 으로 들어온다 (+커밋 해시는 잘라냄)
+    private static readonly string _versionLabel = "VMS " +
+        (typeof(MainLayout).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion?.Split('+')[0] ?? "1.0.0");
 
     protected override void OnInitialized()
     {
@@ -95,12 +122,10 @@
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
-    private void OnMobileNavClick()
-    {
-        // Responsive variant auto-switches to Temporary on mobile,
-        // so closing on nav click works correctly
-        _drawerOpen = false;
-    }
+    private void OnMobileNavClick() => _drawerOpen = false;
+
+    private static string UserInitial(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1].ToUpperInvariant();
 
     private async Task HandleToggleDarkMode()
     {

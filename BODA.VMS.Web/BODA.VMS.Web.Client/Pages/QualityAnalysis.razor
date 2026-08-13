@@ -8,24 +8,29 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.paretoAnalysis"]</MudText>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
-                           Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
-                           Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
-                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+@* 용어 도움말 — 항상 표시 (사용자 요청 2026-08-13) *@
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">HELP</span>
+    <span class="vms-banner-text">@L["pareto.helpBanner"]</span>
+</div>
+
+@* 7b — 필터 바: 4b 공통 패턴 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.startDate"]</label>
+            <MudDatePicker @bind-Date="_startDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.endDate"]</label>
+            <MudDatePicker @bind-Date="_endDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" @bind-Value="_clientId" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
@@ -34,52 +39,80 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudNumericField T="int" @bind-Value="_topN" Label="@(L["pareto.topN"])"
+        </div>
+        <div class="vms-filter-field" style="min-width:90px;">
+            <label class="vms-filter-label">@L["pareto.topN"]</label>
+            <MudNumericField T="int" @bind-Value="_topN"
                              Variant="Variant.Outlined" Margin="Margin.Dense"
                              Min="5" Max="50" />
-        </MudItem>
-        <MudItem xs="12" sm="1" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Analytics"
-                       OnClick="Analyze" Class="vms-btn">@L["action.run"]</MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Analytics"
+                   OnClick="Analyze" Class="vms-btn">@L["action.run"]</MudButton>
+    </div>
+</MudPaper>
 
 @if (_result is not null)
 {
-    <div class="summary-grid mb-3" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["pareto.totalInspections"]</div>
-            <div style="font-size:24px; font-weight:700; font-family: 'Roboto Mono', monospace;">@_result.TotalInspections.ToString("N0")</div>
-        </div>
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["pareto.totalNg"]</div>
-            <div style="font-size:24px; font-weight:700; font-family: 'Roboto Mono', monospace; color: var(--mud-palette-error);">@_result.TotalNgCount.ToString("N0")</div>
-        </div>
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["pareto.uniqueCodes"]</div>
-            <div style="font-size:24px; font-weight:700; font-family: 'Roboto Mono', monospace;">@_result.Entries.Count</div>
-        </div>
-        <div class="vms-panel pa-3">
-            <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">@L["pareto.topShare"]</div>
-            <div style="font-size:24px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                @(_result.Entries.FirstOrDefault()?.Percentage.ToString("F1") ?? "0")%
-            </div>
-        </div>
+    @* 요약 4카드 — 총 NG 만 레드 *@
+    <div class="vms-sum-grid mb-4">
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["pareto.totalInspections"]</span>
+            <span class="vms-sum-value mono">@_result.TotalInspections.ToString("N0")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["pareto.totalNg"]</span>
+            <span class="vms-sum-value mono bad">@_result.TotalNgCount.ToString("N0")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["pareto.uniqueCodes"]</span>
+            <span class="vms-sum-value mono">@_result.Entries.Count</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["pareto.topShare"]</span>
+            <span class="vms-sum-value mono">@(_result.Entries.FirstOrDefault()?.Percentage.ToString("F1") ?? "0")%</span>
+        </MudPaper>
     </div>
 
     @if (_result.Entries.Count > 0)
     {
-        <div class="vms-panel pa-3 mb-3">
-            <MudText Typo="Typo.subtitle1" Class="mb-2">@L.Format("pareto.frequencyTitleFmt", _result.Entries.Count)</MudText>
-            <MudChart ChartType="ChartType.Bar"
-                      ChartSeries="@_barSeries"
-                      XAxisLabels="@_barLabels"
-                      Width="100%" Height="320px" />
-        </div>
+        @* 콤보 차트 — 막대(건수, 순위별 opacity 감쇠) + 누적선 오렌지 + 80% 기준선 *@
+        <MudPaper Class="vms-panel pa-5 mb-4">
+            <div class="vms-spc-head">
+                <MudText Class="vms-panel-header">@L.Format("pareto.frequencyTitleFmt", _result.Entries.Count)</MudText>
+            </div>
+            <div class="vms-par-chart">
+                @for (var i = 1; i <= 3; i++)
+                {
+                    <div class="vms-par-grid" style="top:@(i * 25)%"></div>
+                }
+                <div class="vms-par-limit"></div>
+                <span class="vms-par-limit-label">80%</span>
+                <div class="vms-par-cols">
+                    @foreach (var b in _bars)
+                    {
+                        <div class="vms-par-col">
+                            <span class="vms-par-count @b.LabelClass">@b.Count.ToString("N0")</span>
+                            <div class="vms-par-bar"
+                                 style="height:@Pct(b.BarHeight); opacity:@b.Opacity.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"></div>
+                        </div>
+                    }
+                </div>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <polyline class="vms-par-line" points="@_cumPolyline" />
+                </svg>
+                @foreach (var b in _bars)
+                {
+                    <span class="vms-par-pt" style="left:@Pct(b.X); top:@Pct(b.CumY)"></span>
+                }
+            </div>
+            <div class="vms-par-x">
+                @foreach (var b in _bars)
+                {
+                    <span>@b.Code</span>
+                }
+            </div>
+        </MudPaper>
 
         <div class="vms-table">
             <MudTable Items="_result.Entries" Dense="true" Hover="true" Elevation="0">
@@ -96,10 +129,10 @@
                 <RowTemplate>
                     <MudTd>
                         @{ var rank = _result.Entries.IndexOf(context) + 1; }
-                        <strong>@rank</strong>
+                        <span class="vms-mono-dim">@rank</span>
                     </MudTd>
                     <MudTd>
-                        <span class="vms-mono" style="font-weight:700;">@context.NgCode</span>
+                        <span class="vms-mono vms-par-code">@context.NgCode</span>
                     </MudTd>
                     <MudTd>
                         @if (!string.IsNullOrEmpty(context.Description))
@@ -108,39 +141,42 @@
                         }
                         else
                         {
-                            <span style="color: var(--vms-text-secondary); font-style: italic;">@L["pareto.unregisteredCode"]</span>
+                            <span class="vms-par-unreg">@L["pareto.unregisteredCode"]</span>
                         }
                     </MudTd>
                     <MudTd>
                         @if (!string.IsNullOrEmpty(context.Category))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Category</MudChip>
+                            <span class="vms-type-chip">@context.Category</span>
                         }
-                        else { <span style="color: var(--vms-text-secondary);">—</span> }
+                        else { <span class="vms-cell-empty">—</span> }
                     </MudTd>
                     <MudTd>
                         @if (!string.IsNullOrEmpty(context.Severity))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                                     Color="@GetSeverityColor(context.Severity)">@SevLabel(context.Severity, L)</MudChip>
+                            <span class="vms-sev-badge @SevClass(context.Severity)">@context.Severity.ToUpperInvariant()</span>
                         }
                     </MudTd>
-                    <MudTd Style="text-align:right;"><strong>@context.Count.ToString("N0")</strong></MudTd>
+                    <MudTd Style="text-align:right;"><span class="vms-mono">@context.Count.ToString("N0")</span></MudTd>
                     <MudTd Style="text-align:right;">
-                        <span class="vms-mono">@context.Percentage.ToString("F2")%</span>
+                        <span class="vms-mono-dim">@context.Percentage.ToString("F2")%</span>
                     </MudTd>
                     <MudTd Style="text-align:right;">
-                        <div style="display:inline-block; min-width:120px;">
-                            <MudProgressLinear Color="@GetCumulativeColor(context.CumulativePercentage)"
-                                               Value="@context.CumulativePercentage"
-                                               Size="Size.Small" Class="my-1" />
-                            <span class="vms-mono" style="font-size:11px;">
-                                @context.CumulativePercentage.ToString("F2")%
-                            </span>
+                        @* 누적 = 인라인 바 + 모노 수치. 바 색은 누적 임계값 기준 (README 7b) *@
+                        <div class="vms-cum-cell">
+                            <div class="vms-cum-track">
+                                <div class="vms-cum-fill @CumClass(context.CumulativePercentage)"
+                                     style="width:@Pct(context.CumulativePercentage)"></div>
+                            </div>
+                            <span class="vms-cum-value">@context.CumulativePercentage.ToString("F2")%</span>
                         </div>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+            @{ var lastCum = _result.Entries.Count > 0 ? _result.Entries[^1].CumulativePercentage : 0; }
+            <div class="vms-slots-info">
+                @L.Format("pareto.bottomSummaryFmt", _result.Entries.Count, lastCum.ToString("F1"))
+            </div>
         </div>
     }
     else
@@ -170,8 +206,14 @@ else
     private List<ClientDto> _clients = new();
     private ParetoResultDto? _result;
 
-    private List<ChartSeries> _barSeries = new();
-    private string[] _barLabels = Array.Empty<string>();
+    // 콤보 차트 지오메트리 — 좌표/높이는 0~100 백분율
+    private sealed record ParBar(string Code, int Count, double BarHeight, double Opacity,
+                                 string LabelClass, double X, double CumY);
+    private List<ParBar> _bars = new();
+    private string _cumPolyline = "";
+
+    private static string Pct(double v) =>
+        v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + "%";
 
     protected override async Task OnInitializedAsync()
     {
@@ -200,44 +242,46 @@ else
 
     private void BuildChart()
     {
-        if (_result is null || _result.Entries.Count == 0)
-        {
-            _barSeries = new(); _barLabels = Array.Empty<string>();
-            return;
-        }
+        _bars = new();
+        _cumPolyline = "";
+        if (_result is null || _result.Entries.Count == 0) return;
 
         var entries = _result.Entries;
-        _barLabels = entries.Select(e => e.NgCode).ToArray();
-        _barSeries = new List<ChartSeries>
+        var n = entries.Count;
+        var max = entries.Max(e => e.Count);
+        if (max == 0) return;
+
+        var poly = new System.Text.StringBuilder();
+        for (var i = 0; i < n; i++)
         {
-            new ChartSeries
-            {
-                Name = L["pareto.seriesCount"],
-                Data = entries.Select(e => (double)e.Count).ToArray()
-            }
-        };
+            var e = entries[i];
+            // 순위가 낮아질수록 opacity .55 → .18 감쇠 — 파레토 우선순위 시각화
+            var opacity = n == 1 ? 0.55 : 0.55 - (0.55 - 0.18) * i / (n - 1);
+            var labelClass = i == 0 ? "c1" : (i <= 2 ? "c2" : "dim");
+            var x = (i + 0.5) / n * 100.0;
+            var cumY = 100.0 - e.CumulativePercentage;
+            _bars.Add(new ParBar(e.NgCode, e.Count, e.Count / (double)max * 82.0, opacity,
+                                 labelClass, x, cumY));
+            poly.Append(Pt(x)).Append(',').Append(Pt(cumY)).Append(' ');
+        }
+        _cumPolyline = poly.ToString().TrimEnd();
     }
 
-    private static string SevLabel(string s, ILocalizer L) => s switch
+    private static string Pt(double v) =>
+        v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string SevClass(string sev) => sev switch
     {
-        "Critical" => L["status.critical"],
-        "Major" => L["status.major"],
-        "Minor" => L["status.minor"],
-        _ => s
+        "Critical" => "crit",
+        "Major" => "warn",
+        _ => "info"
     };
 
-    private static Color GetSeverityColor(string sev) => sev switch
+    // 누적 바 색 — ≥80% 레드 / ≥50% 앰버 / 그 외 블루 (README 7b)
+    private static string CumClass(double pct)
     {
-        "Critical" => Color.Error,
-        "Major" => Color.Warning,
-        "Minor" => Color.Info,
-        _ => Color.Default
-    };
-
-    private static Color GetCumulativeColor(double pct)
-    {
-        if (pct >= 80) return Color.Error;       // 80%까지가 핵심 — 빨강 강조
-        if (pct >= 50) return Color.Warning;
-        return Color.Info;
+        if (pct >= 80) return "hot";
+        if (pct >= 50) return "mid";
+        return "low";
     }
 }

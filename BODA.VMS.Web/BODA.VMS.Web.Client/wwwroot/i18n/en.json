@@ -9,21 +9,19 @@
     "subtitle": "Vision Management System"
   },
   "menu": {
+    "almBadge": "ALM",
     "monitoring": "Monitoring",
     "production": "Production",
     "quality": "Quality",
     "equipment": "Equipment",
     "system": "System",
-
     "dashboard": "Dashboard",
     "andon": "Andon Board",
     "alarms": "Alarms",
     "history": "Production History",
-
     "workorders": "Work Orders",
     "products": "Products",
     "operators": "Operators",
-
     "paretoAnalysis": "Pareto Analysis",
     "spc": "SPC Chart",
     "defectCodes": "Defect Codes",
@@ -31,13 +29,11 @@
     "outboundOrders": "Outbound Picking",
     "shiftReport": "Shift Report",
     "pdfReports": "PDF Reports",
-
     "clients": "Vision Clients",
     "oee": "OEE",
     "reliability": "Reliability (MTBF/MTTR)",
     "maintenance": "Maintenance",
     "forecast": "Defect Rate Forecast",
-
     "inspectionItems": "Inspection Items",
     "shifts": "Shift Master",
     "approvals": "User Approvals",
@@ -171,7 +167,9 @@
   },
   "confirm": {
     "delete": "Confirm Delete",
-    "deleteMsgFmt": "Delete {0}?"
+    "deleteMsgFmt": "Delete {0}?",
+    "actionFmt": "Proceed with {0}?",
+    "deleteIrreversible": "This item will be deleted. This action cannot be undone."
   },
   "login": {
     "username": "Username",
@@ -180,7 +178,41 @@
     "register": "Register",
     "noAccount": "Don't have an account? Register",
     "invalidCreds": "Invalid credentials or account not approved",
-    "failed": "Login failed. Please try again."
+    "failed": "Login failed. Please try again.",
+    "footerNote": "Admin approval required"
+  },
+  "register": {
+    "approvalNote": "Your account requires admin approval before you can sign in.",
+    "displayName": "Display Name",
+    "pwPolicy": "8+ chars with 3 of upper/lower/digit/special, or 10+ chars with 2 types",
+    "submit": "Register",
+    "haveAccount": "Already have an account? Sign in",
+    "successMsg": "Registration submitted — you can sign in after admin approval.",
+    "failedMsg": "Registration failed. Please try again."
+  },
+  "fleet": {
+    "avg": "Average",
+    "belowTargetFmt": "Below target ({0})",
+    "worst": "Worst",
+    "totalFailures": "Total Failures",
+    "totalInsp": "Total Inspections",
+    "unitsFmt": "{0} units",
+    "sort": "Sort",
+    "sortWorst": "Worst first",
+    "sortName": "By name",
+    "belowOnly": "Below target only",
+    "viewCards": "Cards",
+    "viewTable": "Table",
+    "excel": "Excel",
+    "colEquip": "Equipment",
+    "trend7d": "7d Trend",
+    "trend24h": "24h Trend",
+    "remark": "Remark",
+    "colStack": "Status",
+    "colInspNg": "Insp·NG",
+    "colActual": "Actual",
+    "colDelta": "Delta",
+    "colPredNg": "Predicted NG"
   },
   "home": {
     "totalClients": "Total Clients",
@@ -191,7 +223,43 @@
     "passedInsp": "passed inspection",
     "ngRate": "NG Rate",
     "defectRate": "defect rate",
-    "trend7days": "7-Day Production Trend"
+    "trend7days": "7-Day Production Trend",
+    "todayPerf": "Today's Performance",
+    "todayPerfSub": "{0} inspections",
+    "passRate": "Pass Rate",
+    "passRateSub": "Pass {0} / {1}",
+    "availability": "Availability",
+    "availabilitySub": "Online {0} / {1}",
+    "oee": "OEE",
+    "oeeSub": "Calculated in OEE analysis",
+    "clientOnlineRatio": "Online Clients",
+    "runningSub": "Running {0} / {1}",
+    "lineToday": "Today's Line Performance",
+    "lineCountsFmt": "Insp {0} · NG {1}",
+    "noLineData": "No inspections today",
+    "ngCountSub": "{0} NG",
+    "recentAlarms": "Recent Alarms",
+    "viewAll": "View all →",
+    "noAlarms": "No unacknowledged alarms",
+    "unackedFmt": "{0} unacknowledged",
+    "lvlCrit": "CRIT",
+    "lvlWarn": "WARN",
+    "lvlInfo": "INFO",
+    "upcomingMaint": "Upcoming Maintenance",
+    "noMaint": "No tasks due within 7 days",
+    "maintOverdueFmt": "Overdue {0}d",
+    "maintToday": "Today",
+    "maintDdayFmt": "D-{0}",
+    "maintAllClients": "All equipment",
+    "clientStatus": "Client Status",
+    "noClients": "No clients registered",
+    "colId": "ID",
+    "colName": "Name",
+    "colIp": "IP",
+    "colStatus": "Status",
+    "colLastSeen": "Last Seen",
+    "online": "Online",
+    "offline": "Offline"
   },
   "chart": {
     "total": "Total",
@@ -218,7 +286,12 @@
     "ackedFmt": "Acknowledged: {0}",
     "resolvedFmt": "Resolved: {0}",
     "resolveTitleFmt": "Resolve — {0}",
-    "currentWorkingSince": "Active"
+    "currentWorkingSince": "Active",
+    "last24hFmt": "{0} in the last 24 hours",
+    "ackAll": "Acknowledge all",
+    "ackAllDoneFmt": "{0} alarm(s) acknowledged",
+    "actAck": "Ack",
+    "actResolve": "Resolve"
   },
   "oee": {
     "formulaAlert": "OEE = Availability × Performance × Quality. Availability = (Running+Idle)/Period · Performance = Running/(Running+Idle) · Quality = Pass/Total. Periods without status logs are conservatively treated as Down.",
@@ -227,7 +300,8 @@
     "quality": "Quality",
     "statusDistribution": "Status Distribution",
     "noActiveLines": "No active lines for the selected period.",
-    "promptCalc": "Select a period and press Calculate."
+    "promptCalc": "Select a period and press Calculate.",
+    "helpBanner": "OEE (Overall Equipment Effectiveness) condenses how much of a machine's theoretical capacity produced real value into one number. It is Availability (did it run?) × Performance (at full speed?) × Quality (good parts?), showing where losses occur. 85%+ is generally considered world-class."
   },
   "history": {
     "filterPeriod": "Period",
@@ -239,7 +313,12 @@
     "noInspections": "No inspection records",
     "ngDetailTitle": "NG Detail",
     "exportStarted": "Export started",
-    "exportFailed": "Export failed"
+    "exportFailed": "Export failed",
+    "sumTotal": "Total Inspections",
+    "sumPass": "Pass",
+    "sumNg": "NG",
+    "sumNgRate": "Avg NG Rate",
+    "pageInfoFmt": "{0}–{1} / {2}"
   },
   "workorder": {
     "btnCreate": "New Work Order",
@@ -259,7 +338,14 @@
     "deletedFmt": "Work Order '{0}' deleted",
     "confirmDeleteFmt": "Delete Work Order '{0}'?\nOnly Planned orders can be deleted.",
     "editTitleFmt": "Edit — {0}",
-    "lotsTitleFmt": "Lots — {0}"
+    "lotsTitleFmt": "Lots — {0}",
+    "subCountFmt": "{0} in progress · {1} planned",
+    "btnStart": "START",
+    "btnComplete": "DONE",
+    "btnClose": "CLOSE",
+    "actEdit": "Edit",
+    "actDelete": "Delete",
+    "transitionHint": "Transitions: Planned → In Progress → Completed → Closed (irreversible) · Edit/Delete only while Planned · LOT available in every state"
   },
   "pareto": {
     "topN": "Top N",
@@ -279,7 +365,9 @@
     "unregisteredCode": "(unregistered — please add to defect codes)",
     "noNgData": "No NG data in the selected period.",
     "promptRun": "Select a period and press Run to start Pareto analysis.",
-    "seriesCount": "Count"
+    "seriesCount": "Count",
+    "bottomSummaryFmt": "Top {0} codes account for {1}% of all NG — improvement priority",
+    "helpBanner": "Pareto analysis finds improvement priorities based on the 80/20 rule — most defects come from a few causes. Bars show defect counts per code (descending), and the line shows the cumulative ratio. Improving the codes before the line reaches the 80% guide yields the biggest gain for the least effort."
   },
   "spc": {
     "parameter": "Parameter Code",
@@ -315,7 +403,12 @@
     "verdictExcellent": "Excellent (6σ)",
     "verdictGood": "Good (AIAG standard)",
     "verdictNeedsAction": "Needs action — improvement recommended",
-    "verdictNotMet": "Not met — immediate action required"
+    "verdictNotMet": "Not met — immediate action required",
+    "specSet": "Spec set",
+    "xbarChart": "X̄ Chart",
+    "rChart": "R Chart",
+    "oocFmt": "#{0} OOC",
+    "helpBanner": "The SPC control chart statistically monitors whether the process is stable. The solid center line is the mean (CL); the dashed lines are control limits (UCL/LCL) marking the range of normal variation. A point beyond the limits signals a special cause (equipment, material, or condition change) — investigate it."
   },
   "reliability": {
     "formulaAlert": "Down-state transitions in equipment status logs are counted as Failures.",
@@ -329,10 +422,11 @@
     "runningHoursFmt": "Running {0} h",
     "downHoursFmt": "Down {0} h",
     "noData": "No data in the selected period.",
-    "promptCalc": "Select a period and press Calculate."
+    "promptCalc": "Select a period and press Calculate.",
+    "helpBanner": "Equipment reliability shows how long machines run without failure and how quickly they recover. Longer MTBF (mean time between failures) is better; shorter MTTR (mean time to repair) is better. Availability computed from the two indicates how much the equipment can be trusted."
   },
   "maintenance": {
-    "alertSemi": "Manage PM schedules and performance records — planned downtime aligned with SEMI E10 reliability/availability standards.",
+    "alertSemi": "Preventive maintenance (PM) means inspecting and servicing equipment on a fixed cycle before it fails, rather than repairing after a breakdown. Manage PM schedules and execution records here (based on the SEMI E10 reliability/availability standard).",
     "tabSchedulesFmt": "PM Schedules ({0})",
     "tabDueFmt": "Due Soon ({0})",
     "tabHistory": "History",
@@ -379,7 +473,7 @@
   "product": {
     "header": "Products",
     "totalCountFmt": "{0} items",
-    "searchPlaceholder": "Search by code or name...",
+    "searchPlaceholder": "Product code or name",
     "btnCreate": "Add Product",
     "colCode": "Code",
     "colName": "Name",
@@ -494,12 +588,20 @@
     "snackbarUpdateFailedFmt": "Update failed: {0}",
     "snackbarDeleteFailedFmt": "Delete failed: {0}",
     "snackbarDeleteBlocked": "This client has linked data (inspection history, etc.) and cannot be deleted. Deactivate it instead.",
-    "lastSeen": "Last seen"
+    "lastSeen": "Last seen",
+    "subCountFmt": "{0} registered · {1} online",
+    "colRecipes": "Recipes",
+    "actView": "View",
+    "actEdit": "Edit",
+    "actDelete": "Delete",
+    "slotsFmt": "Up to 10 clients · {0} slot(s) free",
+    "treeHeader": "Recipe Structure",
+    "treeSelectPrompt": "Select a client from the table"
   },
   "warehouse": {
     "header": "Inbound Location Master",
     "totalCountFmt": "{0} items",
-    "searchPlaceholder": "Search barcode / code / name / location",
+    "searchPlaceholder": "Barcode / name / location",
     "colBarcode": "Barcode",
     "colCode": "Item Code",
     "colName": "Item Name",
@@ -519,7 +621,7 @@
   "outbound": {
     "header": "Outbound Orders",
     "totalCountFmt": "{0} orders",
-    "searchPlaceholder": "Search order no / customer / destination",
+    "searchPlaceholder": "Order no / customer / destination",
     "colOrderNo": "Order No",
     "colCustomer": "Customer",
     "colDestination": "Destination",
@@ -712,6 +814,10 @@
     "tooltipNewRecipe": "Create new recipe",
     "tooltipDeleteRecipe": "Delete this recipe",
     "tooltipPresetMenu": "Add preset group",
+    "btnPreset": "Add Preset",
+    "btnAddItem": "Add Item",
+    "btnDeleteRecipe": "Delete Recipe",
+    "footerHintFmt": "Codes must be unique within a recipe · next auto code {0}",
     "tooltipAddParam": "Add parameter",
     "noRecipes": "No recipes registered",
     "noRecipesHint": "This line has no recipes. Create a recipe first to define inspection items.",
@@ -766,13 +872,13 @@
     "noPending": "No pending approval requests",
     "colUsername": "Username",
     "colDisplayName": "Display Name",
-    "colCreatedAt": "Registered",
+    "colCreatedAt": "Requested",
     "colRole": "Role",
     "colState": "State",
     "stateActive": "Active",
-    "statePending": "Pending",
+    "statePending": "Pending approval",
     "btnReject": "Reject",
-    "searchPlaceholder": "Search users...",
+    "searchPlaceholder": "Search username · display name",
     "confirmRejectTitle": "Confirm",
     "confirmRejectFmt": "Reject {0}? The account will be deleted.",
     "snackbarApprovedFmt": "{0} approved as {1}",
@@ -784,6 +890,20 @@
     "snackbarResetFailed": "Failed to reset password",
     "tooltipResetPassword": "Reset password",
     "tooltipDeleteUser": "Delete user",
+    "pageSub": "Admin only · a role is assigned on approval",
+    "colApproveActions": "Approve with role · Reject",
+    "btnApproveGuest": "Approve Guest",
+    "btnApproveUser": "Approve User",
+    "btnApproveAdmin": "Approve Admin",
+    "rejectWarning": "Rejecting deletes the account — this cannot be undone",
+    "adminLocked": "Default admin · locked",
+    "footerHint": "Click a role chip to change · self and last Admin are blocked by the server",
+    "actResetPw": "Reset Password",
+    "actDelete": "Delete",
+    "tempPasswordLabel": "Temporary Password",
+    "tempShownOnce": "This password is shown only once. The user must change it right after signing in.",
+    "tempCopy": "Copy",
+    "tempCopied": "Copied",
     "deleteUserTitle": "Delete User",
     "confirmDeleteUserFmt": "Delete user '{0}' ({1})?\nThis cannot be undone.",
     "snackbarUserDeletedFmt": "User '{0}' deleted",
@@ -855,12 +975,14 @@
     "btnGenerate": "Generate PDF",
     "scopeTitle": "Report Scope",
     "selectedPeriodFmt": "Selected period: {0}",
-    "includesTitle": "📋 Included",
+    "includesTitle": "Included",
     "includeKpi": "Overall KPIs (Total / Pass / NG / NG Rate / Avg OEE)",
     "includeOee": "Per-line OEE table (Availability / Performance / Quality / OEE)",
     "includePareto": "Pareto analysis — top 10 NG codes (frequency + cumulative %)",
     "includeShift": "Shift production summary (when shift data is available)",
-    "downloadCompleteFmt": "Download complete: {0}"
+    "downloadCompleteFmt": "Download complete: {0}",
+    "previewTitle": "Document Preview",
+    "pageEstimateFmt": "A4 portrait · est. {0} pages"
   },
   "forecast": {
     "lastRefreshed": "Last refreshed",
@@ -876,6 +998,9 @@
     "selectClient": "Select a client card above to view its time series.",
     "noHistory": "No recent data.",
     "actualNgRate": "Actual NG Rate (%)",
+    "refresh": "Refresh",
+    "predictedWindow": "Predicted NG rate (next 1h)",
+    "oocLabel": "OOC",
     "status": {
       "ok": "OK",
       "noModel": "No model",
@@ -892,11 +1017,13 @@
       "lcl": "LCL (−3σ)",
       "mae": "Residual MAE",
       "samples": "Samples"
-    }
+    },
+    "helpBanner": "Defect-rate forecast estimates the next time window's defect rate using an ML model trained on recent inspection trends (rate, volume, time of day). When the forecast exceeds the control threshold you can act before the problem grows. No forecast is shown until enough data accumulates and a model is registered."
   },
   "andon": {
     "predictiveInsights": "Predictive Insights",
     "noInsights": "No lines exceeding threshold",
+    "noActiveWo": "No active work order",
     "insightHigh": "HIGH",
     "insightMedium": "WARN"
   }

@@ -1,0 +1,104 @@
+@inject NavigationManager Nav
+@inject ILocalizer L
+@implements IDisposable
+
+@* 3a 공통 셸 — 데스크톱 전용 상단 내비 (md 미만은 MainLayout의 햄버거 + MudDrawer 폴백).
+   메뉴 정의는 NavMenuItems 공유 목록 — NavMenu(드로어)와 동일한 Href·권한·i18n 키를 사용한다.
+   대시보드는 직접 pill, 나머지 그룹은 click 드롭다운 (터치 단말 대응 — hover 금지). *@
+<nav class="vms-topnav">
+    <NavLink href="/" class="vms-nav-pill" ActiveClass="active" Match="NavLinkMatch.All">
+        @L["menu.dashboard"]
+    </NavLink>
+
+    @foreach (var g in NavMenuItems.Groups)
+    {
+        if (g.Roles is null)
+        {
+            @GroupDropdown(g)
+        }
+        else
+        {
+            <AuthorizeView Roles="@g.Roles">
+                <Authorized>@GroupDropdown(g)</Authorized>
+            </AuthorizeView>
+        }
+    }
+</nav>
+
+@code {
+    private string _path = "/";
+
+    protected override void OnInitialized()
+    {
+        _path = CurrentPath();
+        Nav.LocationChanged += OnLocationChanged;
+        L.OnLanguageChanged += HandleLangChanged;
+    }
+
+    private RenderFragment GroupDropdown(NavGroupDef g) => __builder =>
+    {
+        <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft"
+                 Dense="true" ListClass="vms-nav-dropdown">
+            <ActivatorContent>
+                <button type="button" class="vms-nav-pill @(IsGroupActive(g) ? "active" : "")">
+                    @L[g.TitleKey]<span class="vms-nav-caret">▾</span>
+                </button>
+            </ActivatorContent>
+            <ChildContent>
+                @foreach (var item in g.Items)
+                {
+                    // 대시보드는 직접 pill로 승격 — 드롭다운에서는 제외 (중복 방지)
+                    if (item.Href == NavMenuItems.Dashboard.Href) continue;
+
+                    if (item.Roles is null)
+                    {
+                        @ItemLink(item)
+                    }
+                    else
+                    {
+                        <AuthorizeView Roles="@item.Roles">
+                            <Authorized>@ItemLink(item)</Authorized>
+                        </AuthorizeView>
+                    }
+                }
+            </ChildContent>
+        </MudMenu>
+    };
+
+    private RenderFragment ItemLink(NavItemDef item) => __builder =>
+    {
+        <MudMenuItem Href="@item.Href" Target="@(item.NewTab ? "_blank" : null)"
+                     Class="@(IsActive(item) ? "vms-nav-item-active" : null)">
+            @L[item.TitleKey]@(item.NewTab ? " ↗" : "")
+        </MudMenuItem>
+    };
+
+    private string CurrentPath()
+    {
+        var rel = Nav.ToBaseRelativePath(Nav.Uri);
+        var q = rel.IndexOfAny(new[] { '?', '#' });
+        if (q >= 0) rel = rel[..q];
+        return "/" + rel.TrimEnd('/');
+    }
+
+    // 활성 판정은 현재 경로 prefix 기준 ("/"만 정확 일치)
+    private bool IsActive(NavItemDef item) =>
+        item.Href == "/" ? _path == "/" : _path.StartsWith(item.Href, StringComparison.OrdinalIgnoreCase);
+
+    private bool IsGroupActive(NavGroupDef g) =>
+        g.Items.Any(i => i.Href != NavMenuItems.Dashboard.Href && IsActive(i));
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _path = CurrentPath();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleLangChanged() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        L.OnLanguageChanged -= HandleLangChanged;
+    }
+}

@@ -10,33 +10,42 @@
 
 <PageTitle>@L["page.warehouseItems"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.warehouseItems"]</MudText>
+@* 8a CRUD 패턴 — 헤더 부제, 필터 바(검색+토글) 우측 끝 등록 *@
+<div class="vms-page-head">
+    <div>
+        <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.warehouseItems"]</MudText>
+        <div class="vms-page-sub">@L.Format("warehouse.totalCountFmt", _items.Count)</div>
+    </div>
+</div>
+
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field xwide">
+            <label class="vms-filter-label">@L["common.search"]</label>
+            <MudTextField @bind-Value="_search" Placeholder="@(L["warehouse.searchPlaceholder"])"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+        </div>
+        <label class="vms-toggle" style="margin-bottom:10px;">
+            <input type="checkbox" checked="@_showInactive" @onchange="@(e => OnShowInactiveChanged(e.Value is true))" />
+            <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+            <span class="vms-toggle-label">@L["common.showInactive"]</span>
+        </label>
+        <div class="vms-filter-spacer"></div>
+        <AuthorizeView Roles="Admin,User">
+            <Authorized>
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                           Variant="Variant.Filled" OnClick="OpenCreateDialog" Class="vms-btn">
+                    @L["warehouse.btnCreate"]
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</MudPaper>
 
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0"
               Filter="new Func<WarehouseItemDto, bool>(FilterFunc)">
-        <ToolBarContent>
-            <MudText Class="vms-panel-header">@L["warehouse.header"]</MudText>
-            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-left: 8px;">
-                @L.Format("warehouse.totalCountFmt", _items.Count)
-            </MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_search" Placeholder="@(L["warehouse.searchPlaceholder"])"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mr-2"
-                          Style="max-width: 260px;" />
-            <MudSwitch T="bool" Value="_showInactive" ValueChanged="OnShowInactiveChanged"
-                       Label="@(L["common.showInactive"])" Color="Color.Primary" Class="mr-2" />
-            <AuthorizeView Roles="Admin,User">
-                <Authorized>
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                               Variant="Variant.Filled" Size="Size.Small"
-                               OnClick="OpenCreateDialog" Class="vms-btn">
-                        @L["warehouse.btnCreate"]
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-        </ToolBarContent>
         <HeaderContent>
             <MudTh>@L["warehouse.colBarcode"]</MudTh>
             <MudTh>@L["warehouse.colCode"]</MudTh>
@@ -47,55 +56,50 @@
             <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd><span class="vms-mono" style="font-weight: 700;">@context.Barcode</span></MudTd>
+            <MudTd><span class="vms-cell-id">@context.Barcode</span></MudTd>
             <MudTd><span class="vms-mono">@context.Code</span></MudTd>
-            <MudTd>@context.Name</MudTd>
+            <MudTd><span style="font-weight:500;">@context.Name</span></MudTd>
             <MudTd>
                 @if (!string.IsNullOrEmpty(context.LocationText))
                 {
-                    <span class="vms-mono" style="font-weight: 700; color: var(--mud-palette-warning);">@context.LocationText</span>
+                    <span class="vms-mono" style="font-weight: 700; color: #C9A05A;">@context.LocationText</span>
                 }
-                else { <span style="color: var(--vms-text-secondary);">—</span> }
+                else { <span class="vms-cell-empty">—</span> }
             </MudTd>
             <MudTd Style="text-align: right;">
-                <span class="vms-mono" style="font-weight: 700;@(context.StockQty > 0 ? " color: var(--mud-palette-success);" : " color: var(--vms-text-secondary);")">
-                    @context.StockQty
-                </span>
-            </MudTd>
-            <MudTd>
-                @if (context.IsActive)
+                @if (context.StockQty > 0)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
+                    <span class="vms-qty-pass">@context.StockQty</span>
                 }
                 else
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
+                    <span class="vms-mono-dim">0</span>
                 }
+            </MudTd>
+            <MudTd>
+                <span class="vms-wo-chip @(context.IsActive ? "st-done" : "st-flat")">
+                    @(context.IsActive ? L["status.active"] : L["status.inactive"])
+                </span>
             </MudTd>
             <MudTd Style="text-align: right; white-space: nowrap;">
                 <AuthorizeView Roles="Admin,User">
                     <Authorized Context="auth1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       OnClick="@(() => OpenEditDialog(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                   OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="auth2">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeleteItem(context))" />
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                   OnClick="@(() => DeleteItem(context))">@L["workorder.actDelete"]</MudButton>
                     </Authorized>
                 </AuthorizeView>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.QrCode2" Size="Size.Large"
-                         Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["warehouse.noItems"]</MudText>
-                <MudText Typo="Typo.caption" Style="color: var(--vms-text-secondary); opacity: 0.7;">
-                    @L["warehouse.noItemsHint"]
-                </MudText>
+            <div class="vms-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.QrCode2" />
+                <span class="vms-empty-text">@L["warehouse.noItems"] — @L["warehouse.noItemsHint"]</span>
             </div>
         </NoRecordsContent>
     </MudTable>
@@ -210,9 +214,16 @@
 
     private async Task DeleteItem(WarehouseItemDto w)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["confirm.delete"],
-            L.Format("warehouse.confirmDeleteFmt", w.Barcode), L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, w.Barcode },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["confirm.delete"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {

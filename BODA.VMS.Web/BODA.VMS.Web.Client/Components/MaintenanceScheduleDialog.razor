@@ -2,61 +2,67 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 짧은 필드 2열 *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
-
-            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.maintFieldName"])"
-                          Variant="Variant.Outlined" Class="mb-4" Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Build" />
-
-            <MudTextField @bind-Value="Model.Description" Label="@(L["dialog.maintFieldDescription"])"
-                          Variant="Variant.Outlined" Class="mb-4" Lines="2"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Description" />
-
-            <MudSelect T="int?" @bind-Value="Model.ClientId" Label="@(L["dialog.maintFieldClient"])" Clearable="true"
-                       Variant="Variant.Outlined" Class="mb-4"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
-                       HelperText="@(L["dialog.maintFieldClientHint"])">
-                <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.maintFieldClientAll"]</MudSelectItem>
-                @foreach (var c in _clients)
-                {
-                    <MudSelectItem T="int?" Value="@((int?)c.Id)">
-                        #@c.ClientIndex.ToString("D2") @c.Name
-                    </MudSelectItem>
-                }
-            </MudSelect>
-
-            <MudGrid Spacing="2" Class="mb-4">
-                <MudItem xs="6">
-                    <MudNumericField T="int" @bind-Value="Model.IntervalDays" Label="@(L["dialog.maintFieldInterval"])"
-                                     Variant="Variant.Outlined" Min="1"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Filled.Repeat"
-                                     HelperText="@(L["dialog.maintFieldIntervalHint"])" />
-                </MudItem>
-                <MudItem xs="6">
-                    <MudNumericField T="int" @bind-Value="Model.EstimatedDurationMinutes" Label="@(L["dialog.maintFieldDuration"])"
-                                     Variant="Variant.Outlined" Min="1"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Filled.Timer" />
-                </MudItem>
-            </MudGrid>
-
-            <MudDatePicker @bind-Date="Model.NextDueAt" Label="@(L["dialog.maintFieldNextDue"])"
-                           Variant="Variant.Outlined" Class="mb-4"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                           HelperText="@(L["dialog.maintFieldNextDueHint"])" />
-
-            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
+            <div class="vms-form">
+                <div>
+                    <label class="vms-form-label">@L["dialog.maintFieldName"]<span class="req">*</span></label>
+                    <MudTextField @bind-Value="Model.Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.maintFieldDescription"]</label>
+                    <MudTextField @bind-Value="Model.Description"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.maintFieldClient"]</label>
+                    <MudSelect T="int?" @bind-Value="Model.ClientId" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               HelperText="@(L["dialog.maintFieldClientHint"])">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["dialog.maintFieldClientAll"]</MudSelectItem>
+                        @foreach (var c in _clients)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)c.Id)">
+                                #@c.ClientIndex.ToString("D2") @c.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.maintFieldInterval"]</label>
+                        <MudNumericField T="int" @bind-Value="Model.IntervalDays"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="1"
+                                         HelperText="@(L["dialog.maintFieldIntervalHint"])" />
+                    </div>
+                    <div>
+                        <label class="vms-form-label">@L["dialog.maintFieldDuration"]</label>
+                        <MudNumericField T="int" @bind-Value="Model.EstimatedDurationMinutes"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" />
+                    </div>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.maintFieldNextDue"]</label>
+                    <MudDatePicker @bind-Date="Model.NextDueAt"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   HelperText="@(L["dialog.maintFieldNextDueHint"])" />
+                </div>
+                <label class="vms-toggle">
+                    <input type="checkbox" checked="@Model.IsActive" @onchange="@(e => Model.IsActive = e.Value is true)" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["status.active"]</span>
+                </label>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
             @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>

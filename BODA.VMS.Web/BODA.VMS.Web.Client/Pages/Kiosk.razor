@@ -12,15 +12,16 @@
     </style>
 </HeadContent>
 
+@* 9a — 터치 키오스크: 하늘색·이모지 전부 제거, CI 팔레트 (README) *@
 <div class="kiosk-root">
     <header class="kiosk-header">
         <div class="brand">
-            <span class="title">BODA VMS</span>
-            <span class="subtitle">Operator Kiosk</span>
+            <span class="title">BODA <span class="accent">VMS</span></span>
+            <span class="subtitle">OPERATOR KIOSK</span>
         </div>
         <div class="line-info">
             <span class="line-num">#@ClientIndex.ToString("D2")</span>
-            <span class="line-name">@(_lineName ?? "(loading...)")</span>
+            <span class="line-name">@(_invalidLine ? "—" : (_lineName ?? "(loading...)"))</span>
         </div>
         <div class="clock">@_now.ToString("yyyy-MM-dd")<span class="time">@_now.ToString("HH:mm:ss")</span></div>
     </header>
@@ -28,9 +29,9 @@
     <main class="kiosk-main">
         @if (_invalidLine)
         {
+            @* 라인 미존재 — 폼 없이 오류 카드만, 이모지 대신 텍스트 *@
             <div class="error-card">
-                <div class="big-icon">⚠</div>
-                <div class="big-text">Line #@ClientIndex.ToString("D2") not found</div>
+                <div class="big-text">라인 #@ClientIndex.ToString("D2") 미등록</div>
                 <div class="sub-text">관리자에게 라인 등록을 요청하세요.</div>
             </div>
         }
@@ -51,14 +52,14 @@
                     }
                 </div>
                 <div class="duration">
-                    <span class="label">Working since</span>
+                    <span class="label">근무 시작</span>
                     <span class="value">@_current.StartedAt.ToLocalTime().ToString("HH:mm:ss")</span>
                     <span class="elapsed">(@FormatDuration(_current.DurationMinutes))</span>
                 </div>
 
                 <div class="actions">
                     <button class="btn-logout" @onclick="Logout" disabled="@_busy">
-                        @if (_busy) { <span>...</span> } else { <span>🚪 End Shift / Logout</span> }
+                        @if (_busy) { <span>처리 중...</span> } else { <span>퇴근 / 로그아웃</span> }
                     </button>
                 </div>
                 <div class="hint">
@@ -66,21 +67,13 @@
                 </div>
             </div>
         }
-        else
-        {
-            <div class="login-card">
-                <div class="big-icon">👤</div>
-                <div class="login-title">Please log in</div>
-                <div class="login-sub">사번과 PIN을 입력하세요</div>
-            </div>
-        }
 
         @if (!_invalidLine)
         {
             <div class="form-card">
-                <div class="form-title">@(_current is null ? "Login" : "Shift Change — New Operator")</div>
+                <div class="form-title">@(_current is null ? "로그인" : "교대 — 새 작업자")</div>
                 <input type="text" inputmode="numeric" autocomplete="off"
-                       placeholder="Employee Number / 사번"
+                       placeholder="사번"
                        class="kiosk-input"
                        @bind="_employeeNumber" @bind:event="oninput"
                        @onkeydown="OnEmployeeKeyDown"
@@ -94,7 +87,7 @@
                        @ref="_pinInput" />
                 <button class="btn-login" @onclick="Login"
                         disabled="@(_busy || string.IsNullOrEmpty(_employeeNumber) || string.IsNullOrEmpty(_pin))">
-                    @if (_busy) { <span>Authenticating...</span> } else { <span>✓ Log In</span> }
+                    @if (_busy) { <span>확인 중...</span> } else { <span>로그인</span> }
                 </button>
                 @if (!string.IsNullOrEmpty(_errorMessage))
                 {
@@ -112,33 +105,38 @@
 </div>
 
 <style>
+    /* 9a — 배경/헤더/푸터는 안돈(7a)과 동일 규칙, 저채도 CI 팔레트 */
     .kiosk-root {
         position: fixed; inset: 0;
-        background: linear-gradient(135deg, #050810 0%, #0a1220 100%);
-        color: #e8eef4;
+        background: linear-gradient(135deg, #050810 0%, #0A1220 100%);
+        color: #E8EEF4;
         display: flex; flex-direction: column;
         font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
     }
     .kiosk-header {
         height: 64px; padding: 0 32px;
         display: flex; align-items: center; gap: 24px;
-        border-bottom: 1px solid #1a2538;
+        border-bottom: 1px solid #1A2538;
         background: rgba(0,0,0,0.3);
     }
     .brand { display: flex; flex-direction: column; }
-    .brand .title { font-size: 18px; font-weight: 800; color: #4fc3f7; letter-spacing: 1px; }
-    .brand .subtitle { font-size: 11px; color: #95a4b3; text-transform: uppercase; letter-spacing: 2px; }
+    .brand .title { font-size: 18px; font-weight: 800; color: #E6ECF5; letter-spacing: 0.02em; }
+    .brand .title .accent { color: #FF7A3D; }
+    .brand .subtitle {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 10px; color: #95A4B3; letter-spacing: 0.24em;
+    }
     .line-info {
         flex: 1; display: flex; align-items: baseline; gap: 16px;
         font-family: 'Roboto Mono', monospace;
     }
-    .line-info .line-num { font-size: 28px; font-weight: 800; color: #ffa726; }
-    .line-info .line-name { font-size: 18px; color: #e8eef4; font-weight: 600; }
+    .line-info .line-num { font-size: 28px; font-weight: 700; color: #FF7A3D; }
+    .line-info .line-name { font-size: 18px; color: #E8EEF4; font-weight: 600; }
     .clock {
         font-family: 'Roboto Mono', monospace;
-        font-size: 16px; color: #95a4b3;
+        font-size: 16px; color: #95A4B3;
     }
-    .clock .time { color: #e8eef4; margin-left: 8px; font-weight: 600; }
+    .clock .time { color: #E8EEF4; margin-left: 8px; font-weight: 500; }
 
     .kiosk-main {
         flex: 1;
@@ -147,48 +145,52 @@
         gap: 24px; padding: 32px;
     }
 
-    .error-card, .login-card, .active-card, .form-card {
+    .error-card, .active-card, .form-card {
         background: rgba(255,255,255,0.04);
-        border: 1px solid #1a2538;
+        border: 1px solid #1A2538;
         border-radius: 16px;
         padding: 32px 48px;
         width: 100%; max-width: 520px;
         text-align: center;
     }
+    /* 근무 중 카드 — 평면 배경 + 저채도 그린 테두리 (그라데이션 금지) */
     .active-card {
-        border: 2px solid #4caf50;
-        background: linear-gradient(135deg, rgba(76,175,80,0.1), rgba(76,175,80,0.02));
+        background: #101826;
+        border: 2px solid #3A5F49;
     }
 
-    .big-icon { font-size: 56px; line-height: 1; margin-bottom: 8px; }
-    .big-text { font-size: 22px; font-weight: 700; color: #ef5350; margin-bottom: 4px; }
-    .sub-text { font-size: 14px; color: #95a4b3; }
-
-    .login-title { font-size: 28px; font-weight: 700; }
-    .login-sub { font-size: 14px; color: #95a4b3; margin-top: 4px; }
+    .big-text { font-size: 22px; font-weight: 700; color: #DE857D; margin-bottom: 4px; }
+    .sub-text { font-size: 14px; color: #95A4B3; }
 
     .status-row {
         display: flex; align-items: center; justify-content: center;
         gap: 8px; margin-bottom: 12px;
-        font-size: 11px; letter-spacing: 2px;
     }
     .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .dot.running { background: #4caf50; box-shadow: 0 0 12px #4caf50; }
-    .status-text { color: #4caf50; font-weight: 700; }
+    .dot.running { background: #4E8C63; animation: kiosk-led-breathe 2.4s ease-in-out infinite; }
+    @@keyframes kiosk-led-breathe {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.35); }
+    }
+    .status-text {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 11px; letter-spacing: 0.22em;
+        color: #7FA98C; font-weight: 700;
+    }
 
     .operator-name {
-        font-size: 42px; font-weight: 800;
-        letter-spacing: -1px; margin: 8px 0;
+        font-size: 40px; font-weight: 800;
+        letter-spacing: -0.01em; margin: 8px 0;
     }
     .operator-meta {
         font-family: 'Roboto Mono', monospace;
-        color: #95a4b3; font-size: 14px;
+        color: #95A4B3; font-size: 14px;
         margin-bottom: 16px;
     }
     .operator-meta .sep { margin: 0 8px; }
     .operator-meta .emp-num {
-        background: rgba(255,167,38,0.15);
-        color: #ffa726;
+        background: rgba(255,122,61,0.15);
+        color: #FF7A3D;
         padding: 2px 10px;
         border-radius: 4px;
         font-weight: 700;
@@ -196,79 +198,79 @@
     .duration {
         margin: 16px 0;
         font-family: 'Roboto Mono', monospace;
-        font-size: 14px; color: #95a4b3;
+        font-size: 14px; color: #95A4B3;
     }
-    .duration .value { color: #e8eef4; font-weight: 700; margin: 0 4px; }
-    .duration .elapsed { color: #4fc3f7; }
+    .duration .value { color: #E8EEF4; font-weight: 700; margin: 0 4px; }
+    .duration .elapsed { color: #7FA6CC; }
 
+    /* 퇴근 — 아웃라인 (채운 빨강은 오조작 위험) */
     .actions { margin-top: 20px; }
     .btn-logout {
         width: 100%; padding: 16px;
-        background: #ef5350; color: white;
-        border: none; border-radius: 10px;
-        font-size: 18px; font-weight: 700; letter-spacing: 1px;
-        cursor: pointer; transition: all 0.2s;
+        min-height: 52px;
+        background: rgba(168,68,60,0.10);
+        color: #DE857D;
+        border: 1px solid rgba(168,68,60,0.6);
+        border-radius: 10px;
+        font-size: 18px; font-weight: 700; letter-spacing: 0.04em;
+        cursor: pointer; transition: background 0.2s;
     }
-    .btn-logout:hover:not(:disabled) {
-        background: #d32f2f;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(239,83,80,0.4);
-    }
+    .btn-logout:hover:not(:disabled) { background: rgba(168,68,60,0.18); }
     .btn-logout:disabled { opacity: 0.5; cursor: wait; }
 
     .hint {
         margin-top: 16px; font-size: 11px;
-        color: #95a4b3; opacity: 0.8;
+        color: #95A4B3; opacity: 0.8;
     }
 
     .form-card { padding: 28px 32px; }
     .form-title {
-        font-size: 14px; font-weight: 700; color: #4fc3f7;
-        text-transform: uppercase; letter-spacing: 2px;
+        font-size: 14px; font-weight: 700; color: #5B9BE0;
+        letter-spacing: 0.08em;
         margin-bottom: 16px;
     }
+    /* 터치 타깃 입력 — 17px 모노 중앙 정렬, 포커스 오렌지 */
     .kiosk-input {
         width: 100%; padding: 14px 18px; margin-bottom: 10px;
-        background: rgba(255,255,255,0.06);
-        border: 2px solid #2d3744;
-        border-radius: 8px;
-        color: #e8eef4;
-        font-size: 18px;
+        background: #0C121D;
+        border: 2px solid rgba(255,255,255,0.12);
+        border-radius: 10px;
+        color: #E8EEF4;
+        font-size: 17px;
         font-family: 'Roboto Mono', monospace;
         text-align: center;
-        letter-spacing: 2px;
+        letter-spacing: 0.12em;
         outline: none;
         transition: border-color 0.2s;
     }
-    .kiosk-input:focus { border-color: #4fc3f7; }
+    .kiosk-input:focus { border-color: #FF7A3D; }
+    /* 로그인 — 오렌지, 44px 이상 터치 타깃 */
     .btn-login {
-        width: 100%; padding: 14px;
-        background: #4fc3f7; color: #0a1220;
-        border: none; border-radius: 8px;
-        font-size: 16px; font-weight: 800; letter-spacing: 1px;
-        cursor: pointer; transition: all 0.2s;
+        width: 100%; padding: 15px;
+        min-height: 48px;
+        background: #FF7A3D; color: #0C121D;
+        border: none; border-radius: 10px;
+        font-size: 16px; font-weight: 800; letter-spacing: 0.06em;
+        cursor: pointer; transition: background 0.2s;
         margin-top: 4px;
     }
-    .btn-login:hover:not(:disabled) {
-        background: #29b6f6;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(79,195,247,0.4);
-    }
+    .btn-login:hover:not(:disabled) { background: #FF8A50; }
     .btn-login:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .error-msg {
-        margin-top: 12px; padding: 8px 12px;
-        background: rgba(239,83,80,0.15);
-        border: 1px solid rgba(239,83,80,0.4);
-        color: #ef5350;
-        border-radius: 6px;
+        margin-top: 12px; padding: 10px 12px;
+        background: rgba(168,68,60,0.14);
+        border: 1px solid rgba(168,68,60,0.4);
+        color: #DE857D;
+        border-radius: 8px;
         font-size: 13px;
     }
 
     .kiosk-footer {
         padding: 12px 24px; text-align: center;
-        font-size: 11px; color: #95a4b3;
-        border-top: 1px solid #1a2538;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 11px; color: #95A4B3;
+        border-top: 1px solid #1A2538;
         background: rgba(0,0,0,0.2);
     }
     .kiosk-footer .sep { margin: 0 10px; }

@@ -2,30 +2,36 @@
 @attribute [Authorize]
 @inject ApiClient Api
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @inject ILocalizer L
 
 <PageTitle>@L["page.oee"] - BODA VMS</PageTitle>
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.oee"]</MudText>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
-                           Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
-                           Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
-                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+@* 용어 도움말 — 항상 표시 (사용자 요청 2026-08-13). 산식은 결과 영역 FORMULA 배너에 유지 *@
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">HELP</span>
+    <span class="vms-banner-text">@L["oee.helpBanner"]</span>
+</div>
+
+@* 6b — 필터 바: 4b 공통 패턴 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.startDate"]</label>
+            <MudDatePicker @bind-Date="_startDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.endDate"]</label>
+            <MudDatePicker @bind-Date="_endDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" @bind-Value="_clientId" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
@@ -34,56 +40,162 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Calculate"
-                       OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Calculate"
+                   OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
 
-@if (_result is not null && _result.Clients.Count > 0)
+        @* 11b — 13대 이상: 정렬/미달만/전환/Excel *@
+        @if (FleetEligible)
+        {
+            @if (TableMode)
+            {
+                <div class="vms-filter-field" style="min-width:130px;">
+                    <label class="vms-filter-label">@L["fleet.sort"]</label>
+                    <MudSelect T="bool" @bind-Value="_sortWorst"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="bool" Value="true">@L["fleet.sortWorst"]</MudSelectItem>
+                        <MudSelectItem T="bool" Value="false">@L["fleet.sortName"]</MudSelectItem>
+                    </MudSelect>
+                </div>
+                <label class="vms-toggle" style="margin-bottom:10px;">
+                    <input type="checkbox" @bind="_belowOnly" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["fleet.belowOnly"]</span>
+                </label>
+            }
+            <div class="vms-filter-spacer"></div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                       OnClick="@(() => _viewTable = !TableMode)">
+                @(TableMode ? L["fleet.viewCards"] : L["fleet.viewTable"])
+            </MudButton>
+            @if (TableMode)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn"
+                           StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsv">
+                    @L["fleet.excel"]
+                </MudButton>
+            }
+        }
+    </div>
+</MudPaper>
+
+@if (_result is not null && _result.Clients.Count > 0 && TableMode)
 {
-    <MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-        @L["oee.formulaAlert"]
-    </MudAlert>
+    <div class="vms-banner info mb-4">
+        <span class="vms-banner-label">FORMULA</span>
+        <span class="vms-banner-text">@L["oee.formulaAlert"]</span>
+    </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px;">
+    @* 요약 밴드 — 수치는 전부 표 데이터에서 계산 *@
+    <div class="vms-sum-grid mb-4">
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.avg"] · OEE</span>
+            <span class="vms-sum-value mono">@((AvgOee * 100).ToString("F1"))%</span>
+        </MudPaper>
+        <MudPaper Class="@AlertCardClass">
+            <span class="vms-sum-label">@L.Format("fleet.belowTargetFmt", "85%")</span>
+            <span class="vms-sum-value mono">@L.Format("fleet.unitsFmt", BelowCount)</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.worst"]</span>
+            <span class="vms-sum-value mono">@(Worst is null ? "—" : $"#{Worst.ClientIndex:D2}")</span>
+            <span class="vms-sum-sub">@(Worst is null ? "" : $"{Worst.ClientName} · {(Worst.Oee * 100):F1}%")</span>
+        </MudPaper>
+        <MudPaper Class="vms-panel vms-sum-card">
+            <span class="vms-sum-label">@L["fleet.totalInsp"]</span>
+            <span class="vms-sum-value mono">@_result.Clients.Sum(c => c.TotalInspections).ToString("N0")</span>
+        </MudPaper>
+    </div>
+
+    <MudPaper Class="vms-panel pa-0">
+        <div class="vms-flt-scroll">
+            <table class="vms-flt-table">
+                <thead>
+                    <tr>
+                        <th>@L["common.line"]</th>
+                        <th>@L["fleet.colEquip"]</th>
+                        <th>OEE</th>
+                        <th class="num">@L["oee.availability"]</th>
+                        <th class="num">@L["oee.performance"]</th>
+                        <th class="num">@L["oee.quality"]</th>
+                        <th>@L["fleet.colStack"]</th>
+                        <th class="num">@L["fleet.colInspNg"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in VisibleRows)
+                    {
+                        var g = FltGrade(c.Oee);
+                        var below = c.Oee < Target;
+                        var runPct = c.PeriodSeconds > 0 ? c.RunningSeconds / c.PeriodSeconds * 100 : 0;
+                        var idlePct = c.PeriodSeconds > 0 ? c.IdleSeconds / c.PeriodSeconds * 100 : 0;
+                        var downPct = c.PeriodSeconds > 0 ? c.DownSeconds / c.PeriodSeconds * 100 : 0;
+                        <tr class="@(below ? $"below {g}" : "")">
+                            <td class="vms-flt-num vms-flt-dim" style="text-align:left;">#@c.ClientIndex.ToString("D2")</td>
+                            <td>@c.ClientName</td>
+                            <td>
+                                <div class="vms-flt-gauge @g">
+                                    <div class="track"><div class="fill" style="width:@Pctw(c.Oee)"></div></div>
+                                    <span class="val">@((c.Oee * 100).ToString("F1"))%</span>
+                                </div>
+                            </td>
+                            <td class="vms-flt-num">@((c.Availability * 100).ToString("F1"))%</td>
+                            <td class="vms-flt-num">@((c.Performance * 100).ToString("F1"))%</td>
+                            <td class="vms-flt-num">@((c.Quality * 100).ToString("F1"))%</td>
+                            <td>
+                                <div class="vms-flt-stack">
+                                    @if (runPct > 0)  { <div class="seg run"  style="width:@Pctw(runPct / 100)"></div> }
+                                    @if (idlePct > 0) { <div class="seg idle" style="width:@Pctw(idlePct / 100)"></div> }
+                                    @if (downPct > 0) { <div class="seg down" style="width:@Pctw(downPct / 100)"></div> }
+                                </div>
+                            </td>
+                            <td class="vms-flt-num">
+                                @c.TotalInspections.ToString("N0") · <span style="color:#C4756E">@c.NgCount.ToString("N0")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </MudPaper>
+}
+else if (_result is not null && _result.Clients.Count > 0)
+{
+    @* 공식 안내 — FORMULA 정보 배너 (README 6b) *@
+    <div class="vms-banner info mb-4">
+        <span class="vms-banner-label">FORMULA</span>
+        <span class="vms-banner-text">@L["oee.formulaAlert"]</span>
+    </div>
+
+    @* 라인별 카드 — 저채도 팔레트 필수(카드 다수 배치), 상단 3px 등급색 띠 *@
+    <div class="vms-oee-grid">
         @foreach (var c in _result.Clients)
         {
-            <div class="vms-panel pa-3" style="border-top: 4px solid @(GetOeeColor(c.Oee));">
-                <div class="d-flex align-center mb-2">
-                    <MudText Typo="Typo.h6" Style="font-weight:700;">
-                        #@c.ClientIndex.ToString("D2") — @c.ClientName
-                    </MudText>
-                    <MudSpacer />
-                    <div style="text-align:right;">
-                        <div style="font-size:11px; color: var(--vms-text-secondary); text-transform: uppercase;">OEE</div>
-                        <div style="font-size:32px; font-weight:800; font-family: 'Roboto Mono', monospace; color: @(GetOeeColor(c.Oee));">
-                            @((c.Oee * 100).ToString("F1"))%
-                        </div>
+            var g = OeeGrade(c.Oee);
+            <div class="vms-panel vms-oee-card @g">
+                <div class="vms-oee-head">
+                    <div class="vms-oee-title">
+                        <span class="vms-oee-idx">#@c.ClientIndex.ToString("D2")</span> @c.ClientName
+                    </div>
+                    <div class="vms-oee-big">
+                        <span class="vms-oee-label">OEE</span>
+                        <span class="vms-oee-value">@((c.Oee * 100).ToString("F1"))%</span>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:12px;">
-                    <div style="text-align:center;">
-                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L["oee.availability"]</div>
-                        <div style="font-size:18px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                            @((c.Availability * 100).ToString("F1"))%
-                        </div>
+                <div class="vms-oee-apq">
+                    <div class="vms-oee-apq-cell">
+                        <span class="vms-oee-apq-label">@L["oee.availability"]</span>
+                        <span class="vms-oee-apq-value">@((c.Availability * 100).ToString("F1"))%</span>
                     </div>
-                    <div style="text-align:center;">
-                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L["oee.performance"]</div>
-                        <div style="font-size:18px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                            @((c.Performance * 100).ToString("F1"))%
-                        </div>
+                    <div class="vms-oee-apq-cell">
+                        <span class="vms-oee-apq-label">@L["oee.performance"]</span>
+                        <span class="vms-oee-apq-value">@((c.Performance * 100).ToString("F1"))%</span>
                     </div>
-                    <div style="text-align:center;">
-                        <div style="font-size:10px; color: var(--vms-text-secondary);">@L["oee.quality"]</div>
-                        <div style="font-size:18px; font-weight:700; font-family: 'Roboto Mono', monospace;">
-                            @((c.Quality * 100).ToString("F1"))%
-                        </div>
+                    <div class="vms-oee-apq-cell">
+                        <span class="vms-oee-apq-label">@L["oee.quality"]</span>
+                        <span class="vms-oee-apq-value">@((c.Quality * 100).ToString("F1"))%</span>
                     </div>
                 </div>
 
@@ -92,37 +204,35 @@
                     var idlePct = c.PeriodSeconds > 0 ? c.IdleSeconds / c.PeriodSeconds * 100 : 0;
                     var downPct = c.PeriodSeconds > 0 ? c.DownSeconds / c.PeriodSeconds * 100 : 0;
                 }
-                <div style="margin-bottom:8px;">
-                    <div style="font-size:11px; color: var(--vms-text-secondary); margin-bottom:4px;">
-                        @L["oee.statusDistribution"]
-                    </div>
-                    <div style="display:flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--vms-panel-2);">
+                <div>
+                    <div class="vms-oee-bar">
                         @if (runPct > 0)
                         {
-                            <div style="width: @(runPct.ToString("F2"))%; background: var(--mud-palette-success);" title="@($"가동 {runPct:F1}%")"></div>
+                            <div class="seg run" style="width:@(runPct.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))%"
+                                 title="@($"{L["status.running"]} {runPct:F1}%")"></div>
                         }
                         @if (idlePct > 0)
                         {
-                            <div style="width: @(idlePct.ToString("F2"))%; background: var(--mud-palette-warning);" title="@($"대기 {idlePct:F1}%")"></div>
+                            <div class="seg idle" style="width:@(idlePct.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))%"
+                                 title="@($"{L["status.idle"]} {idlePct:F1}%")"></div>
                         }
                         @if (downPct > 0)
                         {
-                            <div style="width: @(downPct.ToString("F2"))%; background: var(--mud-palette-error);" title="@($"정지 {downPct:F1}%")"></div>
+                            <div class="seg down" style="width:@(downPct.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))%"
+                                 title="@($"{L["status.down"]} {downPct:F1}%")"></div>
                         }
                     </div>
-                    <div class="d-flex justify-space-between mt-1" style="font-size:10px;">
-                        <span style="color: var(--mud-palette-success);">● @L["status.running"] @FormatHours(c.RunningSeconds)</span>
-                        <span style="color: var(--mud-palette-warning);">● @L["status.idle"] @FormatHours(c.IdleSeconds)</span>
-                        <span style="color: var(--mud-palette-error);">● @L["status.down"] @FormatHours(c.DownSeconds)</span>
+                    <div class="vms-oee-legend">
+                        <span class="run">● @L["status.running"] @FormatHours(c.RunningSeconds)</span>
+                        <span class="idle">● @L["status.idle"] @FormatHours(c.IdleSeconds)</span>
+                        <span class="down">● @L["status.down"] @FormatHours(c.DownSeconds)</span>
                     </div>
                 </div>
 
-                <MudDivider Class="my-2" />
-
-                <div class="d-flex justify-space-between" style="font-size:12px;">
-                    <span>@L["common.total"]: <strong>@c.TotalInspections.ToString("N0")</strong></span>
-                    <span style="color: var(--mud-palette-success);">@L["status.pass"]: <strong>@c.PassCount.ToString("N0")</strong></span>
-                    <span style="color: var(--mud-palette-error);">@L["status.ng"]: <strong>@c.NgCount.ToString("N0")</strong></span>
+                <div class="vms-oee-foot">
+                    <span>@L["common.total"] <strong>@c.TotalInspections.ToString("N0")</strong></span>
+                    <span class="pass">@L["status.pass"] <strong>@c.PassCount.ToString("N0")</strong></span>
+                    <span class="ng">@L["status.ng"] <strong>@c.NgCount.ToString("N0")</strong></span>
                 </div>
             </div>
         }
@@ -144,12 +254,80 @@ else
 }
 
 @code {
+    private const int TableThreshold = 13;
+    private const double Target = 0.85;
+
     private DateTime? _startDate = DateTime.Today;
     private DateTime? _endDate = DateTime.Today.AddDays(1);
     private int? _clientId;
 
     private List<ClientDto> _clients = new();
     private OeeResultDto? _result;
+
+    private bool? _viewTable;
+    private bool _sortWorst = true;
+    private bool _belowOnly;
+
+    private string AlertCardClass =>
+        "vms-panel vms-sum-card vms-flt-alert " + (BelowCount > 0 ? WorstGrade : "");
+
+    private bool FleetEligible => (_result?.Clients.Count ?? 0) >= TableThreshold;
+    private bool TableMode => FleetEligible && (_viewTable ?? true);
+
+    // 기본 정렬은 나쁜 순 (OEE 오름차순)
+    private IEnumerable<OeeClientResultDto> VisibleRows
+    {
+        get
+        {
+            var rows = _belowOnly
+                ? _result!.Clients.Where(c => c.Oee < Target)
+                : _result!.Clients.AsEnumerable();
+            return _sortWorst
+                ? rows.OrderBy(c => c.Oee)
+                : rows.OrderBy(c => c.ClientName, StringComparer.Ordinal);
+        }
+    }
+
+    private double AvgOee => _result!.Clients.Count > 0 ? _result.Clients.Average(c => c.Oee) : 0;
+    private int BelowCount => _result!.Clients.Count(c => c.Oee < Target);
+    private OeeClientResultDto? Worst => _result!.Clients.OrderBy(c => c.Oee).FirstOrDefault();
+    private string WorstGrade => Worst is null ? "" : FltGrade(Worst.Oee);
+
+    private static string Pctw(double ratio) =>
+        (Math.Clamp(ratio, 0, 1) * 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    // 게이지/행 틴트용 등급 — 임계값은 기존 OeeGrade 와 동일, 공용 색 클래스로 매핑
+    private static string FltGrade(double oee)
+    {
+        if (oee >= 0.85) return "g95";
+        if (oee >= 0.60) return "g85";
+        if (oee >= 0.40) return "g70";
+        return "g-bad";
+    }
+
+    private async Task ExportCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{L["common.line"]},{L["fleet.colEquip"]},OEE(%),{L["oee.availability"]}(%),{L["oee.performance"]}(%),{L["oee.quality"]}(%),{L["common.total"]},NG");
+        foreach (var c in VisibleRows)
+        {
+            sb.AppendLine(string.Join(",",
+                $"#{c.ClientIndex:D2}", CsvField(c.ClientName),
+                (c.Oee * 100).ToString("F1"), (c.Availability * 100).ToString("F1"),
+                (c.Performance * 100).ToString("F1"), (c.Quality * 100).ToString("F1"),
+                c.TotalInspections, c.NgCount));
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes("﻿" + sb);
+        await JS.InvokeVoidAsync("downloadFileFromBytes",
+            $"oee_{DateTime.Now:yyyyMMdd_HHmmss}.csv", "text/csv", Convert.ToBase64String(bytes));
+    }
+
+    private static string CsvField(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        var dq = '"'.ToString();
+        return v.Contains(',') ? dq + v.Replace(dq, dq + dq) + dq : v;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,12 +362,12 @@ else
         return $"{ts.Minutes}분 {ts.Seconds}초";
     }
 
-    private static string GetOeeColor(double oee)
+    // 등급 클래스 — 임계값은 기존 GetOeeColor 유지 (≥85 정상 / ≥60 정보 / ≥40 경고 / 미달)
+    private static string OeeGrade(double oee)
     {
-        // World-class OEE 기준: 85%↑, 일반 60%↑, 미달 <40%
-        if (oee >= 0.85) return "var(--mud-palette-success)";
-        if (oee >= 0.60) return "var(--mud-palette-info)";
-        if (oee >= 0.40) return "var(--mud-palette-warning)";
-        return "var(--mud-palette-error)";
+        if (oee >= 0.85) return "g-ok";
+        if (oee >= 0.60) return "g-info";
+        if (oee >= 0.40) return "g-warn";
+        return "g-bad";
     }
 }

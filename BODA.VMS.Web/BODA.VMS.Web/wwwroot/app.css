@@ -1,20 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════
-   BODA VMS — "Machined Instrument" Identity  (2026-08-11 redesign)
+   BODA VMS — 3a "소프트 다크" 아이덴티티 (2026-08-12)
+   근거: design_handoff_boda_vms_redesign/README.md — 토큰 외 임의 값 금지.
 
-   설계 언어: 정밀 계측기.
-   - VASIM CI 유지: Navy #00264C 가 구조를 지배하고,
-     Orange #FF6724 는 "신호"(활성·경보·핵심 수치)에만 쓴다.
-   - 모서리는 2px — 도장이 아니라 절삭. 그림자 대신 헤어라인.
-   - 서체: Saira (산업 디스플레이) + IBM Plex Mono (계측 수치).
-     한글은 시스템 고딕 폴백 — 라틴 디스플레이가 인상을 만든다.
-   - 상태등은 원이 아니라 각진 LED.
-
-   오프라인 운영(GS) — 모든 폰트 셀프호스트, CDN 의존 없음.
-   기존 페이지의 'Montserrat'/'Roboto'/'Roboto Mono' 인라인 지정은
-   아래 alias @font-face 가 새 서체로 흡수한다 (페이지 수정 불필요).
+   - 색은 가능한 한 MudBlazor 팔레트 변수(var(--mud-palette-*))로 참조:
+     다크는 Routes.razor 의 3a PaletteDark 값이, 라이트는 기존 값이 흘러든다
+     (README: 시안은 다크 기준, 라이트는 기존 팔레트 유지).
+   - README 가 명시한 다크 고정 색(#5F6B7E 4차 모노 캡션, 로그인 4a 배경 등)만 리터럴.
+   - radius 체계: 카드 12px / 입력·버튼 10px / 칩 6px(지시)·판정 칩 5px.
+   - 카드 그림자 없음 — 테두리로만 분리. 모달·로그인 카드만 0 24px 80px rgba(0,0,0,.5).
+   - "기능 보존" 주석 블록(입력 40px 통일·MudTable 모바일·iOS 줌)은 수정 금지.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ---- 서체 원본 ---- */
+/* ---- 서체 (셀프호스트 — GS 오프라인, CDN 금지) ---- */
 @font-face {
     font-family: 'Saira';
     font-style: normal;
@@ -38,7 +35,7 @@
     src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
-/* ---- 레거시 폰트명 alias — 인라인 지정을 새 서체로 흡수 ---- */
+/* ---- 레거시 폰트명 alias — 페이지 인라인 지정 흡수 (기존 유지) ---- */
 @font-face {
     font-family: 'Montserrat';
     font-style: normal;
@@ -70,43 +67,57 @@
     src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
-/* ---- 디자인 토큰 ---- */
+/* ---- 디자인 토큰 (README Design Tokens) ---- */
 :root {
-    --vms-primary: #FF6724;
-    --vms-primary-light: #FF8A50;
-    --vms-primary-dark: #E5551B;
-    --vms-primary-glow: rgba(255, 103, 36, 0.10);
+    /* 신호 (VASIM CI) */
+    --vms-primary: #FF7A3D;
+    --vms-primary-hover: #FF8A50;
+    --vms-on-primary: #0C121D;          /* 오렌지 버튼 텍스트 */
+    --vms-link: #5B9BE0;
 
-    --vms-navy: #00264C;
-    --vms-navy-2: #01397D;
-    --vms-ink: #131A24;
+    /* 페이지 인라인 스타일이 참조하는 별칭 — 팔레트에 위임 (라이트/다크 자동) */
+    --vms-text-primary: var(--mud-palette-text-primary);
+    --vms-text-secondary: var(--mud-palette-text-secondary);
+    --vms-text-light: var(--mud-palette-text-secondary);
+    --vms-success: var(--mud-palette-success);
+    --vms-error: var(--mud-palette-error);
 
-    /* 페이지 인라인 스타일이 참조하는 별칭 — MudBlazor 팔레트에 위임 */
-    --vms-text-primary: var(--mud-palette-text-primary, #131A24);
-    --vms-text-secondary: var(--mud-palette-text-secondary, #5C6470);
-    --vms-text-light: var(--mud-palette-text-secondary, #8A919C);
-    --vms-success: var(--mud-palette-success, #1F7A33);
-    --vms-error: var(--mud-palette-error, #C9342B);
+    /* 4차 모노 캡션 (README 텍스트 토큰) */
+    --vms-text-mono-caption: #5F6B7E;
 
-    --vms-radius: 2px;
-    --vms-hairline: var(--mud-palette-lines-default, #DCDFE3);
-    --vms-font-display: 'Saira', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    /* radius 체계 */
+    --vms-radius-card: 12px;
+    --vms-radius-ctl: 10px;
+    --vms-radius-chip: 6px;             /* MudChip — 사용자 지시 (README 칩 5–8px 범위 내) */
+    --vms-radius-judge: 5px;            /* 판정 칩 */
+
+    --vms-hairline: var(--mud-palette-lines-default);   /* 카드 테두리 */
+    --vms-font-display: 'Saira', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
     --vms-font-mono: 'IBM Plex Mono', 'Consolas', monospace;
     --vms-ease: cubic-bezier(0.2, 0, 0, 1);
+
+    /* 표 행 hover — README Interactions (rgba(255,122,61,.06~.07)) */
+    --vms-row-hover: rgba(255, 122, 61, 0.07);
+
+    /* 구형 별칭 호환 (기존 페이지 인라인 참조) */
+    --vms-primary-light: #FF8A50;
+    --vms-primary-dark: #FF7A3D;
+    --vms-primary-glow: rgba(255, 122, 61, 0.07);
 }
 
 html { overflow-x: hidden; }
 
 body {
     font-family: var(--vms-font-display);
+    font-size: 13px;                    /* README 본문 13px */
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
-    background-color: var(--mud-palette-background, #F2F3F1);
-    color: var(--mud-palette-text-primary, #131A24);
+    background-color: var(--mud-palette-background);
+    color: var(--mud-palette-text-primary);
     overflow-x: hidden;
     max-width: 100vw;
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums; /* 모든 수치 tabular-nums (README) */
 }
 
 .mud-layout,
@@ -115,64 +126,184 @@ body {
     max-width: 100%;
 }
 
-/* ---- 스크롤바: 사각, 네이비 ---- */
+/* ---- 스크롤바 (기존 유지 — README 미규정) ---- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--vms-navy) 35%, transparent);
-    border-radius: 0;
-}
+::-webkit-scrollbar-thumb { background: var(--mud-palette-action-default); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--vms-primary); }
 
-/* ═══════════════ AppBar — 계기판 상단 프레임 ═══════════════ */
+/* ═══════ 공통 셸 (3단계) — 58px 상단바 + 데스크톱 pill 내비 + 모바일 드로어 폴백 ═══════ */
 .vms-appbar {
-    background: var(--mud-palette-appbar-background, #FFFFFF) !important;
+    background: var(--mud-palette-appbar-background) !important;
     border-bottom: 1px solid var(--vms-hairline) !important;
     box-shadow: none !important;
-    color: var(--mud-palette-appbar-text, #131A24) !important;
-    position: relative;
+    color: var(--mud-palette-appbar-text) !important;
+    height: 58px;                               /* README: 상단바 높이 58px */
 }
 
-/* 상단 브랜드 룰 — 화면 최상단을 가로지르는 2px 네이비 + 오렌지 노치 */
-.vms-appbar::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(to right,
-        var(--vms-primary) 0, var(--vms-primary) 96px,
-        var(--vms-navy) 96px, var(--vms-navy) 100%);
+.vms-appbar .mud-toolbar {
+    height: 58px;
+    min-height: 58px;
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
-.vms-appbar .mud-icon-button {
-    color: var(--mud-palette-action-default, #5C6470) !important;
+.vms-appbar .mud-icon-button { color: var(--mud-palette-action-default) !important; }
+
+/* 본문 — 셸 아래 페이지 패딩 20px 24px 26px (README 간격) */
+.vms-main {
+    min-height: 100vh;
+    padding: 78px 24px 26px !important;
 }
 
+/* 상단 내비 pill — padding 7px 14px, radius 8px, gap 4px.
+   활성만 오렌지 배경 + 대비 글자 600, 비활성은 보조 텍스트 톤.
+   색은 팔레트 변수 사용 — 라이트 테마에서도 해당 팔레트로 자동 정합 */
+.vms-topnav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 22px;
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.vms-nav-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--vms-font-display);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--mud-palette-text-secondary);
+    text-decoration: none;
+    transition: background 0.13s var(--vms-ease), color 0.13s var(--vms-ease);
+}
+
+.vms-nav-pill:hover {
+    color: var(--mud-palette-text-primary);
+    text-decoration: none;
+}
+
+.vms-nav-pill.active {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    font-weight: 600;
+}
+
+.vms-nav-caret {
+    font-size: 9px;
+    margin-left: 5px;
+    opacity: 0.7;
+}
+
+/* 드롭다운 — 활성 항목 강조 (오렌지 텍스트 600) */
+.vms-nav-dropdown .mud-menu-item { font-size: 13px; }
+
+.vms-nav-dropdown .vms-nav-item-active .mud-menu-item-text,
+.vms-nav-dropdown .vms-nav-item-active {
+    color: var(--mud-palette-primary) !important;
+    font-weight: 600;
+}
+
+/* ALM 배지 — 알람 진입 주 경로 (/alarms). README: 배경 rgba(240,86,76,.16), 글자 #F0564C */
+.vms-alm-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: rgba(240, 86, 76, 0.16);
+    color: #F0564C !important;
+    text-decoration: none !important;
+    white-space: nowrap;
+    margin: 0 6px;
+    transition: background 0.13s var(--vms-ease);
+}
+
+.vms-alm-badge:hover { background: rgba(240, 86, 76, 0.28); }
+
+/* 현재 시각 — 모노 11px 보조 톤 (교대 표시는 데이터 소스 확보 후) */
+.vms-shell-clock {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+    margin-right: 10px;
+    white-space: nowrap;
+}
+
+/* 사용자 칩 — 28px #1D2A40 radius 8px 아바타 + 이름 (README 셸) */
+.vms-user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 6px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.13s var(--vms-ease);
+}
+
+.vms-user-chip:hover { background: var(--mud-palette-action-default-hover); }
+
+.vms-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #1D2A40;
+    color: #C9D3E0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--vms-font-display);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.vms-user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mud-palette-appbar-text);
+}
+
+/* 로고 — README 공통 셸: 19px/800/.04em/uppercase */
 .vms-logo {
     font-family: var(--vms-font-display);
     font-weight: 800;
-    font-size: 1.25rem;
+    font-size: 19px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     line-height: 1;
 }
 
-.vms-logo .navy { color: var(--mud-palette-text-primary, #00264C) !important; }
+.vms-logo .navy { color: var(--mud-palette-appbar-text) !important; }
 .vms-logo-accent { color: var(--vms-primary) !important; }
 
+/* 버전 라벨 — 모노 9px .28em */
 .vms-logo-sub {
     font-family: var(--vms-font-mono);
-    font-size: 0.58rem;
+    font-size: 9px;
     font-weight: 400;
-    letter-spacing: 0.32em;
-    color: var(--mud-palette-text-secondary, #8A919C) !important;
+    letter-spacing: 0.28em;
+    color: var(--vms-text-mono-caption) !important;
     text-transform: uppercase;
     margin-left: 12px;
 }
 
 .vms-appbar-page-title {
     font-family: var(--vms-font-mono);
-    font-size: 0.72rem;
+    font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.08em;
     color: var(--vms-primary) !important;
@@ -183,108 +314,84 @@ body {
     text-transform: uppercase;
 }
 
-/* ═══════════════ Drawer — 네이비 랙 ═══════════════ */
 .vms-drawer {
-    background: var(--mud-palette-drawer-background, #00264C) !important;
+    background: var(--mud-palette-drawer-background) !important;
     border-right: none !important;
 }
 
 .vms-drawer .mud-nav-link {
-    color: var(--mud-palette-drawer-text, rgba(255,255,255,0.72)) !important;
-    border-radius: 0;
-    margin: 1px 0 1px 0;
-    padding: 9px 14px 9px 18px;
-    font-size: 0.84rem;
-    font-weight: 450;
-    letter-spacing: 0.01em;
-    border-left: 3px solid transparent;
-    transition: background 0.12s var(--vms-ease), border-color 0.12s var(--vms-ease), color 0.12s var(--vms-ease);
+    color: var(--mud-palette-drawer-text) !important;
+    border-radius: 8px;                 /* 메뉴 pill radius (README 셸) */
+    margin: 2px 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.13s var(--vms-ease), color 0.13s var(--vms-ease);
 }
 
-.vms-drawer .mud-nav-link:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    color: #FFFFFF !important;
-}
+.vms-drawer .mud-nav-link:hover { color: var(--mud-palette-text-primary) !important; }
 
-/* 활성 = 오렌지 노치 + 은은한 발광 — 풀컬러 필이 아니라 신호등 */
+/* 활성 메뉴 — README: 배경 오렌지 + 글자 #0C121D + 600 */
 .vms-drawer .mud-nav-link.active {
-    background: linear-gradient(to right, rgba(255,103,36,0.16), rgba(255,103,36,0.03)) !important;
-    border-left-color: var(--vms-primary);
-    color: #FFFFFF !important;
+    background: var(--vms-primary) !important;
+    color: var(--vms-on-primary) !important;
     font-weight: 600;
 }
 
 .vms-drawer .mud-nav-link .mud-nav-link-icon { color: inherit !important; }
 
-/* 그룹 헤더 — 도면 섹션 라벨 */
 .vms-drawer .mud-nav-group > .mud-nav-link {
     font-family: var(--vms-font-mono);
-    font-size: 0.62rem;
+    font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.42) !important;
-    border-left-color: transparent !important;
+    color: var(--vms-text-mono-caption) !important;
+    background: transparent !important;
 }
 
 .vms-nav-section {
     font-family: var(--vms-font-mono);
-    font-size: 0.6rem;
+    font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.26em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--vms-text-mono-caption);
     padding: 18px 20px 6px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.vms-nav-section::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.10);
 }
 
 .vms-drawer .mud-divider {
-    border-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--mud-palette-divider) !important;
     margin: 8px 16px !important;
 }
 
-/* ═══════════════ 페이지 타이틀 — 도면 표제란 ═══════════════ */
+/* ═══════ 페이지 타이틀 — 18px/700, 좌측 오렌지 바 제거 (README 공통 셸) ═══════ */
 .vms-page-title,
 .vms-page-title.mud-typography {
     font-family: var(--vms-font-display) !important;
     font-weight: 700 !important;
-    font-size: 1.35rem !important;
+    font-size: 18px !important;
     letter-spacing: 0.01em;
     color: var(--mud-palette-text-primary) !important;
-    padding: 2px 0 2px 14px;
-    border-left: 4px solid var(--vms-primary);
-    border-bottom: none;
-    margin-bottom: 22px !important;
+    padding: 0;
+    border: none;
+    margin-bottom: 20px !important;
     display: inline-block;
-    line-height: 1.25;
+    line-height: 1.3;
 }
 
-/* ═══════════════ Stat 카드 — 계측 모듈 ═══════════════ */
+/* ═══════ 요약/KPI 카드 — 그림자 없음, hover 없음 (README) ═══════ */
 .vms-stat-card {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
+    background: var(--mud-palette-surface) !important;
     border: 1px solid var(--vms-hairline) !important;
-    border-radius: var(--vms-radius) !important;
+    border-radius: var(--vms-radius-card) !important;
     box-shadow: none !important;
-    transition: border-color 0.15s var(--vms-ease), box-shadow 0.15s var(--vms-ease);
+    transition: none;
     position: relative;
     overflow: hidden;
 }
 
-.vms-stat-card:hover {
-    border-color: color-mix(in srgb, var(--vms-navy) 40%, var(--vms-hairline)) !important;
-    box-shadow: 0 2px 10px rgba(9, 22, 38, 0.08) !important;
-    transform: none;
-}
-
+/* 좌측 3px 색띠 — 5a 요약 카드 패턴 */
 .vms-stat-card::before {
     content: '';
     position: absolute;
@@ -293,143 +400,137 @@ body {
     height: 100%;
 }
 
-/* 모듈 코너 틱 — 절삭 마크 */
-.vms-stat-card::after {
-    content: '';
-    position: absolute;
-    top: 6px; right: 6px;
-    width: 8px; height: 8px;
-    border-top: 1px solid var(--vms-hairline);
-    border-right: 1px solid var(--vms-hairline);
-    opacity: 0.9;
-}
-
 .vms-stat-card.accent-orange::before { background: var(--vms-primary); }
-.vms-stat-card.accent-green::before { background: var(--mud-palette-success, #1F7A33); }
-.vms-stat-card.accent-red::before { background: var(--mud-palette-error, #C9342B); }
-.vms-stat-card.accent-blue::before { background: var(--vms-navy-2); }
+.vms-stat-card.accent-green::before { background: var(--mud-palette-success); }
+.vms-stat-card.accent-red::before { background: var(--mud-palette-error); }
+.vms-stat-card.accent-blue::before { background: var(--vms-link); }
 
 .vms-stat-icon {
     width: 40px;
     height: 40px;
-    border-radius: var(--vms-radius);
+    border-radius: var(--vms-radius-ctl);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.vms-stat-icon.orange { background: var(--vms-primary-glow); }
-.vms-stat-icon.green { background: rgba(31, 122, 51, 0.10); }
-.vms-stat-icon.red { background: rgba(201, 52, 43, 0.10); }
-.vms-stat-icon.blue { background: rgba(1, 57, 125, 0.10); }
+.vms-stat-icon.orange { background: rgba(255, 122, 61, 0.07); }
+.vms-stat-icon.green { background: rgba(61, 208, 104, 0.14); }
+.vms-stat-icon.red { background: rgba(240, 86, 76, 0.16); }
+.vms-stat-icon.blue { background: rgba(91, 155, 224, 0.07); }
 
+/* 섹션 라벨 — 모노 10px .14em uppercase */
 .vms-stat-label {
     font-family: var(--vms-font-mono) !important;
-    font-size: 0.64rem !important;
+    font-size: 10px !important;
     font-weight: 500 !important;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--mud-palette-text-secondary, #6B7280) !important;
+    color: var(--mud-palette-text-secondary) !important;
 }
 
+/* KPI 수치 — 24px/700 (4b 요약 카드) */
 .vms-stat-value {
     font-family: var(--vms-font-display) !important;
     font-weight: 700 !important;
-    font-size: 1.9rem !important;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
+    font-size: 24px !important;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
-    color: var(--mud-palette-text-primary, #131A24) !important;
+    color: var(--mud-palette-text-primary) !important;
 }
 
 .vms-stat-sub {
-    font-size: 0.75rem !important;
-    color: var(--mud-palette-text-secondary, #6B7280) !important;
+    font-size: 11px !important;
+    color: var(--mud-palette-text-secondary) !important;
 }
 
-/* ═══════════════ 패널 — 상단 네이비 룰의 도면 프레임 ═══════════════ */
+/* ═══════ 패널 (카드) — 테두리만, radius 12px ═══════ */
 .vms-panel {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
+    background: var(--mud-palette-surface) !important;
     border: 1px solid var(--vms-hairline) !important;
-    border-top: 2px solid color-mix(in srgb, var(--vms-navy) 82%, var(--mud-palette-surface, #fff)) !important;
-    border-radius: var(--vms-radius) !important;
+    border-radius: var(--vms-radius-card) !important;
     box-shadow: none !important;
 }
 
+/* 패널 타이틀 — 15px/700, nowrap 필수 (README 타이포그래피) */
 .vms-panel-header {
-    font-family: var(--vms-font-mono) !important;
-    font-weight: 500 !important;
-    font-size: 0.72rem !important;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--mud-palette-text-primary, #00264C) !important;
+    font-family: var(--vms-font-display) !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    text-transform: none;
+    color: var(--mud-palette-text-primary) !important;
 }
 
-/* ═══════════════ 테이블 — 계측 대장 ═══════════════ */
+/* ═══════ 표 — README 표 패턴 ═══════ */
 .vms-table .mud-table {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
+    background: var(--mud-palette-surface) !important;
     border: 1px solid var(--vms-hairline) !important;
-    border-radius: var(--vms-radius) !important;
+    border-radius: var(--vms-radius-card) !important;
     overflow: hidden;
     box-shadow: none !important;
 }
 
+/* 헤더: 모노 10.5px/500/.12em/uppercase #5F6B7E, 하단 헤더 구분선 (9.5px 는 과교정 — 2026-08-12) */
 .vms-table .mud-table-head .mud-table-cell {
     font-family: var(--vms-font-mono) !important;
     font-weight: 500 !important;
-    font-size: 0.64rem !important;
+    font-size: 10.5px !important;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--mud-palette-text-secondary, #6B7280) !important;
-    background: var(--mud-palette-surface, #FFFFFF) !important;
-    border-bottom: 2px solid color-mix(in srgb, var(--vms-navy) 55%, var(--vms-hairline)) !important;
-    padding: 11px 16px !important;
+    color: var(--vms-text-mono-caption) !important;
+    background: var(--mud-palette-surface) !important;
+    border-bottom: 1px solid var(--mud-palette-divider) !important;
+    padding: 14px 20px 10px !important;
 }
 
+/* 행: 13px, 행 구분선, hover 오렌지 7% 틴트 */
 .vms-table .mud-table-body .mud-table-row {
-    border-bottom: 1px solid var(--mud-palette-table-lines, #ECEDEA) !important;
-    transition: background 0.1s var(--vms-ease), box-shadow 0.1s var(--vms-ease);
+    border-bottom: 1px solid var(--mud-palette-table-lines) !important;
+    transition: background 0.13s var(--vms-ease);
 }
 
 .vms-table .mud-table-body .mud-table-row:hover {
-    background: var(--vms-primary-glow) !important;
-    box-shadow: inset 2px 0 0 var(--vms-primary);
+    background: var(--vms-row-hover) !important;
 }
 
 .vms-table .mud-table-body .mud-table-cell {
-    color: var(--mud-palette-text-primary, #131A24) !important;
-    font-size: 0.85rem !important;
-    padding: 9px 16px !important;
+    color: var(--mud-palette-text-primary) !important;
+    font-size: 13px !important;
+    padding: 10px 20px !important;
     border-bottom: none !important;
 }
 
 .vms-table .mud-table-toolbar {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
-    border-bottom: 1px solid var(--mud-palette-table-lines, #ECEDEA) !important;
+    background: var(--mud-palette-surface) !important;
+    border-bottom: 1px solid var(--mud-palette-table-lines) !important;
     padding: 8px 16px !important;
 }
 
+/* 하단 페이지 정보 — 모노 10.5px 4차 톤 */
 .vms-table .mud-table-pagination {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
-    border-top: 1px solid var(--vms-hairline) !important;
+    background: var(--mud-palette-surface) !important;
+    border-top: 1px solid var(--mud-palette-divider) !important;
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
     font-variant-numeric: tabular-nums;
 }
 
-/* ═══════════════ 상태 LED — 원이 아니라 각진 계기등 ═══════════════ */
+/* ═══════ 상태 LED — 8px 원형 (README 3a 클라이언트 상태) ═══════ */
 .vms-status-dot {
     display: inline-block;
-    width: 9px;
-    height: 9px;
-    border-radius: 1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     margin-right: 7px;
     position: relative;
     top: -1px;
 }
 
 .vms-status-dot.online {
-    background: var(--mud-palette-success, #1F7A33);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mud-palette-success, #1F7A33) 35%, transparent),
-                0 0 8px color-mix(in srgb, var(--mud-palette-success, #1F7A33) 55%, transparent);
+    background: var(--mud-palette-success);
     animation: vms-led-breathe 2.4s ease-in-out infinite;
 }
 
@@ -440,15 +541,401 @@ body {
 
 .vms-status-dot.offline {
     background: transparent;
-    border: 1px solid var(--mud-palette-action-default, #A8AEB6);
+    border: 1px solid #8C96A6;
 }
 
-/* ═══════════════ 로그인 — 블루프린트 ═══════════════ */
+/* ═══════ 대시보드 3a — 8fr/4fr 그리드 + 도넛 게이지 + 우측 요약 ═══════ */
+.vms-dash-grid {
+    display: grid;
+    grid-template-columns: 8fr 4fr;
+    gap: 14px;
+    align-items: start;
+}
+
+.vms-dash-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.vms-dash-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.vms-dash-head-sub {
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    margin-top: 2px;
+}
+
+.vms-dash-head-date {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--vms-text-mono-caption);
+    white-space: nowrap;
+}
+
+.vms-dash-link {
+    font-size: 12px;
+    color: var(--vms-link) !important;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: color 0.13s var(--vms-ease);
+}
+
+.vms-dash-link:hover { color: var(--vms-primary) !important; }
+
+.vms-dash-empty {
+    font-size: 12.5px;
+    color: var(--vms-text-mono-caption);
+    padding: 8px 0;
+}
+
+.vms-dash-id { color: var(--vms-link) !important; }
+
+/* 표 보조 모노 값 (IP·시각 등) — 파랑은 식별자(ID) 전용, 나머지는 보조 톤 */
+.vms-mono-dim {
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* MudSimpleTable(plain th/td) — 헤더는 데이터보다 시각적으로 물러나게 */
+.vms-table th {
+    font-family: var(--vms-font-mono);
+    font-weight: 500 !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption) !important;
+    border-bottom: 1px solid var(--mud-palette-divider) !important;
+    padding: 12px 16px 8px !important;
+    text-align: left;
+}
+
+.vms-table td {
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+    border-bottom: 1px solid var(--mud-palette-table-lines) !important;
+    padding: 10px 16px !important;
+}
+
+.vms-table tbody tr { transition: background 0.13s var(--vms-ease); }
+.vms-table tbody tr:hover { background: var(--vms-row-hover); }
+.vms-table tbody tr:last-of-type td { border-bottom: none !important; }
+
+/* 7일 트렌드 — SVG 직접 구현 (선 2.5 round + 그리드 #1E293C + 축 모노 9px + 최신 지점 원) */
+.vms-trend-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.vms-trend-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-trend-key i {
+    display: inline-block;
+    width: 10px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.vms-trend-key i.total { background: #5B9BE0; }
+.vms-trend-key i.pass { background: #3DD068; }
+.vms-trend-key i.ng { background: #F0564C; }
+
+.vms-trend {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 160px auto;            /* 7포인트 데이터에 260px 은 과함 — 카드 ~250px (2026-08-12 지시) */
+    column-gap: 10px;
+    row-gap: 8px;
+    margin-top: 4px;
+}
+
+.vms-trend-y {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    line-height: 1;
+    color: var(--vms-text-mono-caption);
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-trend-plot {
+    position: relative;
+    min-width: 0;
+    margin-right: 4px;                          /* 최신 지점 원이 잘리지 않게 */
+}
+
+.vms-trend-plot svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.vms-trend-grid {
+    stroke: #1E293C;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.vms-trend-line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.vms-trend-line.total { stroke: #5B9BE0; }
+.vms-trend-line.pass { stroke: #3DD068; }
+.vms-trend-line.ng { stroke: #F0564C; }
+
+/* 최신 지점 r=3.5 원 — preserveAspectRatio:none 왜곡을 피해 HTML 도트로 렌더 */
+.vms-trend-dot {
+    position: absolute;
+    left: 100%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.vms-trend-dot.total { background: #5B9BE0; }
+.vms-trend-dot.pass { background: #3DD068; }
+.vms-trend-dot.ng { background: #F0564C; }
+
+.vms-trend-x {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    color: var(--vms-text-mono-caption);
+}
+
+/* 도넛 게이지 — README 3a: 104px, 트랙 #243349, 진행 arc 신호색 + round cap */
+.vms-donut-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.vms-donut {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+.vms-donut-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 500;                           /* Plex Mono Medium — 400은 10px에서 획이 너무 가늘다 */
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary);   /* #8C96A6 — 4차 톤은 너무 흐림 (2026-08-12 지시) */
+}
+
+.vms-donut-svg {
+    position: relative;
+    width: 104px;
+    height: 104px;
+}
+
+.vms-donut-svg svg { display: block; }
+
+.vms-donut-track {
+    fill: none;
+    stroke: #243349;
+    stroke-width: 8;
+}
+
+.vms-donut-arc {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.vms-donut-arc.green { stroke: #3DD068; }
+.vms-donut-arc.orange { stroke: #FF7A3D; }
+.vms-donut-arc.blue { stroke: #5B9BE0; }
+.vms-donut-arc.red { stroke: #F0564C; }
+
+.vms-donut-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--vms-font-display);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-donut-sub {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* 최근 알람 — 모노 시각 + 레벨 배지 + 12.5px 본문 */
+.vms-alarm-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.vms-alarm-row:last-of-type { border-bottom: none; }
+
+.vms-alarm-time {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--vms-text-mono-caption);
+    white-space: nowrap;
+}
+
+.vms-lvl-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-lvl-badge.crit { background: rgba(240, 86, 76, 0.16); color: #F0564C; }
+.vms-lvl-badge.warn { background: rgba(138, 110, 55, 0.22); color: #C2A469; }
+.vms-lvl-badge.info { background: rgba(91, 155, 224, 0.14); color: #5B9BE0; }
+
+.vms-alarm-text {
+    font-size: 12.5px;
+    color: var(--mud-palette-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.vms-alarm-summary {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* 예정 보전 — 8px 원형 아웃라인(2px 테두리, 색 = 우선도) */
+.vms-maint-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.vms-maint-row:last-of-type { border-bottom: none; }
+
+.vms-maint-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid;
+    margin-top: 5px;
+}
+
+.vms-maint-dot.ok { border-color: #3DD068; }
+.vms-maint-dot.soon { border-color: #E0A32E; }
+.vms-maint-dot.overdue { border-color: #F0564C; }
+
+.vms-maint-body { min-width: 0; }
+
+.vms-maint-title {
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-maint-sub {
+    font-size: 11px;
+    color: var(--vms-text-mono-caption);
+    margin-top: 1px;
+}
+
+/* 금일 라인별 검사 실적 — 라인번호(모노 파랑) + 이름 + 검사·NG + NG율 */
+.vms-line-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--mud-palette-table-lines);
+}
+
+.vms-line-row:last-of-type { border-bottom: none; }
+
+.vms-line-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-line-counts {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-line-ngrate {
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mud-palette-text-secondary);
+    min-width: 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-line-ngrate.bad { color: #F0564C; }
+
+@media (max-width: 1100px) {
+    .vms-dash-grid { grid-template-columns: 1fr; }
+    .vms-donut-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ═══════ 로그인 — 4a (이 화면은 테마 무관 다크 고정 배경) ═══════ */
 .vms-login-bg {
     min-height: 100vh;
     background:
-        radial-gradient(1100px 620px at 78% -10%, rgba(1, 57, 125, 0.55), transparent 60%),
-        linear-gradient(160deg, #001830 0%, #00264C 55%, #012A55 100%);
+        radial-gradient(700px 500px at 75% -10%, rgba(1, 57, 125, 0.45), transparent 60%),
+        radial-gradient(500px 400px at 10% 110%, rgba(255, 122, 61, 0.08), transparent 60%),
+        #0C121D;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -456,40 +943,34 @@ body {
     overflow: hidden;
 }
 
-/* 도면 격자 — 24px 세선 + 120px 주선 */
+/* 도면 기준점 — 좌하단(오렌지) + 우상단(화이트 12%) 조준 십자 */
 .vms-login-bg::before {
     content: '';
     position: absolute;
-    inset: 0;
-    background-image:
-        linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
-        linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
-    background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
-    mask-image: radial-gradient(900px 700px at 50% 45%, #000 30%, transparent 85%);
-    -webkit-mask-image: radial-gradient(900px 700px at 50% 45%, #000 30%, transparent 85%);
+    right: 48px; top: 48px;
+    width: 48px; height: 48px;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    pointer-events: none;
 }
 
-/* 조준 십자 — 좌하단 장식 (도면 기준점) */
 .vms-login-bg::after {
     content: '';
     position: absolute;
     left: 48px; bottom: 48px;
-    width: 56px; height: 56px;
-    border-left: 1px solid rgba(255, 103, 36, 0.55);
-    border-bottom: 1px solid rgba(255, 103, 36, 0.55);
+    width: 48px; height: 48px;
+    border-left: 1px solid rgba(255, 122, 61, 0.5);
+    border-bottom: 1px solid rgba(255, 122, 61, 0.5);
     pointer-events: none;
 }
 
 .vms-login-card {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
-    border: none !important;
-    border-top: 3px solid var(--vms-primary) !important;
-    border-radius: var(--vms-radius) !important;
-    box-shadow: 0 24px 80px rgba(0, 10, 25, 0.5) !important;
+    background: #151E2E !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
     position: relative;
     z-index: 1;
     animation: vms-card-in 0.5s var(--vms-ease) both;
@@ -500,92 +981,2125 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* 로그인 카드 내부 텍스트는 다크 고정 (라이트 팔레트 영향 차단) */
+.vms-login-card, .vms-login-card .mud-input, .vms-login-card .mud-input-label {
+    color: #E6ECF5;
+}
+
 .vms-login-logo {
     font-family: var(--vms-font-display);
     font-weight: 800;
-    font-size: 2.1rem;
+    font-size: 30px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     text-align: center;
     line-height: 1.1;
 }
 
-.vms-login-logo .navy { color: var(--mud-palette-text-primary, #00264C); }
-.vms-login-logo .orange { color: var(--vms-primary); }
+.vms-login-logo .navy { color: #E6ECF5; }
+.vms-login-logo .accent { color: var(--vms-primary); }
 
 .vms-login-subtitle {
     font-family: var(--vms-font-mono);
-    font-size: 0.62rem;
+    font-size: 10px;
     font-weight: 400;
     letter-spacing: 0.34em;
-    color: var(--mud-palette-text-secondary, #8A919C);
+    color: #8C96A6;
     text-transform: uppercase;
     text-align: center;
 }
 
-/* ═══════════════ 칩 / 판정 ═══════════════ */
-.mud-chip {
-    font-family: var(--vms-font-display) !important;
-    border-radius: var(--vms-radius) !important;
+/* 카드 내부 패딩 40px 36px 32px (README 4a) */
+.vms-login-content.mud-card-content { padding: 40px 36px 32px; }
+
+/* 외부 라벨 — 모노 10px .14em uppercase (floating label 대체) */
+.vms-field-label {
+    display: block;
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8C96A6;
+    margin-bottom: 7px;
 }
 
+.vms-login-field { margin-bottom: 16px; }
+
+/* 입력 — #0C121D + radius 10, 포커스 시 오렌지 테두리 + 3px 글로우 (다크 고정) */
+.vms-login-input .mud-input.mud-input-outlined {
+    background: #0C121D;
+    border-radius: 10px;
+    transition: box-shadow 0.13s var(--vms-ease);
+}
+
+.vms-login-input .mud-input.mud-input-outlined input {
+    color: #E6ECF5;
+    padding: 12px 14px;
+}
+
+.vms-login-input .mud-input-outlined-border {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px;
+}
+
+.vms-login-input .mud-input.mud-input-outlined:focus-within {
+    box-shadow: 0 0 0 3px rgba(255, 122, 61, 0.12);
+}
+
+.vms-login-input .mud-input.mud-input-outlined:focus-within .mud-input-outlined-border {
+    border-color: #FF7A3D !important;
+}
+
+.vms-login-input .mud-input-adornment .mud-icon-button { color: #8C96A6; }
+
+/* 로그인 버튼 — 전폭 14px/700 .08em, padding 14px (README 4a) */
+.vms-login-submit {
+    padding: 14px !important;
+    font-size: 14px !important;
+    letter-spacing: 0.08em !important;
+    margin-top: 8px;
+}
+
+.vms-login-register { text-align: center; margin-top: 18px; }
+
+.vms-login-register-link {
+    font-size: 12.5px;
+    color: var(--vms-link) !important;
+}
+
+/* 하단 — 구분선 + 모노 9px .16em 버전·안내 */
+.vms-login-footer {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    text-align: center;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #5F6B7E;
+}
+
+/* ═══════ 칩 ═══════ */
+/* MudChip radius 6px — 명시 덮어쓰기 (2026-08-12 지시) */
+.mud-chip {
+    font-family: var(--vms-font-display) !important;
+    border-radius: var(--vms-radius-chip) !important;
+}
+
+/* 판정 칩 — 모노 10.5px, radius 5px, padding 3px 8px (README 표 패턴) */
 .vms-chip-pass {
-    background: rgba(31, 122, 51, 0.10) !important;
-    color: var(--mud-palette-success, #1F7A33) !important;
-    font-weight: 600 !important;
-    font-size: 0.74rem !important;
+    background: rgba(61, 208, 104, 0.14) !important;
+    color: #3DD068 !important;
+    font-family: var(--vms-font-mono) !important;
+    font-weight: 500 !important;
+    font-size: 10.5px !important;
+    border-radius: var(--vms-radius-judge) !important;
+    padding: 3px 8px !important;
     letter-spacing: 0.06em;
 }
 
 .vms-chip-ng {
-    background: rgba(201, 52, 43, 0.10) !important;
-    color: var(--mud-palette-error, #C9342B) !important;
-    font-weight: 700 !important;
-    font-size: 0.74rem !important;
+    background: rgba(240, 86, 76, 0.16) !important;
+    color: #F0564C !important;
+    font-family: var(--vms-font-mono) !important;
+    font-weight: 500 !important;
+    font-size: 10.5px !important;
+    border-radius: var(--vms-radius-judge) !important;
+    padding: 3px 8px !important;
     letter-spacing: 0.06em;
 }
 
-/* ---- Filter Bar ---- */
+/* ---- Filter Bar — 카드 패턴 (README 필터 바) ---- */
 .vms-filter-bar {
-    background: var(--mud-palette-surface, #FFFFFF) !important;
+    background: var(--mud-palette-surface) !important;
     border: 1px solid var(--vms-hairline) !important;
-    border-radius: var(--vms-radius) !important;
+    border-radius: var(--vms-radius-card) !important;
     box-shadow: none !important;
 }
 
-/* ---- Monospace 수치 ---- */
-.vms-mono {
+/* 필터 바 패턴 (README) — 외부 모노 라벨 + flex align-end */
+.vms-filter-flex {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+}
+
+.vms-filter-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 170px;
+}
+
+.vms-filter-field.wide { min-width: 240px; }
+
+/* 검색 등 placeholder 가 긴 필드 — 잘림 방지 (2026-08-13 피드백) */
+.vms-filter-field.xwide { min-width: 400px; }
+
+.vms-filter-label {
     font-family: var(--vms-font-mono);
-    font-size: 0.8rem;
-    color: var(--mud-palette-secondary, #01397D);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+    margin-bottom: 6px;
+}
+
+/* 요약 4카드 — 모노 라벨 + 24px/700 수치 (README 4b) */
+.vms-sum-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.vms-sum-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+}
+
+.vms-sum-label {
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-sum-value {
+    font-family: var(--vms-font-display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--mud-palette-text-primary);
     font-variant-numeric: tabular-nums;
 }
 
-/* ---- 버튼 — 절삭 모서리 + 디스플레이체 ---- */
+/* good/bad — green/red 는 MudBlazor 팔레트 헬퍼(배경 !important)와 충돌하므로 사용 금지 */
+.vms-sum-value.good { color: var(--mud-palette-success); }
+.vms-sum-value.bad { color: var(--mud-palette-error); }
+
+@media (max-width: 900px) {
+    .vms-sum-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 표 행 액션 텍스트 — #5B9BE0 (README 공통) */
+.vms-row-action {
+    color: var(--vms-link) !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    min-width: 0 !important;
+    padding: 2px 8px !important;
+}
+
+.vms-row-action:hover { color: var(--vms-primary) !important; background: transparent !important; }
+
+/* 페이지네이션 — 좌 모노 정보, 우 페이지 버튼(활성 오렌지 / 비활성 테두리형) */
+.vms-pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    width: 100%;
+}
+
+.vms-pager-info {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+
+.vms-pager-btns { display: flex; gap: 6px; }
+
+.vms-pager-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    border-radius: 8px;
+    border: 1px solid var(--mud-palette-lines-inputs);
+    background: transparent;
+    color: var(--mud-palette-text-secondary);
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 0.13s var(--vms-ease), border-color 0.13s var(--vms-ease);
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-pager-btn:hover:not(:disabled):not(.active) {
+    color: var(--vms-primary);
+    border-color: var(--vms-primary);
+}
+
+.vms-pager-btn.active {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    border-color: transparent;
+    font-weight: 700;
+    cursor: default;
+}
+
+.vms-pager-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ---- 5a 알람 관리 ---- */
+
+/* 페이지 헤더 — 좌: 타이틀+부제(최근 24시간 건수), 우: '모두 확인' */
+.vms-page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.vms-page-head .vms-page-title,
+.vms-page-head .vms-page-title.mud-typography {
+    display: block;
+    margin-bottom: 2px !important;
+}
+
+.vms-page-sub {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--vms-text-mono-caption);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 요약 3카드 — 좌측 3px 색띠는 반드시 3색 구분 (README 5a) */
+.vms-sum-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 900px) {
+    .vms-sum-grid.cols-3 { grid-template-columns: 1fr; }
+}
+
+/* 색 이름 클래스(orange/red 등)는 MudBlazor 팔레트 헬퍼와 충돌 — band-* 로 명명 */
+.vms-sum-card.band-new { border-left: 3px solid var(--vms-primary) !important; }
+.vms-sum-card.band-ack { border-left: 3px solid var(--vms-link) !important; }
+
+.vms-sum-card.band-crit {
+    border: 1px solid rgba(240, 86, 76, 0.32) !important;
+    border-left: 3px solid #F0564C !important;
+    background: rgba(240, 86, 76, 0.09) !important;
+}
+
+.vms-sum-card.band-crit .vms-sum-label,
+.vms-sum-card.band-crit .vms-sum-value { color: #F0564C; }
+
+/* 심각도 모노 배지 — CRITICAL / MAJOR / MINOR */
+.vms-sev-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-sev-badge.crit { background: rgba(240, 86, 76, 0.16); color: #F0564C; }
+.vms-sev-badge.warn { background: rgba(138, 110, 55, 0.22); color: #C2A469; }
+.vms-sev-badge.info { background: rgba(91, 155, 224, 0.14); color: #5B9BE0; }
+
+/* 유형 연한 칩 */
+.vms-type-chip {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--vms-hairline);
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+/* 처리 상태 칩 — 신규 오렌지 / 확인 블루 / 해제 그린 */
+.vms-state-chip {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-state-chip.st-new { background: rgba(255, 122, 61, 0.16); color: var(--vms-primary); }
+.vms-state-chip.st-ack { background: rgba(91, 155, 224, 0.14); color: var(--vms-link); }
+.vms-state-chip.st-res { background: rgba(61, 208, 104, 0.14); color: #3DD068; }
+
+/* 내용 셀 — 제목 13px/600 + 메시지 11.5px 2행 클램프 */
+.vms-cell-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-cell-msg {
+    font-size: 11.5px;
+    color: var(--mud-palette-text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 320px;
+    white-space: normal;
+}
+
+/* 확인/해제 셀 — 이름 + 모노 시각, 조치 내용은 그린 */
+.vms-cell-who { font-size: 12px; color: var(--mud-palette-text-primary); }
+
+.vms-cell-when {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-cell-resolution {
+    font-size: 11.5px;
+    color: #3DD068;
+    margin-top: 2px;
+    max-width: 220px;
+    white-space: normal;
+}
+
+.vms-cell-empty { color: var(--vms-text-mono-caption); }
+
+/* ---- 5b 클라이언트 관리 ---- */
+
+/* 본문 7fr/5fr — 좌 표 / 우 레시피 구성 트리 */
+.vms-cm-grid {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 14px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .vms-cm-grid { grid-template-columns: 1fr; }
+}
+
+/* 순번 — 8px LED 뒤 모노 블루 #01 */
+.vms-cm-index {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    color: var(--vms-link);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 트리에 표시 중인 클라이언트 행 강조 */
+.vms-table .mud-table-row.vms-cm-row-sel { background: rgba(255, 122, 61, 0.06); }
+
+/* 표 하단 슬롯 안내 — 모노 10.5px */
+.vms-slots-info {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
+    padding: 12px 20px;
+    letter-spacing: 0.04em;
+}
+
+/* 삭제 등 파괴 액션 텍스트 */
+.vms-row-action.danger { color: #F0564C !important; }
+.vms-row-action.danger:hover { color: #FF7A6B !important; }
+
+/* 레시피 구성 트리 — MudTreeView 대체 커스텀 스타일 (README 5b) */
+.vms-rt-recipe {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 8px 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--mud-palette-text-primary);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    border-radius: 0 8px 8px 0;
+}
+
+.vms-rt-recipe:hover { background: rgba(255, 122, 61, 0.05); }
+
+.vms-rt-recipe.sel {
+    background: rgba(255, 122, 61, 0.08);
+    border-left: 2px solid var(--vms-primary);
+}
+
+.vms-rt-caret { color: var(--vms-text-mono-caption); font-size: 12px; width: 14px; }
+.vms-rt-caret.open { color: var(--vms-primary); }
+
+/* 스텝 없는 레시피 — 펼침 불가, 커서·hover 배경 없음 */
+.vms-rt-recipe.leaf { cursor: default; }
+.vms-rt-recipe.leaf:hover { background: transparent; }
+
+.vms-rt-desc {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-rt-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-rt-stepbadge {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--vms-text-mono-caption);
+    white-space: nowrap;
+}
+
+.vms-rt-step {
+    padding: 5px 12px 5px 32px;
+    font-size: 13px;
+    color: #C9D3E0;
+}
+
+.vms-rt-step-caret { color: var(--vms-link); font-size: 11px; margin-right: 4px; }
+
+.vms-rt-tool {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 12px 3px 56px;
+    font-size: 12.5px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-rt-tool-marker {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    background: var(--vms-text-mono-caption);
+    flex: 0 0 auto;
+}
+
+/* ---- 6a SPC 관리도 ---- */
+
+.vms-sum-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+@media (max-width: 1200px) {
+    .vms-sum-grid.cols-5 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .vms-sum-grid.cols-5 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* SPC 수치는 모노 20–22px (README 6a) */
+.vms-sum-value.mono {
+    font-family: var(--vms-font-mono);
+    font-size: 21px;
+    letter-spacing: -0.01em;
+}
+
+.vms-sum-sub {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-sum-unit {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 4px;
+    font-family: var(--vms-font-display);
+}
+
+/* 파라미터 셀렉트 — 규격 설정됨 그린 라벨 */
+.vms-spec-set {
+    font-size: 12px;
+    color: #3DD068;
+    margin-left: 8px;
+}
+
+/* 정보/경고 배너 — 좌측 모노 라벨 + 본문 (README 정보 배너 패턴) */
+.vms-banner {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.vms-banner.info {
+    background: rgba(91, 155, 224, 0.07);
+    border: 1px solid rgba(91, 155, 224, 0.28);
+}
+
+.vms-banner.info .vms-banner-label { color: #5B9BE0; }
+
+.vms-banner.warn {
+    background: rgba(224, 163, 46, 0.07);
+    border: 1px solid rgba(224, 163, 46, 0.28);
+}
+
+.vms-banner.warn .vms-banner-label { color: #E0A32E; }
+
+.vms-banner-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+}
+
+.vms-banner-text {
+    font-size: 12.5px;
+    color: #C9D3E0;
+}
+
+/* 관리도 패널 헤더 — 우측 모노 11px UCL/CL/LCL */
+.vms-spc-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.vms-spc-limits {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* 관리도 플롯 — SVG 데이터 라인 + HTML 오버레이(한계선·점·이탈 라벨) */
+.vms-spc-chart {
+    position: relative;
+    height: 240px;
+    margin: 6px 4px 2px;
+}
+
+.vms-spc-chart svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.vms-spc-grid {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px solid #1E293C;
+}
+
+/* UCL/LCL — 적 점선, CL — 블루 실선 (README 6a) */
+.vms-spc-limit {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed #F0564C;
+}
+
+.vms-spc-center {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px solid #5B9BE0;
+}
+
+.vms-spc-line {
+    fill: none;
+    stroke: #E6ECF5;
+    stroke-width: 1.6;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.vms-spc-pt {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8C96A6;
+    transform: translate(-50%, -50%);
+}
+
+/* 관리 이탈점만 반경 5 적색 + 위 모노 10px 라벨 */
+.vms-spc-pt.ooc {
+    width: 10px;
+    height: 10px;
+    background: #F0564C;
+}
+
+.vms-spc-ooc-label {
+    position: absolute;
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    color: #F0564C;
+    white-space: nowrap;
+    transform: translate(-50%, -190%);
+}
+
+.vms-spc-x {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 4px 0;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    color: var(--vms-text-mono-caption);
+}
+
+/* ---- 6b OEE 분석 — 저채도 팔레트 (카드 다수 배치, 원색 금지) ---- */
+
+.vms-oee-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(340px, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 760px) {
+    .vms-oee-grid { grid-template-columns: 1fr; }
+}
+
+.vms-oee-card {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 등급 — 상단 3px 띠 + 대형 수치 색 (테두리는 진한 톤, 텍스트는 밝은 톤) */
+.vms-oee-card.g-ok   { border-top: 3px solid #4E8C63 !important; }
+.vms-oee-card.g-info { border-top: 3px solid #3C5F80 !important; }
+.vms-oee-card.g-warn { border-top: 3px solid #8A6E37 !important; }
+.vms-oee-card.g-bad  { border-top: 3px solid #A8443C !important; }
+
+.vms-oee-card.g-ok   .vms-oee-value { color: #7FA98C; }
+.vms-oee-card.g-info .vms-oee-value { color: #7FA6CC; }
+.vms-oee-card.g-warn .vms-oee-value { color: #C9A05A; }
+.vms-oee-card.g-bad  .vms-oee-value { color: #C4756E; }
+
+.vms-oee-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vms-oee-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-oee-idx {
+    font-family: var(--vms-font-mono);
+    color: var(--vms-link);
+}
+
+.vms-oee-big {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.vms-oee-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-oee-value {
+    font-family: var(--vms-font-mono);
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* A / P / Q 3분할 */
+.vms-oee-apq {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.vms-oee-apq-cell {
+    background: #0C121D;
+    border-radius: 8px;
+    padding: 9px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.vms-oee-apq-label {
+    font-size: 10px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.vms-oee-apq-value {
+    font-family: var(--vms-font-mono);
+    font-size: 16px;
+    color: #E6ECF5;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 상태 분포 스택 바 — 가동/대기/정지 저채도 */
+.vms-oee-bar {
+    display: flex;
+    height: 14px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #243349;
+}
+
+.vms-oee-bar .seg.run  { background: #4E8C63; }
+.vms-oee-bar .seg.idle { background: #8A6E37; }
+.vms-oee-bar .seg.down { background: #A8443C; }
+
+.vms-oee-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10.5px;
+}
+
+.vms-oee-legend .run  { color: #7FA98C; }
+.vms-oee-legend .idle { color: #B39A6A; }
+.vms-oee-legend .down { color: #C4756E; }
+
+.vms-oee-foot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--mud-palette-text-primary);
+    border-top: 1px solid var(--vms-hairline);
+    padding-top: 10px;
+    margin-top: 2px;
+}
+
+.vms-oee-foot .pass { color: #7FA98C; }
+.vms-oee-foot .ng   { color: #C4756E; }
+
+/* ---- 12b 승인 관리 — 역할 승인 버튼·역할 칩·상태 LED·임시 비밀번호 ---- */
+
+/* 헤더 우측 부제 — 모노 캡션 */
+.vms-appr-pagesub {
+    font-family: var(--vms-font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--vms-text-mono-caption);
+    white-space: nowrap;
+}
+
+/* 대기 탭 인라인 배지 — 앰버 (경고이지 오류가 아님) */
+.vms-tab-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(138, 110, 55, 0.22);
+    color: #C2A469;
+    padding: 1px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+}
+
+/* 승인 관리 표 — 시안 밀도(행 높이 여유) + 사용자명/이름 강조 */
+.vms-appr-table .mud-table-cell {
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+}
+
+.vms-appr-id {
+    font-family: var(--vms-font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--vms-link);
+}
+
+.vms-appr-id.w500 { font-weight: 500; }
+
+.vms-appr-name { font-size: 14.5px; font-weight: 600; color: var(--mud-palette-text-primary); }
+
+/* 역할 지정 승인 버튼 — 전부 아웃라인, 모노, 테두리 색으로만 강도 구분 (시안 크기) */
+.vms-role-btn {
+    font-family: var(--vms-font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 9px 20px;
+    margin-left: 8px;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.13s var(--vms-ease);
+}
+
+.vms-role-btn.guest { border: 1px solid rgba(255, 255, 255, 0.28); color: #C9D3E0; }
+.vms-role-btn.user  { border: 1px solid #7FA6CC; color: #7FA6CC; }
+.vms-role-btn.admin { border: 1px solid var(--vms-primary); color: var(--vms-primary); }
+
+.vms-role-btn.guest:hover { background: rgba(255, 255, 255, 0.06); }
+.vms-role-btn.user:hover  { background: rgba(127, 166, 204, 0.1); }
+.vms-role-btn.admin:hover { background: rgba(255, 122, 61, 0.1); }
+
+/* 거부 — 세로 구분선 뒤 레드 텍스트 */
+.vms-appr-reject {
+    font-size: 14px;
+    font-weight: 700;
+    color: #C4756E;
+    background: transparent;
+    border: none;
+    padding: 9px 10px;
+    cursor: pointer;
+    transition: color 0.13s var(--vms-ease);
+}
+
+.vms-appr-reject:hover { color: #DE857D; }
+
+.vms-vdiv {
+    display: inline-block;
+    width: 1px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.14);
+    margin: 0 8px 0 14px;
+    vertical-align: middle;
+}
+
+/* 역할 칩 — 전부 아웃라인 모노 대문자. 클릭 가능한 칩은 ▼ 포함 렌더 */
+.vms-role-chip {
+    display: inline-block;
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 5px 14px;
+    border-radius: 7px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.vms-role-chip.admin   { border: 1px solid var(--vms-primary); color: var(--vms-primary); }
+.vms-role-chip.user    { border: 1px solid #7FA6CC; color: #7FA6CC; }
+.vms-role-chip.guest   { border: 1px solid #8C96A6; color: #8C96A6; }
+.vms-role-chip.pending { border: 1px solid #C2A469; color: #C2A469; cursor: default; }
+
+/* 상태 — 8px LED + 12px 텍스트 (저채도) */
+.vms-appr-led {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 7px;
+}
+
+.vms-appr-led.on  { background: #4E8C63; }
+.vms-appr-led.off { background: transparent; border: 1px solid #8C96A6; }
+
+.vms-appr-state { font-size: 12px; }
+.vms-appr-state.on  { color: #7FA98C; }
+.vms-appr-state.off { color: #8C96A6; }
+
+/* admin 계정 — 액션 대신 잠금 사유 표기 */
+.vms-admin-locked {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: #5F6B7E;
+}
+
+/* 임시 비밀번호 다이얼로그 — 복사 가능한 모노 텍스트 */
+.vms-temp-user { font-size: 13.5px; font-weight: 600; color: var(--mud-palette-text-primary); }
+
+.vms-temp-pw {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #0C121D;
+    border: 1px solid var(--vms-hairline);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.vms-temp-pw .pw {
+    flex: 1;
+    font-family: var(--vms-font-mono);
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    color: var(--mud-palette-text-primary);
+    user-select: all;
+}
+
+/* ---- 10a/11a/11b 설비 다수(13대+) 표 모드 — 요약 밴드 + 스크롤 표 + 스파크라인 ---- */
+
+/* 요약 밴드 — vms-sum-card 재사용, 목표 미달 카드만 등급 색 강조 */
+.vms-flt-alert.g70 {
+    background: rgba(138, 110, 55, 0.1) !important;
+    border-color: rgba(138, 110, 55, 0.35) !important;
+}
+
+.vms-flt-alert.g70 .vms-sum-label,
+.vms-flt-alert.g70 .vms-sum-value { color: #C9A05A; }
+
+.vms-flt-alert.g-bad {
+    background: rgba(168, 68, 60, 0.1) !important;
+    border-color: rgba(168, 68, 60, 0.35) !important;
+}
+
+.vms-flt-alert.g-bad .vms-sum-label,
+.vms-flt-alert.g-bad .vms-sum-value { color: #C4756E; }
+
+/* 스크롤 표 — 헤더는 컨테이너 '안'에서 sticky (스크롤바 폭 어긋남 방지) */
+.vms-flt-scroll {
+    max-height: 484px;
+    overflow-y: auto;
+}
+
+.vms-flt-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.vms-flt-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--mud-palette-surface);
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+    text-align: left;
+    height: 36px;
+    padding: 0 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    white-space: nowrap;
+}
+
+.vms-flt-table thead th.num { text-align: right; }
+
+.vms-flt-table tbody td {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+}
+
+.vms-flt-table tbody tr { transition: background 0.13s var(--vms-ease); }
+.vms-flt-table tbody tr:hover { background: rgba(255, 122, 61, 0.06); }
+
+/* 목표 미달 행 — 색띠·틴트·수치 모두 같은 등급 함수에서 파생 */
+.vms-flt-table tbody tr.below.g70 {
+    box-shadow: inset 3px 0 0 #8A6E37;
+    background: rgba(138, 110, 55, 0.06);
+}
+
+.vms-flt-table tbody tr.below.g-bad {
+    box-shadow: inset 3px 0 0 #A8443C;
+    background: rgba(168, 68, 60, 0.07);
+}
+
+.vms-flt-table tbody tr.below.g85 {
+    box-shadow: inset 3px 0 0 #3C5F80;
+    background: rgba(60, 95, 128, 0.07);
+}
+
+.vms-flt-num {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.vms-flt-dim { color: var(--vms-text-mono-caption); }
+
+/* 게이지 셀 — 바+수치, 등급 단일 소스 */
+.vms-flt-gauge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+}
+
+.vms-flt-gauge .track {
+    flex: 1;
+    height: 5px;
+    border-radius: 3px;
+    background: #243349;
+    overflow: hidden;
+}
+
+.vms-flt-gauge .fill { height: 100%; border-radius: 3px; }
+
+.vms-flt-gauge.g95 .fill,  .vms-flt-gauge.g-ok .fill  { background: #4E8C63; }
+.vms-flt-gauge.g85 .fill                               { background: #3C5F80; }
+.vms-flt-gauge.g70 .fill,  .vms-flt-gauge.g-warn .fill { background: #8A6E37; }
+.vms-flt-gauge.g-bad .fill                             { background: #A8443C; }
+
+.vms-flt-gauge .val {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    min-width: 52px;
+    text-align: right;
+}
+
+.vms-flt-gauge.g95 .val,  .vms-flt-gauge.g-ok .val  { color: #7FA98C; }
+.vms-flt-gauge.g85 .val                              { color: #7FA6CC; }
+.vms-flt-gauge.g70 .val,  .vms-flt-gauge.g-warn .val { color: #C9A05A; }
+.vms-flt-gauge.g-bad .val                            { color: #C4756E; }
+
+/* 행 끝 스파크라인 — 86×22, 등급 색, opacity .85 */
+.vms-flt-spark { width: 86px; height: 22px; display: block; }
+
+.vms-flt-spark polyline {
+    fill: none;
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    opacity: 0.85;
+}
+
+.vms-flt-spark.g95 polyline,  .vms-flt-spark.g-ok polyline  { stroke: #4E8C63; }
+.vms-flt-spark.g85 polyline                                  { stroke: #3C5F80; }
+.vms-flt-spark.g70 polyline,  .vms-flt-spark.g-warn polyline { stroke: #8A6E37; }
+.vms-flt-spark.g-bad polyline                                { stroke: #A8443C; }
+
+/* 11b 상태 분포 미니 스택 바 */
+.vms-flt-stack {
+    display: flex;
+    width: 120px;
+    height: 10px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #243349;
+}
+
+.vms-flt-stack .seg.run  { background: #4E8C63; }
+.vms-flt-stack .seg.idle { background: #8A6E37; }
+.vms-flt-stack .seg.down { background: #A8443C; }
+
+/* ---- 9f 신뢰성 분석 — MTBF/MTTR 라인 카드 (저채도 가용률 등급) ---- */
+
+.vms-rel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 1100px) {
+    .vms-rel-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+    .vms-rel-grid { grid-template-columns: 1fr; }
+}
+
+.vms-rel-card {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 상단 3px 색띠 + 가용률 텍스트 톤 — 등급별 (≥95/≥85/≥70/미달) */
+.vms-rel-card.g95   { border-top: 3px solid #4E8C63 !important; }
+.vms-rel-card.g85   { border-top: 3px solid #3C5F80 !important; }
+.vms-rel-card.g70   { border-top: 3px solid #8A6E37 !important; }
+.vms-rel-card.g-bad { border-top: 3px solid #A8443C !important; }
+
+.vms-rel-card.g95   .vms-rel-avail-value { color: #7FA98C; }
+.vms-rel-card.g85   .vms-rel-avail-value { color: #7FA6CC; }
+.vms-rel-card.g70   .vms-rel-avail-value { color: #C9A05A; }
+.vms-rel-card.g-bad .vms-rel-avail-value { color: #C4756E; }
+.vms-rel-card.g-none .vms-rel-avail-value { color: var(--vms-text-mono-caption); }
+
+.vms-rel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vms-rel-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-rel-fail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.vms-rel-fail-count {
+    font-family: var(--vms-font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-rel-fail-count.ok  { color: #7FA98C; }
+.vms-rel-fail-count.bad { color: #C4756E; }
+
+/* MTBF/MTTR 2분할 */
+.vms-rel-duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.vms-rel-duo-cell {
+    background: #0C121D;
+    border-radius: 8px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.vms-rel-duo-label {
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-rel-duo-value {
+    font-family: var(--vms-font-mono);
+    font-size: 20px;
+    color: #E6ECF5;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-rel-duo-desc { font-size: 10px; color: var(--mud-palette-text-secondary); }
+
+/* 가용률 박스 */
+.vms-rel-avail {
+    background: rgba(60, 95, 128, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.vms-rel-avail-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-rel-avail-value {
+    font-family: var(--vms-font-mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-rel-foot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    border-top: 1px solid var(--vms-hairline);
+    padding-top: 10px;
+    margin-top: 2px;
+}
+
+.vms-rel-foot .run  { color: #7FA98C; }
+.vms-rel-foot .down { color: #C4756E; }
+
+/* ---- 9e 수요 예측 — 예측 카드 + 실적 대조/잔차 관리도 ---- */
+
+.vms-fc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 1100px) {
+    .vms-fc-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+    .vms-fc-grid { grid-template-columns: 1fr; }
+}
+
+/* 좌측 4px 색띠 = 예측 NG율 등급 (저채도) */
+.vms-fc-card {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.vms-fc-card.g-bad  { border-left: 4px solid #A8443C !important; }
+.vms-fc-card.g-warn { border-left: 4px solid #8A6E37 !important; }
+.vms-fc-card.g-ok   { border-left: 4px solid #4E8C63 !important; }
+
+.vms-fc-card.g-bad  .vms-fc-value { color: #DE857D; }
+.vms-fc-card.g-warn .vms-fc-value { color: #C9A05A; }
+.vms-fc-card.g-ok   .vms-fc-value { color: #7FA98C; }
+
+.vms-fc-card.sel { outline: 1px solid var(--vms-primary); }
+
+.vms-fc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.vms-fc-line {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-fc-recipe {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 6px;
+}
+
+.vms-fc-status {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.vms-fc-status.ok   { background: rgba(78, 140, 99, 0.14); color: #7FA98C; }
+.vms-fc-status.warn { background: rgba(138, 110, 55, 0.2); color: #C2A469; }
+.vms-fc-status.err  { background: rgba(168, 68, 60, 0.18); color: #DE857D; }
+.vms-fc-status.dim  { background: rgba(255, 255, 255, 0.06); color: var(--mud-palette-text-secondary); }
+
+.vms-fc-value {
+    font-family: var(--vms-font-mono);
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-fc-caption { font-size: 11.5px; color: var(--mud-palette-text-secondary); }
+
+/* ok 가 아니면 수치 대신 사유 문장만 — 0% 오독 방지 */
+.vms-fc-reason { font-size: 12.5px; color: #8C96A6; padding: 8px 0 4px; }
+
+.vms-fc-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--vms-text-mono-caption);
+    border-top: 1px solid var(--vms-hairline);
+    padding-top: 8px;
+    margin-top: 2px;
+}
+
+/* 실적 대조 — 실측 실선 + 예측 점선 연장 */
+.vms-fc-line-actual {
+    fill: none;
+    stroke: #7FA6CC;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.vms-fc-line-pred {
+    stroke: #FF7A3D;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 2.4 1.8;
+    stroke-linecap: round;
+}
+
+.vms-fc-pred-pt {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vms-primary);
+    transform: translate(-50%, -50%);
+}
+
+.vms-fc-pred-label {
+    position: absolute;
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--vms-primary);
+    white-space: nowrap;
+    transform: translate(-50%, -170%);
+}
+
+/* 잔차 데이터 라인/이탈점은 SPC 공통 스타일에 저채도 변형만 추가 */
+.vms-spc-line.dim { stroke: #C9D3E0; }
+.vms-spc-pt.ooc.muted { background: #C4756E; }
+
+/* ---- 9d PDF 리포트 — 생성 범위 + 라이트 지면 문서 미리보기 ---- */
+
+/* 계산된 기간 — 잉크 박스에 모노 16px 크게 */
+.vms-rep-period {
+    background: #0C121D;
+    border: 1px solid var(--vms-hairline);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-family: var(--vms-font-mono);
+    font-size: 16px;
+    color: var(--mud-palette-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 포함 내용 — 5px 오렌지 사각 마커 + 13px */
+.vms-rep-includes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.vms-rep-includes li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-rep-includes li::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    background: var(--vms-primary);
+    flex: 0 0 auto;
+}
+
+/* 문서 미리보기 — 라이트 지면 (다크 테마 무관 고정) */
+.vms-paper {
+    background: #F4F5F2;
+    border-radius: 6px;
+    padding: 22px 24px 16px;
+    color: #131A24;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vms-paper-head {
+    border-top: 2px solid #01397D;
+    padding-top: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.vms-paper-logo { font-weight: 800; font-size: 14px; color: #01397D; letter-spacing: 0.02em; }
+.vms-paper-logo .accent { color: #FF6724; }
+.vms-paper-title { font-size: 12px; font-weight: 700; color: #131A24; }
+.vms-paper-period {
+    margin-left: auto;
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    color: #5C6470;
+}
+
+/* KPI 4칸 — 라벨 + 자리표시 블록 */
+.vms-paper-kpi {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.vms-paper-kpi .cell {
+    border: 1px solid #DCDFE3;
+    border-radius: 4px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vms-paper-kpi .lbl { font-size: 8.5px; color: #5C6470; }
+.vms-paper-kpi .ph { height: 10px; border-radius: 2px; background: #C9CDD3; }
+.vms-paper-kpi .ph.w60 { width: 60%; }
+.vms-paper-kpi .ph.w48 { width: 48%; }
+.vms-paper-kpi .ph.w40 { width: 40%; }
+
+.vms-paper-sec {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #01397D;
+    border-bottom: 1px solid #DCDFE3;
+    padding-bottom: 4px;
+}
+
+.vms-paper-bars { display: flex; flex-direction: column; gap: 6px; }
+
+.vms-paper-bars .row { display: flex; align-items: center; gap: 8px; }
+.vms-paper-bars .lbl {
+    font-family: var(--vms-font-mono);
+    font-size: 8.5px;
+    color: #5C6470;
+    width: 24px;
+}
+.vms-paper-bars .bar { height: 8px; border-radius: 2px; background: #01397D; opacity: 0.75; }
+
+.vms-paper-pareto {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 56px;
+    padding: 0 6px;
+}
+
+.vms-paper-pareto .pbar {
+    flex: 1;
+    max-width: 34px;
+    background: #5C7FA6;
+    border-radius: 2px 2px 0 0;
+}
+
+.vms-paper-foot {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #DCDFE3;
+    padding-top: 8px;
+    font-family: var(--vms-font-mono);
+    font-size: 8.5px;
+    color: #5C6470;
+}
+
+.vms-paper-caption {
+    margin-top: 10px;
+    text-align: center;
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    color: var(--vms-text-mono-caption);
+}
+
+/* ---- 9c 설정 — 폼 패턴 기준 (정의 목록·ADMIN 배지·토글) ---- */
+
+.vms-set-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .vms-set-grid { grid-template-columns: 1fr; }
+}
+
+.vms-set-full { grid-column: 1 / -1; }
+
+/* 패널 제목 — 모노 11px .14em uppercase 블루, 아이콘 없이 */
+.vms-set-title {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--vms-link);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vms-admin-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(255, 122, 61, 0.14);
+    color: var(--vms-primary);
+}
+
+/* 정의 목록 — 150px/1fr 행, 마지막 행 구분선 없음 */
+.vms-def-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.vms-def-row:last-child { border-bottom: none; }
+
+.vms-def-label { font-size: 13px; color: #8C96A6; }
+
+.vms-def-value { font-size: 13px; color: var(--mud-palette-text-primary); }
+
+.vms-def-value.mono { font-family: var(--vms-font-mono); }
+
+/* 저장 버튼 — 카드 우측 하단 */
+.vms-set-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+/* 비활성 버튼 — 아웃라인 + 회색 글자 (흐린 오렌지 금지) */
+.vms-btn-muted,
+.vms-btn-muted.mud-button-root.mud-button-disabled {
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    color: #5F6B7E !important;
+    background: transparent !important;
+    opacity: 1 !important;
+}
+
+/* 토글 — 38×22 트랙, 켜짐 오렌지+잉크 노브, 꺼짐 #243349+회색 노브 */
+.vms-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vms-toggle input { display: none; }
+
+.vms-toggle-track {
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: #243349;
+    position: relative;
+    transition: background 0.15s var(--vms-ease);
+    flex: 0 0 auto;
+}
+
+.vms-toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #5F6B7E;
+    transition: transform 0.15s var(--vms-ease), background 0.15s var(--vms-ease);
+}
+
+.vms-toggle input:checked + .vms-toggle-track { background: var(--vms-primary); }
+.vms-toggle input:checked + .vms-toggle-track .vms-toggle-knob {
+    transform: translateX(16px);
+    background: #0C121D;
+}
+
+.vms-toggle-label { font-size: 13.5px; color: var(--mud-palette-text-primary); }
+
+/* ---- 9b 회원가입 — 비밀번호 강도 바 (4분할 3px, 충족 단계만 그린) ---- */
+
+.vms-pw-meter {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.vms-pw-seg {
+    height: 3px;
+    border-radius: 2px;
+    background: #243349;
+    transition: background 0.2s var(--vms-ease);
+}
+
+.vms-pw-seg.on { background: #4E8C63; }
+
+.vms-pw-policy {
+    font-size: 11.5px;
+    color: var(--mud-palette-text-secondary);
+    margin-top: 6px;
+}
+
+/* ---- 8b CRUD 공통 다이얼로그 / 피드백 ---- */
+
+/* 폼 다이얼로그 프레임 — 카드 radius 14, 깊은 그림자, 헤더/푸터 구분선 */
+.mud-dialog {
+    background: var(--mud-palette-surface) !important;
+    border: 1px solid var(--vms-hairline);
+    border-radius: 14px !important;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mud-dialog .mud-dialog-title {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--vms-hairline);
+}
+
+.mud-dialog .mud-dialog-title .mud-typography {
+    font-family: var(--vms-font-display) !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+}
+
+.mud-dialog .mud-dialog-content { padding: 20px 24px 22px !important; }
+
+.mud-dialog .mud-dialog-actions {
+    border-top: 1px solid var(--vms-hairline);
+    padding: 14px 24px !important;
+    gap: 10px;
+}
+
+/* 기본(Small) 다이얼로그 폭 520px */
+.mud-dialog.mud-dialog-width-sm { width: 520px; max-width: 92vw; }
+
+/* 폼 패턴 — 필드 gap 16, 외부 모노 라벨 + 필수 * 오렌지, 짧은 필드 2열 */
+.vms-form { display: flex; flex-direction: column; gap: 16px; }
+
+.vms-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.vms-form-label {
+    display: block;
+    font-family: var(--vms-font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+    margin-bottom: 6px;
+}
+
+.vms-form-label .req { color: var(--vms-primary); margin-left: 3px; }
+
+/* 인라인 검증/주의 배너 — 앰버 CHECK (README 8b) */
+.vms-banner.check {
+    background: rgba(138, 110, 55, 0.08);
+    border: 1px solid rgba(138, 110, 55, 0.3);
+}
+
+.vms-banner.check .vms-banner-label { color: #C2A469; }
+
+/* 확인 다이얼로그 — 대상 식별자 모노 블루, 파괴적은 레드 프레임/제목/버튼 */
+.vms-confirm-target {
+    font-family: var(--vms-font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--vms-link);
+    margin-bottom: 8px;
+}
+
+.vms-confirm-msg {
+    font-size: 13.5px;
+    color: var(--mud-palette-text-primary);
+    white-space: pre-line;
+}
+
+.mud-dialog:has(.vms-confirm-danger) { border-color: rgba(168, 68, 60, 0.35); }
+
+.mud-dialog:has(.vms-confirm-danger) .mud-dialog-title .mud-typography { color: #DE857D !important; }
+
+.vms-btn-danger {
+    background: #A8443C !important;
+    color: #FFEDEB !important;
+}
+
+/* 파괴적 보조 액션 — 적색 아웃라인 (12a 레시피 삭제 등) */
+.vms-btn-danger-outline {
+    border: 1px solid rgba(168, 68, 60, 0.6) !important;
+    color: #DE857D !important;
+}
+
+.vms-btn-danger-outline:hover { background: rgba(168, 68, 60, 0.12) !important; }
+
+/* 스낵바 4종 — 좌측 3px 색띠 + 모노 레벨 라벨 + 13px 본문 (원색 필 제거) */
+.mud-snackbar {
+    background: #151E2E !important;
+    color: #E6ECF5 !important;
+    border: 1px solid var(--vms-hairline);
+    border-left: 3px solid #5F6B7E;
+    border-radius: 10px !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+.mud-snackbar .mud-snackbar-icon { display: none; }
+
+.mud-snackbar .mud-snackbar-content-message {
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mud-snackbar .mud-snackbar-content-message::before {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.mud-snackbar.mud-alert-filled-success { border-left-color: #4E8C63; }
+.mud-snackbar.mud-alert-filled-success .mud-snackbar-content-message::before { content: "SUCCESS"; color: #7FA98C; }
+
+.mud-snackbar.mud-alert-filled-info { border-left-color: #3C5F80; }
+.mud-snackbar.mud-alert-filled-info .mud-snackbar-content-message::before { content: "INFO"; color: #7FA6CC; }
+
+.mud-snackbar.mud-alert-filled-warning { border-left-color: #8A6E37; }
+.mud-snackbar.mud-alert-filled-warning .mud-snackbar-content-message::before { content: "WARNING"; color: #C2A469; }
+
+.mud-snackbar.mud-alert-filled-error { border-left-color: #A8443C; }
+.mud-snackbar.mud-alert-filled-error .mud-snackbar-content-message::before { content: "ERROR"; color: #DE857D; }
+
+/* 빈 상태 — 아웃라인 아이콘 + 저조도 안내문 (컬러 아이콘 금지) */
+.vms-empty {
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.vms-empty .mud-icon-root {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: #2B3648;
+}
+
+.vms-empty-text { font-size: 13px; color: #5F6B7E; }
+
+/* ---- 8a 작업 지시 — CRUD 기준 화면 (15개 CRUD 페이지의 reference) ---- */
+
+.vms-filter-spacer { flex: 1; }
+
+/* ID 셀 — 모노 700 블루 (지시번호·코드류 공통) */
+.vms-cell-id {
+    font-family: var(--vms-font-mono);
+    font-weight: 700;
+    color: var(--vms-link);
+    font-size: 12.5px;
+}
+
+/* 양품/NG 합성 셀 */
+.vms-qty-pass { font-family: var(--vms-font-mono); color: #7FA98C; font-variant-numeric: tabular-nums; }
+.vms-qty-ng   { font-family: var(--vms-font-mono); color: #C4756E; font-variant-numeric: tabular-nums; }
+.vms-qty-sep  { color: var(--vms-text-mono-caption); }
+
+/* 진행률 — 5px 바 + 아래 모노 11px */
+.vms-wo-prog {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 90px;
+}
+
+.vms-wo-prog-track {
+    height: 5px;
+    border-radius: 3px;
+    background: #243349;
+    overflow: hidden;
+}
+
+.vms-wo-prog-fill { height: 100%; border-radius: 3px; }
+.vms-wo-prog-fill.done { background: #4E8C63; }
+.vms-wo-prog-fill.run  { background: #3C5F80; }
+.vms-wo-prog-fill.none { background: #5F6B7E; }
+
+.vms-wo-prog-pct {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 상태 칩 — 진행 중만 채움, 나머지는 아웃라인 (모든 상태를 채우면 표가 시끄럽다) */
+.vms-wo-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.vms-wo-chip.st-run  { background: #3C5F80; color: #DCE8F5; }
+.vms-wo-chip.st-done { border: 1px solid #4E8C63; color: #7FA98C; }
+.vms-wo-chip.st-flat { border: 1px solid rgba(255, 255, 255, 0.16); color: var(--mud-palette-text-secondary); }
+
+/* 전이 액션 — 모노 10px 아웃라인 버튼 (짧은 텍스트 라벨, 아이콘 금지) */
+.vms-act-btn {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 4px 9px;
+    margin-left: 4px;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: filter 0.13s var(--vms-ease);
+}
+
+.vms-act-btn:hover { filter: brightness(1.3); }
+
+.vms-act-btn.start { border: 1px solid #4E8C63; color: #7FA98C; }
+.vms-act-btn.done  { border: 1px solid #8A6E37; color: #C2A469; }
+.vms-act-btn.close { border: 1px solid rgba(255, 255, 255, 0.2); color: var(--mud-palette-text-secondary); }
+.vms-act-btn.lot   { border: 1px solid #3C5F80; color: #7FA6CC; }
+
+/* ---- 설비 보전 — 예정 상태 칩 (저채도: 지연 채움 레드 / 오늘 앰버 / 임박 블루 / 정상 그린) ---- */
+.vms-due-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.vms-due-chip.overdue { background: #A8443C; color: #F7E3E1; }
+.vms-due-chip.today   { border: 1px solid #8A6E37; color: #C9A05A; }
+.vms-due-chip.soon    { border: 1px solid #3C5F80; color: #7FA6CC; }
+.vms-due-chip.ok      { border: 1px solid #4E8C63; color: #7FA98C; }
+
+/* ---- 7b 파레토 분석 — 콤보 차트(막대+누적선+80% 기준선) ---- */
+
+.vms-par-chart {
+    position: relative;
+    height: 300px;
+    margin: 6px 4px 0;
+}
+
+.vms-par-chart svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.vms-par-grid {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px solid #1E293C;
+}
+
+/* 80% 기준선 — 누적 스케일(상단에서 20%) */
+.vms-par-limit {
+    position: absolute;
+    left: 0; right: 0;
+    top: 20%;
+    border-top: 1px dashed #F0564C;
+}
+
+.vms-par-limit-label {
+    position: absolute;
+    right: 0;
+    top: 20%;
+    transform: translateY(-115%);
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    color: #F0564C;
+}
+
+.vms-par-cols {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+}
+
+.vms-par-col {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* 막대 위 건수 — 상위 1위 밝게, 2~3위 중간, 이하 저조도 */
+.vms-par-count {
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-par-count.c1 { color: #E6ECF5; }
+.vms-par-count.c2 { color: #C9D3E0; }
+.vms-par-count.dim { color: #8C96A6; }
+
+.vms-par-bar {
+    width: min(46px, 62%);
+    background: #5B9BE0;
+    border-radius: 3px 3px 0 0;
+}
+
+/* 누적선 오렌지 2.5px + 지점 r4 */
+.vms-par-line {
+    fill: none;
+    stroke: #FF7A3D;
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.vms-par-pt {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #FF7A3D;
+    transform: translate(-50%, -50%);
+}
+
+/* 하단 축 라벨 — NG 코드 모노 12px */
+.vms-par-x {
+    display: flex;
+    margin: 8px 4px 0;
+}
+
+.vms-par-x span {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-family: var(--vms-font-mono);
+    font-size: 12px;
+    color: var(--vms-text-mono-caption);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vms-par-code { font-weight: 700; color: var(--vms-link); }
+
+.vms-par-unreg { font-style: italic; color: #8C96A6; }
+
+/* 누적 열 — 인라인 바(임계값 색) + 모노 수치 */
+.vms-cum-cell {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    min-width: 120px;
+}
+
+.vms-cum-track {
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: #243349;
+    overflow: hidden;
+}
+
+.vms-cum-fill { height: 100%; border-radius: 3px; }
+.vms-cum-fill.hot { background: #F0564C; }
+.vms-cum-fill.mid { background: #E0A32E; }
+.vms-cum-fill.low { background: #5B9BE0; }
+
+.vms-cum-value {
+    font-family: var(--vms-font-mono);
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 부분군 표 이탈 배지 — X̄·R 동시 이탈 시 복수 표시 */
+.vms-ooc-badge + .vms-ooc-badge { margin-left: 6px; }
+
+.vms-ooc-badge {
+    font-family: var(--vms-font-mono);
+    font-size: 10.5px;
+    background: rgba(240, 86, 76, 0.18);
+    color: #F0564C;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+/* ---- Monospace 수치 — 링크/식별자 블루 ---- */
+.vms-mono {
+    font-family: var(--vms-font-mono);
+    font-size: 12.5px;
+    color: var(--mud-palette-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- 버튼 — 주 액션 (README 필터 바 액션) ---- */
 .vms-btn {
     font-family: var(--vms-font-display) !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
-    font-size: 0.85rem !important;
+    font-size: 13px !important;
     min-height: 42px !important;
-    padding-left: 18px !important;
-    padding-right: 18px !important;
+    padding-left: 26px !important;
+    padding-right: 26px !important;
     line-height: 1 !important;
 }
 
-.mud-button-root { border-radius: var(--vms-radius) !important; }
+.mud-button-root { border-radius: var(--vms-radius-ctl) !important; }
 
-.mud-button-filled.mud-button-filled-primary {
+.mud-button-filled.mud-button-filled-primary { box-shadow: none !important; }
+.mud-button-filled.mud-button-filled-primary:hover {
+    background-color: var(--vms-primary-hover) !important;
     box-shadow: none !important;
 }
-.mud-button-filled.mud-button-filled-primary:hover {
-    box-shadow: 0 3px 12px rgba(255, 103, 36, 0.35) !important;
+
+/* 보조(아웃라인) 버튼 hover — 테두리·글자 오렌지 (README Interactions) */
+.mud-button-outlined:hover {
+    border-color: var(--vms-primary) !important;
+    color: var(--vms-primary) !important;
 }
 
 .vms-btn.mud-icon-button {
     min-width: 42px !important;
     min-height: 42px !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
 /* ============================================================
@@ -661,7 +3175,7 @@ body {
 .vms-table .mud-table-toolbar .mud-button-outlined {
     min-height: 42px !important;
     height: 42px !important;
-    font-size: 0.85rem !important;
+    font-size: 13px !important;
     line-height: 1 !important;
 }
 
@@ -678,7 +3192,7 @@ body {
     height: 40px !important;
 }
 
-/* ---- 탭 — 하단 슬라이더 + Badge 보존 ---- */
+/* ---- 탭 — 12b: 하단 2px 오렌지 언더라인, 활성 오렌지/700 ---- */
 .vms-tabs .mud-tabs-toolbar,
 .vms-tabs .mud-tabs-tabbar {
     background: transparent !important;
@@ -688,7 +3202,7 @@ body {
 
 .vms-tabs .mud-tab-slider {
     height: 2px !important;
-    background-color: var(--vms-primary, #FF6724) !important;
+    background-color: var(--vms-primary) !important;
 }
 
 .vms-tabs .mud-tabs-tabbar-inner,
@@ -698,26 +3212,21 @@ body {
 
 .vms-tabs .mud-tab {
     font-family: var(--vms-font-display) !important;
-    color: var(--mud-palette-text-primary, currentColor) !important;
-    opacity: 0.6;
+    color: var(--mud-palette-text-secondary) !important;
     font-weight: 500 !important;
     text-transform: none !important;
     letter-spacing: 0.02em;
     min-width: 140px;
     padding: 10px 32px 10px 20px !important;
-    transition: opacity 0.12s var(--vms-ease), background 0.12s var(--vms-ease);
+    transition: color 0.13s var(--vms-ease), background 0.13s var(--vms-ease);
     overflow: visible !important;
 }
 
-.vms-tabs .mud-tab:hover {
-    opacity: 0.9;
-    background: var(--vms-primary-glow) !important;
-}
+.vms-tabs .mud-tab:hover { background: var(--vms-row-hover) !important; }
 
 .vms-tabs .mud-tab.mud-tab-active {
-    opacity: 1;
     font-weight: 700 !important;
-    color: var(--vms-primary, #FF6724) !important;
+    color: var(--vms-primary) !important;
     background: transparent !important;
 }
 
@@ -726,6 +3235,7 @@ body {
     margin-left: 8px;
 }
 
+/* 대기 배지 — 앰버 (12b: 대기는 경고이지 오류가 아님) */
 .vms-tabs .mud-tab .mud-badge {
     position: static !important;
     transform: none !important;
@@ -733,58 +3243,62 @@ body {
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
-    font-size: 0.7rem;
+    font-size: 10.5px;
     font-weight: 700;
-    border-radius: 2px;
+    font-family: var(--vms-font-mono);
+    border-radius: var(--vms-radius-judge);
     line-height: 20px;
     font-variant-numeric: tabular-nums;
+    background-color: rgba(138, 110, 55, 0.22) !important;
+    color: #C2A469 !important;
 }
 
-/* ---- 다이얼로그 — 표제란이 있는 도면 시트 ---- */
+/* ---- 다이얼로그 — 8b 폼 다이얼로그 ---- */
 .mud-dialog {
-    border-radius: var(--vms-radius) !important;
-    border-top: 3px solid var(--vms-navy) !important;
+    background: var(--mud-palette-surface) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden;
 }
 
 .mud-dialog .mud-dialog-title {
     font-family: var(--vms-font-display) !important;
     font-weight: 700 !important;
-    font-size: 1.02rem !important;
-    letter-spacing: 0.01em;
-    color: var(--mud-palette-text-primary, #00264C) !important;
-    background: var(--mud-palette-surface, #FFFFFF) !important;
+    font-size: 16px !important;
+    color: var(--mud-palette-text-primary) !important;
+    background: var(--mud-palette-surface) !important;
     border-bottom: 1px solid var(--vms-hairline) !important;
+    padding: 20px 24px 16px !important;
 }
 
 .mud-tabs-toolbar { background: transparent !important; }
 .mud-tab.mud-tab-active { color: var(--vms-primary) !important; }
-.mud-tabs-panels { background: var(--mud-palette-surface, #FFFFFF) !important; }
+.mud-tabs-panels { background: var(--mud-palette-surface) !important; }
 
-/* ---- 입력 요소 모서리 ---- */
-.mud-input.mud-input-outlined .mud-input-outlined-border { border-radius: var(--vms-radius) !important; }
-.mud-popover, .mud-menu-list, .mud-list { border-radius: var(--vms-radius) !important; }
-.mud-snackbar { border-radius: var(--vms-radius) !important; font-family: var(--vms-font-display) !important; }
-.mud-alert { border-radius: var(--vms-radius) !important; }
+/* ---- 입력 요소 모서리 — 10px ---- */
+.mud-input.mud-input-outlined .mud-input-outlined-border { border-radius: var(--vms-radius-ctl) !important; }
+.mud-popover, .mud-menu-list, .mud-list { border-radius: var(--vms-radius-ctl) !important; }
+.mud-snackbar { border-radius: var(--vms-radius-ctl) !important; font-family: var(--vms-font-display) !important; }
+.mud-alert { border-radius: var(--vms-radius-ctl) !important; }
 
 /* ---- Blazor Overrides ---- */
 .blazor-error-boundary {
-    background: var(--mud-palette-error, #C9342B);
+    background: var(--mud-palette-error);
     padding: 1rem;
     color: white;
-    border-radius: var(--vms-radius);
+    border-radius: var(--vms-radius-ctl);
 }
 
 .blazor-error-boundary::after { content: "An error has occurred."; }
 
 h1:focus { outline: none; }
-.valid.modified:not([type=checkbox]) { outline: 1px solid var(--mud-palette-success, #1F7A33); }
-.invalid { outline: 1px solid var(--mud-palette-error, #C9342B); }
-.validation-message { color: var(--mud-palette-error, #C9342B); }
+.valid.modified:not([type=checkbox]) { outline: 1px solid var(--mud-palette-success); }
+.invalid { outline: 1px solid var(--mud-palette-error); }
+.validation-message { color: var(--mud-palette-error); }
 
 /* ---- Utility ---- */
 .vms-divider {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: var(--mud-palette-divider) !important;
     margin: 8px 16px !important;
 }
 
@@ -850,28 +3364,28 @@ input, select, textarea,
 
     .vms-page-title,
     .vms-page-title.mud-typography {
-        font-size: 1.1rem !important;
+        font-size: 16px !important;
         margin-bottom: 16px !important;
     }
 
-    .vms-stat-value { font-size: 1.4rem !important; }
+    .vms-stat-value { font-size: 20px !important; }
     .vms-stat-icon { width: 36px; height: 36px; }
 
     .vms-drawer .mud-nav-link {
         padding: 14px 16px;
-        font-size: 0.9rem;
+        font-size: 14px;
     }
 
     .mud-chart { max-height: 220px; }
 
     .vms-table .mud-table-head .mud-table-cell {
-        padding: 6px 8px !important;
-        font-size: 0.58rem !important;
+        padding: 8px 10px !important;
+        font-size: 9px !important;
     }
 
     .vms-table .mud-table-body .mud-table-cell {
-        padding: 6px 8px !important;
-        font-size: 0.75rem !important;
+        padding: 8px 10px !important;
+        font-size: 12px !important;
     }
 
     .vms-table .mud-table-toolbar {
@@ -887,24 +3401,25 @@ input, select, textarea,
         max-width: calc(100% - 32px) !important;
     }
 
-    .vms-login-logo { font-size: 1.6rem; }
-    .vms-logo { font-size: 1rem; }
+    .vms-login-logo { font-size: 24px; }
+    .vms-logo { font-size: 16px; }
 
     .mud-chip {
-        font-size: 0.65rem !important;
+        font-size: 11px !important;
         height: 22px !important;
     }
 
     .mud-table .mud-icon-button { padding: 4px !important; }
 
-    /* 로그인 장식 십자는 모바일에서 숨김 */
+    /* 로그인 장식 십자는 모바일에서 숨김 (README 4a) */
+    .vms-login-bg::before,
     .vms-login-bg::after { display: none; }
 }
 
 @media (min-width: 601px) and (max-width: 960px) {
     .vms-page-title,
-    .vms-page-title.mud-typography { font-size: 1.25rem !important; }
-    .vms-stat-value { font-size: 1.5rem !important; }
+    .vms-page-title.mud-typography { font-size: 17px !important; }
+    .vms-stat-value { font-size: 22px !important; }
     .mud-dialog:not(.mud-dialog-width-false) {
         margin: 16px !important;
         max-width: calc(100% - 32px) !important;

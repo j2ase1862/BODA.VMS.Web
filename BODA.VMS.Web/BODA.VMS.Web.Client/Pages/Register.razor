@@ -7,56 +7,75 @@
 
 <PageTitle>@L["page.register"] - BODA VMS</PageTitle>
 
+@* 9b — 배경·조준 십자·카드는 4a(로그인)와 완전히 동일, 부제만 Create Account.
+   승인 안내는 INFO 배너, 비밀번호 강도 4분할 바 + 서버 정책 한국어 안내 (README 9b) *@
 <div class="vms-login-bg">
-    <MudCard Class="vms-login-card pa-8">
-        <MudCardContent>
+    <MudCard Class="vms-login-card">
+        <MudCardContent Class="vms-login-content">
             <div class="vms-login-logo mb-1">
-                <span class="navy">BODA</span> <span class="orange">VMS</span>
+                @* "orange"는 MudBlazor 팔레트 헬퍼(배경 #FF9800)와 충돌 — accent 로 명명 *@
+                <span class="navy">BODA</span> <span class="accent">VMS</span>
             </div>
-            <div class="vms-login-subtitle mb-2">Create Account</div>
-            <MudText Typo="Typo.body2" Align="Align.Center" Style="color: var(--vms-text-light); font-size: 0.8rem;"
-                     Class="mb-6">
-                Your account will require admin approval before access is granted.
-            </MudText>
+            <div class="vms-login-subtitle mb-6">Create Account</div>
+
+            <div class="vms-banner info mb-6">
+                <span class="vms-banner-label">NOTE</span>
+                <span class="vms-banner-text">@L["register.approvalNote"]</span>
+            </div>
 
             <EditForm Model="_model" OnValidSubmit="HandleRegister">
                 <DataAnnotationsValidator />
 
-                <MudTextField @bind-Value="_model.Username" Label="Username"
-                              Variant="Variant.Outlined" Class="mb-4"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Person"
-                              For="@(() => _model.Username)" />
+                <div class="vms-login-field">
+                    <label class="vms-field-label" for="reg-username">@L["login.username"]</label>
+                    <MudTextField @bind-Value="_model.Username"
+                                  Variant="Variant.Outlined" Class="vms-login-input"
+                                  InputId="reg-username"
+                                  For="@(() => _model.Username)" />
+                </div>
 
-                <MudTextField @bind-Value="_model.DisplayName" Label="Display Name"
-                              Variant="Variant.Outlined" Class="mb-4"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _model.DisplayName)" />
+                <div class="vms-login-field">
+                    <label class="vms-field-label" for="reg-displayname">@L["register.displayName"]</label>
+                    <MudTextField @bind-Value="_model.DisplayName"
+                                  Variant="Variant.Outlined" Class="vms-login-input"
+                                  InputId="reg-displayname"
+                                  For="@(() => _model.DisplayName)" />
+                </div>
 
-                <MudTextField @bind-Value="_model.Password" Label="Password"
-                              Variant="Variant.Outlined" Class="mb-6"
-                              InputType="InputType.Password"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Lock"
-                              For="@(() => _model.Password)"
-                              HelperText="8+ chars with upper/lower/digit/special (3 types), or 10+ chars (2 types)" />
+                <div class="vms-login-field">
+                    <label class="vms-field-label" for="reg-password">@L["login.password"]</label>
+                    <MudTextField Value="_password" ValueChanged="@((string v) => OnPasswordChanged(v))"
+                                  T="string" Immediate="true"
+                                  Variant="Variant.Outlined" Class="vms-login-input"
+                                  InputId="reg-password"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                                  For="@(() => _model.Password)" />
+                    @* 강도 바 — 4분할 3px, 충족 단계만 그린 *@
+                    <div class="vms-pw-meter">
+                        @for (var i = 1; i <= 4; i++)
+                        {
+                            <span class="vms-pw-seg @(PwScore >= i ? "on" : "")"></span>
+                        }
+                    </div>
+                    <div class="vms-pw-policy">@L["register.pwPolicy"]</div>
+                </div>
 
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                            Color="Color.Primary" FullWidth="true" Disabled="_loading"
-                           Size="Size.Large" Class="vms-btn mb-4">
+                           Class="vms-btn vms-login-submit">
                     @if (_loading)
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                     }
-                    Register
+                    @L["register.submit"]
                 </MudButton>
             </EditForm>
 
-            <div class="d-flex justify-center">
-                <MudLink Href="/login" Typo="Typo.body2" Color="Color.Secondary">
-                    Already have an account? Sign In
-                </MudLink>
+            <div class="vms-login-register">
+                <MudLink Href="/login" Class="vms-login-register-link">@L["register.haveAccount"]</MudLink>
             </div>
         </MudCardContent>
     </MudCard>
@@ -64,7 +83,37 @@
 
 @code {
     private RegisterRequest _model = new();
+    private string _password = "";
     private bool _loading;
+    private bool _showPassword;
+
+    // 서버 정책과 동일 기준의 시각 피드백 — 8자 이상 / 2종 / 3종 / 10자 이상
+    private int PwScore
+    {
+        get
+        {
+            var p = _password;
+            if (string.IsNullOrEmpty(p)) return 0;
+            var types = 0;
+            if (p.Any(char.IsUpper)) types++;
+            if (p.Any(char.IsLower)) types++;
+            if (p.Any(char.IsDigit)) types++;
+            if (p.Any(c => !char.IsLetterOrDigit(c))) types++;
+
+            var score = 0;
+            if (p.Length >= 8) score++;
+            if (types >= 2) score++;
+            if (types >= 3) score++;
+            if (p.Length >= 10) score++;
+            return score;
+        }
+    }
+
+    private void OnPasswordChanged(string v)
+    {
+        _password = v;
+        _model.Password = v;
+    }
 
     private async Task HandleRegister()
     {
@@ -74,20 +123,19 @@
             var response = await Api.PostWithResponseAsync("/api/auth/register", _model);
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("Registration successful! Please wait for admin approval.", Severity.Success);
+                Snackbar.Add(L["register.successMsg"], Severity.Success);
                 Navigation.NavigateTo("/login");
                 return;
             }
 
             // 400 은 두 형태 — {message} (중복 사용자명) 또는 ValidationProblemDetails
-            // (비밀번호 정책 등). 기존에는 모든 400 을 "Username already exists" 로
-            // 표시해 실제 사유(주로 비밀번호 복잡도)를 알 수 없었다 (2026-08-11 수정).
+            // (비밀번호 정책 등). 실패 사유는 스낵바 ERROR 로 그대로 노출 (README 9b).
             var reason = await ExtractErrorAsync(response);
-            Snackbar.Add(reason ?? "Registration failed. Please try again.", Severity.Error);
+            Snackbar.Add(reason ?? L["register.failedMsg"], Severity.Error);
         }
         catch
         {
-            Snackbar.Add("Registration failed. Please try again.", Severity.Error);
+            Snackbar.Add(L["register.failedMsg"], Severity.Error);
         }
         finally
         {

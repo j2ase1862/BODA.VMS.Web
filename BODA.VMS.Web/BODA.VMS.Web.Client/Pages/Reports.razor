@@ -9,31 +9,27 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.reports"]</MudText>
 
-<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-    @L["reports.alertInfo"]
-</MudAlert>
-
-<div class="vms-panel pa-4 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudSelect T="ReportType" @bind-Value="_type" Label="@(L["reports.reportType"])"
-                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Article">
+@* 9d — 필터 바 공통 패턴: 종류 / 기준일(종류별 라벨) / 라인 + PDF 생성 *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["reports.reportType"]</label>
+            <MudSelect T="ReportType" @bind-Value="_type"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="ReportType" Value="ReportType.Daily">@L["reports.typeDaily"]</MudSelectItem>
                 <MudSelectItem T="ReportType" Value="ReportType.Weekly">@L["reports.typeWeekly"]</MudSelectItem>
                 <MudSelectItem T="ReportType" Value="ReportType.Monthly">@L["reports.typeMonthly"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_refDate" Label="@RefDateLabel()"
-                           Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
-                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router">
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@RefDateLabel()</label>
+            <MudDatePicker @bind-Date="_refDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" @bind-Value="_clientId" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
                 {
@@ -42,40 +38,81 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                       OnClick="Download"
-                       Disabled="@_busy"
-                       Class="vms-btn">
-                @if (_busy)
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   OnClick="Download" Disabled="@_busy" Class="vms-btn">
+            @if (_busy)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["reports.btnGenerate"]
+        </MudButton>
+    </div>
+</MudPaper>
+
+@* 본문 7fr/5fr — 좌: 생성 범위, 우: 문서 미리보기(정적 시각 요약 — 실제 PDF 렌더링은 서버) *@
+<div class="vms-cm-grid">
+    <MudPaper Class="vms-panel pa-5">
+        <div class="vms-set-title">@L["reports.scopeTitle"]</div>
+
+        <div class="vms-rep-period">@PreviewPeriod()</div>
+
+        <div class="vms-set-title mt-6">@L["reports.includesTitle"]</div>
+        <ul class="vms-rep-includes">
+            <li>@L["reports.includeKpi"]</li>
+            <li>@L["reports.includeOee"]</li>
+            <li>@L["reports.includePareto"]</li>
+            <li>@L["reports.includeShift"]</li>
+        </ul>
+
+        <div class="vms-banner info mt-6">
+            <span class="vms-banner-label">INFO</span>
+            <span class="vms-banner-text">@L["reports.alertInfo"]</span>
+        </div>
+    </MudPaper>
+
+    <MudPaper Class="vms-panel pa-5">
+        <div class="vms-set-title">@L["reports.previewTitle"]</div>
+
+        @* 라이트 지면 A4 축소판 — 문서 내용 구역의 정적 목업 *@
+        <div class="vms-paper">
+            <div class="vms-paper-head">
+                <span class="vms-paper-logo">BODA <span class="accent">VMS</span></span>
+                <span class="vms-paper-title">@TypeLabel()</span>
+                <span class="vms-paper-period">@PreviewPeriod()</span>
+            </div>
+
+            <div class="vms-paper-kpi">
+                <div class="cell"><span class="lbl">총 검사</span><span class="ph w60"></span></div>
+                <div class="cell"><span class="lbl">양품률</span><span class="ph w48"></span></div>
+                <div class="cell"><span class="lbl">불량</span><span class="ph w40"></span></div>
+                <div class="cell"><span class="lbl">가동률</span><span class="ph w48"></span></div>
+            </div>
+
+            <div class="vms-paper-sec">라인 OEE</div>
+            <div class="vms-paper-bars">
+                <div class="row"><span class="lbl">#01</span><span class="bar" style="width:86%"></span></div>
+                <div class="row"><span class="lbl">#02</span><span class="bar" style="width:71%"></span></div>
+                <div class="row"><span class="lbl">#03</span><span class="bar" style="width:54%"></span></div>
+            </div>
+
+            <div class="vms-paper-sec">NG 파레토</div>
+            <div class="vms-paper-pareto">
+                @foreach (var h in new[] { 92, 61, 38, 24, 14 })
                 {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span class="pbar" style="height:@(h)%"></span>
                 }
-                @L["reports.btnGenerate"]
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+            </div>
 
-<div class="vms-panel pa-4">
-    <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 700;">
-        @L["reports.scopeTitle"]
-    </MudText>
-    <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary);">
-        @((MarkupString)L.Format("reports.selectedPeriodFmt", $"<strong>{PreviewPeriod()}</strong>"))
-    </MudText>
+            <div class="vms-paper-foot">
+                <span>BODA VMS @_version</span>
+                <span>Page 1 / @PageEstimate()</span>
+            </div>
+        </div>
 
-    <MudDivider Class="my-3" />
-
-    <MudText Typo="Typo.subtitle2" Class="mb-1">@L["reports.includesTitle"]</MudText>
-    <ul style="font-size:13px; color: var(--vms-text-secondary); padding-left: 20px;">
-        <li>@L["reports.includeKpi"]</li>
-        <li>@L["reports.includeOee"]</li>
-        <li>@L["reports.includePareto"]</li>
-        <li>@L["reports.includeShift"]</li>
-    </ul>
+        <div class="vms-paper-caption">@L.Format("reports.pageEstimateFmt", PageEstimate())</div>
+    </MudPaper>
 </div>
 
 @code {
@@ -84,6 +121,12 @@
     private int? _clientId;
     private bool _busy;
     private List<ClientDto> _clients = new();
+
+    private static readonly string _version =
+        typeof(Reports).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion?.Split('+')[0] ?? "1.0.0";
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,19 +141,36 @@
         _ => L["reports.refDateDaily"]
     };
 
+    private string TypeLabel() => _type switch
+    {
+        ReportType.Daily => L["reports.typeDaily"],
+        ReportType.Weekly => L["reports.typeWeekly"],
+        ReportType.Monthly => L["reports.typeMonthly"],
+        _ => ""
+    };
+
+    private int PageEstimate() => _type switch
+    {
+        ReportType.Weekly => 3,
+        ReportType.Monthly => 4,
+        _ => 2
+    };
+
     private string PreviewPeriod()
     {
         if (!_refDate.HasValue) return "—";
+        var ci = new System.Globalization.CultureInfo(L.CurrentLanguage == "ko" ? "ko-KR" : "en-US");
         var d = _refDate.Value.Date;
         switch (_type)
         {
             case ReportType.Daily:
-                return $"{d:yyyy-MM-dd} (00:00 ~ 23:59)";
+                return $"{d:yyyy-MM-dd} ({d.ToString("ddd", ci)}) 00:00 ~ 23:59";
             case ReportType.Weekly:
                 {
                     var offset = ((int)d.DayOfWeek + 6) % 7;
                     var s = d.AddDays(-offset);
-                    return $"{s:yyyy-MM-dd (ddd)} ~ {s.AddDays(6):yyyy-MM-dd (ddd)}";
+                    var e = s.AddDays(6);
+                    return $"{s:yyyy-MM-dd} ({s.ToString("ddd", ci)}) ~ {e:yyyy-MM-dd} ({e.ToString("ddd", ci)})";
                 }
             case ReportType.Monthly:
                 {

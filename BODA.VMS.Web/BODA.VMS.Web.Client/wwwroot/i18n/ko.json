@@ -9,21 +9,19 @@
     "subtitle": "Vision Management System"
   },
   "menu": {
+    "almBadge": "ALM",
     "monitoring": "현장 모니터링",
     "production": "생산 관리",
     "quality": "품질 관리",
     "equipment": "설비 관리",
     "system": "시스템 관리",
-
     "dashboard": "대시보드",
     "andon": "안돈 보드",
     "alarms": "알람",
     "history": "생산 이력",
-
     "workorders": "작업 지시",
     "products": "제품",
     "operators": "작업자",
-
     "paretoAnalysis": "파레토 분석",
     "spc": "SPC 관리도",
     "defectCodes": "불량 코드",
@@ -31,13 +29,11 @@
     "outboundOrders": "출고 피킹",
     "shiftReport": "교대 리포트",
     "pdfReports": "PDF 리포트",
-
     "clients": "비전 클라이언트",
     "oee": "OEE 설비종합효율",
     "reliability": "설비 신뢰성 (MTBF/MTTR)",
     "maintenance": "예방 보전",
     "forecast": "불량률 예측",
-
     "inspectionItems": "검사 항목",
     "shifts": "교대 마스터",
     "approvals": "사용자 승인",
@@ -171,7 +167,9 @@
   },
   "confirm": {
     "delete": "삭제 확인",
-    "deleteMsgFmt": "{0}을(를) 삭제하시겠습니까?"
+    "deleteMsgFmt": "{0}을(를) 삭제하시겠습니까?",
+    "actionFmt": "{0} 처리를 진행하시겠습니까?",
+    "deleteIrreversible": "이 항목을 삭제합니다. 되돌릴 수 없는 작업입니다."
   },
   "login": {
     "username": "아이디",
@@ -180,7 +178,41 @@
     "register": "회원가입",
     "noAccount": "계정이 없으신가요? 회원가입",
     "invalidCreds": "아이디 또는 비밀번호가 잘못되었거나 승인 대기 중입니다",
-    "failed": "로그인 실패. 다시 시도해주세요."
+    "failed": "로그인 실패. 다시 시도해주세요.",
+    "footerNote": "관리자 승인 후 사용 가능"
+  },
+  "register": {
+    "approvalNote": "가입 후 관리자 승인이 완료되어야 로그인할 수 있습니다.",
+    "displayName": "표시 이름",
+    "pwPolicy": "8자 이상 + 대문자·소문자·숫자·특수문자 중 3종, 또는 10자 이상 + 2종",
+    "submit": "가입 신청",
+    "haveAccount": "이미 계정이 있으신가요? 로그인",
+    "successMsg": "가입 신청 완료 — 관리자 승인 후 로그인할 수 있습니다.",
+    "failedMsg": "가입 신청에 실패했습니다. 다시 시도해주세요."
+  },
+  "fleet": {
+    "avg": "평균",
+    "belowTargetFmt": "목표 미달 (기준 {0})",
+    "worst": "최악 설비",
+    "totalFailures": "총 고장",
+    "totalInsp": "총 검사",
+    "unitsFmt": "{0}대",
+    "sort": "정렬",
+    "sortWorst": "나쁜 순",
+    "sortName": "이름순",
+    "belowOnly": "목표 미달만",
+    "viewCards": "카드 보기",
+    "viewTable": "표 보기",
+    "excel": "Excel",
+    "colEquip": "설비명",
+    "trend7d": "7일 추이",
+    "trend24h": "24h 추이",
+    "remark": "비고",
+    "colStack": "상태 분포",
+    "colInspNg": "검사·NG",
+    "colActual": "실적",
+    "colDelta": "편차",
+    "colPredNg": "예측 NG율"
   },
   "home": {
     "totalClients": "전체 클라이언트",
@@ -191,7 +223,43 @@
     "passedInsp": "합격 건수",
     "ngRate": "불량률",
     "defectRate": "NG 비율",
-    "trend7days": "최근 7일 생산 추세"
+    "trend7days": "최근 7일 생산 추세",
+    "todayPerf": "금일 성과",
+    "todayPerfSub": "검사 {0}건",
+    "passRate": "양품률",
+    "passRateSub": "양품 {0} / {1}",
+    "availability": "가동률",
+    "availabilitySub": "온라인 {0} / {1}",
+    "oee": "OEE",
+    "oeeSub": "OEE 분석에서 계산",
+    "clientOnlineRatio": "가동 클라이언트 비율",
+    "runningSub": "가동 {0} / {1}",
+    "lineToday": "금일 라인별 검사 실적",
+    "lineCountsFmt": "검사 {0} · NG {1}",
+    "noLineData": "금일 검사 실적 없음",
+    "ngCountSub": "NG {0}건",
+    "recentAlarms": "최근 알람",
+    "viewAll": "전체 보기 →",
+    "noAlarms": "미확인 알람 없음",
+    "unackedFmt": "미확인 {0}건",
+    "lvlCrit": "CRIT",
+    "lvlWarn": "WARN",
+    "lvlInfo": "INFO",
+    "upcomingMaint": "예정 보전 작업",
+    "noMaint": "7일 내 예정 작업 없음",
+    "maintOverdueFmt": "지연 {0}일",
+    "maintToday": "오늘",
+    "maintDdayFmt": "D-{0}",
+    "maintAllClients": "전체 설비",
+    "clientStatus": "클라이언트 상태",
+    "noClients": "등록된 클라이언트 없음",
+    "colId": "ID",
+    "colName": "이름",
+    "colIp": "IP",
+    "colStatus": "상태",
+    "colLastSeen": "최근 응답",
+    "online": "온라인",
+    "offline": "오프라인"
   },
   "chart": {
     "total": "전체",
@@ -218,7 +286,12 @@
     "ackedFmt": "확인 처리됨: {0}",
     "resolvedFmt": "해제 처리됨: {0}",
     "resolveTitleFmt": "해제 — {0}",
-    "currentWorkingSince": "근무중"
+    "currentWorkingSince": "근무중",
+    "last24hFmt": "최근 24시간 {0}건",
+    "ackAll": "모두 확인",
+    "ackAllDoneFmt": "{0}건 확인 처리됨",
+    "actAck": "확인",
+    "actResolve": "해제"
   },
   "oee": {
     "formulaAlert": "OEE = 가용성 × 성능 × 품질. 가용성 = (가동+대기)/기간 · 성능 = 가동/(가동+대기) · 품질 = 합격/전체. 상태 로그가 없는 기간은 보수적으로 정지로 간주됩니다.",
@@ -227,7 +300,8 @@
     "quality": "품질",
     "statusDistribution": "상태 분포",
     "noActiveLines": "선택한 기간에 활성 라인이 없습니다.",
-    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요."
+    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요.",
+    "helpBanner": "OEE(설비 종합 효율)는 설비가 이론상 최대 능력 대비 실제로 얼마나 가치 있게 가동됐는지를 하나의 숫자로 보여주는 지표입니다. 가용성(멈추지 않았는가) × 성능(제 속도를 냈는가) × 품질(합격품을 만들었는가)의 곱으로, 세 요소 중 어디서 손실이 나는지 짚어줍니다. 일반적으로 85% 이상을 세계적 수준으로 봅니다."
   },
   "history": {
     "filterPeriod": "기간",
@@ -239,7 +313,12 @@
     "noInspections": "검사 이력이 없습니다",
     "ngDetailTitle": "불량 상세",
     "exportStarted": "내보내기 시작됨",
-    "exportFailed": "내보내기 실패"
+    "exportFailed": "내보내기 실패",
+    "sumTotal": "기간 총 검사",
+    "sumPass": "양품",
+    "sumNg": "NG",
+    "sumNgRate": "평균 불량률",
+    "pageInfoFmt": "{0}–{1} / {2}"
   },
   "workorder": {
     "btnCreate": "작업 지시 등록",
@@ -259,7 +338,14 @@
     "deletedFmt": "작업 지시 '{0}' 삭제됨",
     "confirmDeleteFmt": "작업 지시 '{0}'를 삭제하시겠습니까?\n계획됨 상태만 삭제 가능합니다.",
     "editTitleFmt": "수정 — {0}",
-    "lotsTitleFmt": "로트 — {0}"
+    "lotsTitleFmt": "로트 — {0}",
+    "subCountFmt": "진행 중 {0}건 · 계획 {1}건",
+    "btnStart": "시작",
+    "btnComplete": "완료",
+    "btnClose": "종료",
+    "actEdit": "수정",
+    "actDelete": "삭제",
+    "transitionHint": "상태 전이: 계획 → 진행 중 → 완료 → 종료 (되돌릴 수 없음) · 수정/삭제는 계획 상태에서만 · LOT은 모든 상태에서 열람 가능"
   },
   "pareto": {
     "topN": "상위 N",
@@ -279,7 +365,9 @@
     "unregisteredCode": "(미등록 — 불량 코드에 추가 필요)",
     "noNgData": "선택한 기간에 NG 데이터가 없습니다.",
     "promptRun": "기간을 선택하고 실행 버튼을 눌러 파레토 분석을 시작하세요.",
-    "seriesCount": "건수"
+    "seriesCount": "건수",
+    "bottomSummaryFmt": "상위 {0}개 코드가 전체 NG의 {1}% — 개선 우선순위",
+    "helpBanner": "파레토 분석은 '불량의 대부분은 소수의 원인에서 나온다'(80/20 법칙)는 원리로 개선 우선순위를 찾는 도구입니다. 막대는 불량 코드별 발생 건수(많은 순), 꺾은선은 누적 비율입니다. 누적선이 80% 기준선에 닿기 전까지의 코드들부터 개선하면 적은 노력으로 큰 효과를 얻을 수 있습니다."
   },
   "spc": {
     "parameter": "파라미터 코드",
@@ -315,7 +403,12 @@
     "verdictExcellent": "우수 (6σ급)",
     "verdictGood": "양호 (AIAG 표준)",
     "verdictNeedsAction": "관리필요 — 개선 권장",
-    "verdictNotMet": "부적합 — 즉시 조치 필요"
+    "verdictNotMet": "부적합 — 즉시 조치 필요",
+    "specSet": "규격 설정됨",
+    "xbarChart": "X̄ 관리도",
+    "rChart": "R 관리도",
+    "oocFmt": "#{0} 이탈",
+    "helpBanner": "SPC 관리도는 공정이 안정 상태인지 통계적으로 감시하는 차트입니다. 가운데 실선은 중심선(CL, 평균), 위아래 점선은 관리 한계선(UCL/LCL)으로 정상적인 흔들림의 범위를 뜻합니다. 점이 한계선을 벗어나면 우연이 아닌 특별한 원인(설비·자재·조건 변화)이 생겼다는 신호이므로 원인을 확인해야 합니다."
   },
   "reliability": {
     "formulaAlert": "설비 상태 로그에서 정지(Down) 전이를 고장(Failure)으로 카운트합니다.",
@@ -329,10 +422,11 @@
     "runningHoursFmt": "가동 {0} h",
     "downHoursFmt": "정지 {0} h",
     "noData": "선택한 기간에 데이터가 없습니다.",
-    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요."
+    "promptCalc": "기간을 선택하고 계산 버튼을 누르세요.",
+    "helpBanner": "설비 신뢰성은 '얼마나 고장 없이 오래 돌고, 고장 나면 얼마나 빨리 복구되는가'를 보는 화면입니다. MTBF(평균 고장 간격)는 길수록 좋고, MTTR(평균 수리 시간)는 짧을수록 좋습니다. 두 값으로 계산한 가용성이 설비를 믿고 쓸 수 있는 정도를 나타냅니다."
   },
   "maintenance": {
-    "alertSemi": "예방 보전(PM) 일정 등록 + 수행 기록 관리. SEMI E10 신뢰성/가용성 표준 기반의 계획적 정지 관리.",
+    "alertSemi": "예방 보전(PM)은 고장이 난 뒤 고치는 것이 아니라, 고장 나기 전에 정해진 주기로 점검·정비해 갑작스러운 정지를 막는 활동입니다. 이 화면에서 PM 일정 등록과 수행 기록을 관리합니다 (SEMI E10 신뢰성/가용성 표준 기반).",
     "tabSchedulesFmt": "PM 일정 ({0})",
     "tabDueFmt": "임박 ({0})",
     "tabHistory": "수행 이력",
@@ -379,7 +473,7 @@
   "product": {
     "header": "제품 마스터",
     "totalCountFmt": "총 {0} 건",
-    "searchPlaceholder": "제품 코드 또는 이름 검색...",
+    "searchPlaceholder": "제품 코드 또는 이름",
     "btnCreate": "제품 등록",
     "colCode": "제품 코드",
     "colName": "제품명",
@@ -494,12 +588,20 @@
     "snackbarUpdateFailedFmt": "수정 실패: {0}",
     "snackbarDeleteFailedFmt": "삭제 실패: {0}",
     "snackbarDeleteBlocked": "연결된 데이터(검사 이력 등)가 있어 삭제할 수 없습니다. 대신 비활성화를 사용하세요.",
-    "lastSeen": "마지막 통신"
+    "lastSeen": "마지막 통신",
+    "subCountFmt": "등록 {0}대 · 온라인 {1}대",
+    "colRecipes": "레시피 수",
+    "actView": "보기",
+    "actEdit": "수정",
+    "actDelete": "삭제",
+    "slotsFmt": "최대 10대 등록 가능 · {0}슬롯 여유",
+    "treeHeader": "레시피 구성",
+    "treeSelectPrompt": "좌측 표에서 클라이언트를 선택하세요"
   },
   "warehouse": {
     "header": "입고 위치 마스터",
     "totalCountFmt": "총 {0}건",
-    "searchPlaceholder": "바코드 / 코드 / 품목명 / 위치 검색",
+    "searchPlaceholder": "바코드 / 품목명 / 위치",
     "colBarcode": "바코드",
     "colCode": "품목 코드",
     "colName": "품목명",
@@ -519,7 +621,7 @@
   "outbound": {
     "header": "출고 오더",
     "totalCountFmt": "총 {0}건",
-    "searchPlaceholder": "주문번호 / 고객 / 목적지 검색",
+    "searchPlaceholder": "주문번호 / 고객 / 목적지",
     "colOrderNo": "주문번호",
     "colCustomer": "고객",
     "colDestination": "출고 목적지",
@@ -712,6 +814,10 @@
     "tooltipNewRecipe": "새 레시피 등록",
     "tooltipDeleteRecipe": "이 레시피 삭제",
     "tooltipPresetMenu": "프리셋 일괄 추가",
+    "btnPreset": "프리셋 추가",
+    "btnAddItem": "항목 추가",
+    "btnDeleteRecipe": "레시피 삭제",
+    "footerHintFmt": "코드는 레시피 내에서 중복될 수 없습니다 · 다음 자동 코드 {0}",
     "tooltipAddParam": "파라미터 추가",
     "noRecipes": "등록된 레시피가 없습니다",
     "noRecipesHint": "이 라인에 등록된 레시피가 없습니다. 검사 항목을 정의하려면 먼저 레시피를 생성하세요.",
@@ -766,13 +872,13 @@
     "noPending": "대기 중인 승인 요청이 없습니다",
     "colUsername": "아이디",
     "colDisplayName": "표시 이름",
-    "colCreatedAt": "가입일",
+    "colCreatedAt": "가입 요청",
     "colRole": "권한",
     "colState": "상태",
     "stateActive": "활성",
-    "statePending": "대기",
-    "btnReject": "거절",
-    "searchPlaceholder": "사용자 검색...",
+    "statePending": "승인 대기",
+    "btnReject": "거부",
+    "searchPlaceholder": "사용자명 · 표시 이름 검색",
     "confirmRejectTitle": "확인",
     "confirmRejectFmt": "{0}을(를) 거절하시겠습니까? 계정이 삭제됩니다.",
     "snackbarApprovedFmt": "{0}을(를) {1}로 승인했습니다",
@@ -784,6 +890,20 @@
     "snackbarResetFailed": "비밀번호 초기화에 실패했습니다",
     "tooltipResetPassword": "비밀번호 초기화",
     "tooltipDeleteUser": "사용자 삭제",
+    "pageSub": "Admin 전용 · 승인 시 역할이 함께 지정됩니다",
+    "colApproveActions": "역할 지정 승인 · 거부",
+    "btnApproveGuest": "Guest 승인",
+    "btnApproveUser": "User 승인",
+    "btnApproveAdmin": "Admin 승인",
+    "rejectWarning": "거부 시 계정이 삭제되며 되돌릴 수 없습니다",
+    "adminLocked": "기본 관리자 · 변경 불가",
+    "footerHint": "역할 칩을 클릭해 변경 · 자기 자신과 마지막 Admin은 서버가 차단합니다",
+    "actResetPw": "비밀번호 초기화",
+    "actDelete": "삭제",
+    "tempPasswordLabel": "임시 비밀번호",
+    "tempShownOnce": "이 비밀번호는 지금 한 번만 표시됩니다. 사용자는 로그인 직후 비밀번호를 변경해야 합니다.",
+    "tempCopy": "복사",
+    "tempCopied": "복사됨",
     "deleteUserTitle": "사용자 삭제",
     "confirmDeleteUserFmt": "'{0}' ({1}) 사용자를 삭제하시겠습니까?\n되돌릴 수 없습니다.",
     "snackbarUserDeletedFmt": "'{0}' 사용자가 삭제되었습니다",
@@ -855,12 +975,14 @@
     "btnGenerate": "PDF 생성",
     "scopeTitle": "리포트 범위",
     "selectedPeriodFmt": "선택한 기간: {0}",
-    "includesTitle": "📋 포함 내용",
+    "includesTitle": "포함 내용",
     "includeKpi": "전체 KPI (전체 / 합격 / 불량 / 불량률 / 평균 OEE)",
     "includeOee": "라인별 OEE 표 (가용성 / 성능 / 품질 / OEE)",
     "includePareto": "파레토 분석 — 상위 10개 불량 코드 (빈도 + 누적 %)",
     "includeShift": "교대조별 생산 집계 (교대 데이터가 있는 경우)",
-    "downloadCompleteFmt": "다운로드 완료: {0}"
+    "downloadCompleteFmt": "다운로드 완료: {0}",
+    "previewTitle": "문서 미리보기",
+    "pageEstimateFmt": "A4 세로 · {0}페이지 예상"
   },
   "forecast": {
     "lastRefreshed": "마지막 갱신",
@@ -876,6 +998,9 @@
     "selectClient": "위에서 클라이언트 카드를 선택하면 시계열이 표시됩니다.",
     "noHistory": "최근 데이터가 없습니다.",
     "actualNgRate": "실측 NG율 (%)",
+    "refresh": "새로고침",
+    "predictedWindow": "예측 NG율 (다음 1시간)",
+    "oocLabel": "이탈",
     "status": {
       "ok": "정상",
       "noModel": "모델없음",
@@ -892,11 +1017,13 @@
       "lcl": "LCL (−3σ)",
       "mae": "잔차 MAE",
       "samples": "샘플 수"
-    }
+    },
+    "helpBanner": "불량률 예측은 최근 검사 데이터의 흐름(불량률 추이·검사량·시간대 등)을 학습한 ML 모델로 다음 시간대의 불량률을 미리 추정하는 화면입니다. 예측값이 관리 기준을 넘으면 문제가 커지기 전에 점검할 수 있습니다. 데이터가 충분히 쌓여 모델이 등록되기 전에는 예측이 표시되지 않습니다."
   },
   "andon": {
     "predictiveInsights": "예측 사전 경보",
     "noInsights": "임계 초과 라인 없음",
+    "noActiveWo": "활성 작업지시 없음",
     "insightHigh": "위험",
     "insightMedium": "주의"
   }

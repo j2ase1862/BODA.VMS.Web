@@ -1,0 +1,47 @@
+@inject ApiClient Api
+@inject SignalRService SignalR
+@inject ILocalizer L
+@implements IDisposable
+
+@* 3a 공통 셸 — 상단 ALM 배지. 알람 진입의 주 경로 (/alarms 링크).
+   미확인(New) 건수 표시, 0건이면 배지 자체를 렌더하지 않는다 (2026-08-12 지시). *@
+@if (_count > 0)
+{
+    <a href="/alarms" class="vms-alm-badge" title="@L["menu.alarms"]">
+        @L["menu.almBadge"] @(_count > 99 ? "99+" : _count.ToString())
+    </a>
+}
+
+@code {
+    private int _count;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalR.OnAlarmCreated += HandleAlarmChanged;
+        SignalR.OnAlarmUpdated += HandleAlarmChanged;
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            var summary = await Api.GetAsync<AlarmSummaryDto>("/api/alarms/summary");
+            _count = summary?.NewCount ?? 0;
+        }
+        catch
+        {
+            // 미로그인/일시 오류 — 배지 숨김 유지
+            _count = 0;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleAlarmChanged(AlarmEventDto alarm) => await Refresh();
+
+    public void Dispose()
+    {
+        SignalR.OnAlarmCreated -= HandleAlarmChanged;
+        SignalR.OnAlarmUpdated -= HandleAlarmChanged;
+    }
+}

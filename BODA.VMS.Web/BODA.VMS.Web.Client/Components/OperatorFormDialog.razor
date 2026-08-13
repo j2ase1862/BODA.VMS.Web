@@ -1,50 +1,63 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 푸터 취소 아웃라인+저장 오렌지 *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
-
-            <MudTextField @bind-Value="Model.EmployeeNumber" Label="@(L["dialog.operatorFieldEmpNo"])"
-                          Variant="Variant.Outlined" Class="mb-4" Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Badge"
-                          HelperText="@(L["dialog.operatorFieldEmpNoHint"])" />
-
-            <MudTextField @bind-Value="Model.Name" Label="@(L["dialog.operatorFieldName"])"
-                          Variant="Variant.Outlined" Class="mb-4" Required="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Person" />
-
-            <MudTextField @bind-Value="Model.Department" Label="@(L["dialog.operatorFieldDepartment"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Business" />
-
-            <MudTextField @bind-Value="Model.Pin" Label="@(IsEdit ? L["dialog.operatorFieldPinEdit"] : L["dialog.operatorFieldPin"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          InputType="InputType.Password"
-                          Required="@(!IsEdit)"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Pin"
-                          HelperText="@(L["dialog.operatorFieldPinHint"])" />
-
-            <MudSelect T="string" @bind-Value="Model.Role" Label="Role / 등급"
-                       Variant="Variant.Outlined" Class="mb-4"
-                       AdornmentIcon="@Icons.Material.Filled.Shield"
-                       Adornment="Adornment.Start"
-                       HelperText="VMS 메뉴 가시성 제어 — Operator (일반) / Lead (반장) / Supervisor (관리자)">
-                <MudSelectItem Value="@("Operator")">Operator (일반 작업자)</MudSelectItem>
-                <MudSelectItem Value="@("Lead")">Lead (반장)</MudSelectItem>
-                <MudSelectItem Value="@("Supervisor")">Supervisor (관리자)</MudSelectItem>
-            </MudSelect>
-
-            <MudSwitch @bind-Value="Model.IsActive" Label="@(L["status.active"])" Color="Color.Primary" />
+            <div class="vms-form">
+                <div>
+                    <label class="vms-form-label">@L["dialog.operatorFieldEmpNo"]<span class="req">*</span></label>
+                    <MudTextField @bind-Value="Model.EmployeeNumber"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                                  HelperText="@(L["dialog.operatorFieldEmpNoHint"])" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.operatorFieldName"]<span class="req">*</span></label>
+                    <MudTextField @bind-Value="Model.Name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.operatorFieldDepartment"]</label>
+                    <MudTextField @bind-Value="Model.Department"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div>
+                    <label class="vms-form-label">
+                        @(IsEdit ? L["dialog.operatorFieldPinEdit"] : L["dialog.operatorFieldPin"])@if (!IsEdit)
+                        {
+                            <span class="req">*</span>
+                        }
+                    </label>
+                    <MudTextField @bind-Value="Model.Pin"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  InputType="InputType.Password"
+                                  Required="@(!IsEdit)"
+                                  HelperText="@(L["dialog.operatorFieldPinHint"])" />
+                </div>
+                <div>
+                    <label class="vms-form-label">Role / 등급</label>
+                    <MudSelect T="string" @bind-Value="Model.Role"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               HelperText="VMS 메뉴 가시성 제어 — Operator (일반) / Lead (반장) / Supervisor (관리자)">
+                        <MudSelectItem Value="@("Operator")">Operator (일반 작업자)</MudSelectItem>
+                        <MudSelectItem Value="@("Lead")">Lead (반장)</MudSelectItem>
+                        <MudSelectItem Value="@("Supervisor")">Supervisor (관리자)</MudSelectItem>
+                    </MudSelect>
+                </div>
+                <label class="vms-toggle">
+                    <input type="checkbox" checked="@Model.IsActive" @onchange="@(e => Model.IsActive = e.Value is true)" />
+                    <span class="vms-toggle-track"><span class="vms-toggle-knob"></span></span>
+                    <span class="vms-toggle-label">@L["status.active"]</span>
+                </label>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Class="vms-btn">
             @(IsEdit ? L["action.update"] : L["action.create"])
         </MudButton>

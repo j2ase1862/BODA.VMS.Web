@@ -2,77 +2,80 @@
 @inject ISnackbar Snackbar
 @inject ILocalizer L
 
+@* 8b 폼 패턴 — 외부 모노 라벨(필수 * 오렌지), 짧은 필드 2열, 푸터 취소 아웃라인+저장 오렌지 *@
 <MudDialog>
     <DialogContent>
         <EditForm Model="Model" OnValidSubmit="Submit">
             <DataAnnotationsValidator />
-
-            <MudTextField @bind-Value="Model.OrderNo" Label="@(L["dialog.workorderFieldOrderNo"])"
-                          Variant="Variant.Outlined" Class="mb-4"
-                          ReadOnly="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.ConfirmationNumber"
-                          HelperText="@(L["dialog.workorderFieldOrderNoHint"])" />
-
-            <MudSelect T="int" Value="Model.ProductId" ValueChanged="OnProductChanged"
-                       Label="@(L["dialog.workorderFieldProduct"])" Variant="Variant.Outlined" Class="mb-4"
-                       Required="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.Inventory">
-                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldProductPlaceholder"]</MudSelectItem>
-                @foreach (var p in _products)
-                {
-                    <MudSelectItem T="int" Value="p.Id">@p.Code — @p.Name</MudSelectItem>
-                }
-            </MudSelect>
-
-            <MudSelect T="int" Value="Model.ClientId" ValueChanged="OnClientChanged"
-                       Label="@(L["dialog.workorderFieldClient"])" Variant="Variant.Outlined" Class="mb-4"
-                       Required="true"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.Router">
-                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldClientPlaceholder"]</MudSelectItem>
-                @foreach (var c in _clients)
-                {
-                    <MudSelectItem T="int" Value="c.Id">
-                        #@c.ClientIndex.ToString("D2") — @c.Name
-                    </MudSelectItem>
-                }
-            </MudSelect>
-
-            <MudSelect T="int" @bind-Value="Model.RecipeId"
-                       Label="@(L["dialog.workorderFieldRecipe"])" Variant="Variant.Outlined" Class="mb-4"
-                       Required="true"
-                       Disabled="@(Model.ClientId == 0)"
-                       Adornment="Adornment.Start"
-                       AdornmentIcon="@Icons.Material.Filled.MenuBook">
-                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldRecipePlaceholder"]</MudSelectItem>
-                @foreach (var r in _recipes)
-                {
-                    <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
-                }
-            </MudSelect>
-
-            <MudNumericField @bind-Value="Model.PlannedQuantity" Label="@(L["dialog.workorderFieldPlannedQty"])"
-                             Variant="Variant.Outlined" Class="mb-4"
-                             Min="1"
-                             Adornment="Adornment.Start"
-                             AdornmentIcon="@Icons.Material.Filled.Numbers" />
-
-            <MudDatePicker @bind-Date="_plannedStart" Label="@(L["dialog.workorderFieldPlannedStart"])"
-                           Variant="Variant.Outlined" Class="mb-4"
-                           Adornment="Adornment.Start"
-                           AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                           HelperText="@(L["dialog.workorderFieldPlannedStartHint"])" />
-
-            <MudTextField @bind-Value="Model.Note" Label="@(L["dialog.workorderFieldNote"])"
-                          Variant="Variant.Outlined" Class="mb-4" Lines="2"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Notes" />
+            <div class="vms-form">
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldOrderNo"]</label>
+                    <MudTextField @bind-Value="Model.OrderNo"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  ReadOnly="true"
+                                  HelperText="@(L["dialog.workorderFieldOrderNoHint"])" />
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldProduct"]<span class="req">*</span></label>
+                    <MudSelect T="int" Value="Model.ProductId" ValueChanged="OnProductChanged"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                        <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldProductPlaceholder"]</MudSelectItem>
+                        @foreach (var p in _products)
+                        {
+                            <MudSelectItem T="int" Value="p.Id">@p.Code — @p.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldClient"]<span class="req">*</span></label>
+                    <MudSelect T="int" Value="Model.ClientId" ValueChanged="OnClientChanged"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                        <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldClientPlaceholder"]</MudSelectItem>
+                        @foreach (var c in _clients)
+                        {
+                            <MudSelectItem T="int" Value="c.Id">
+                                #@c.ClientIndex.ToString("D2") — @c.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldRecipe"]<span class="req">*</span></label>
+                    <MudSelect T="int" @bind-Value="Model.RecipeId"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                               Disabled="@(Model.ClientId == 0)">
+                        <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldRecipePlaceholder"]</MudSelectItem>
+                        @foreach (var r in _recipes)
+                        {
+                            <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="vms-form-row">
+                    <div>
+                        <label class="vms-form-label">@L["dialog.workorderFieldPlannedQty"]<span class="req">*</span></label>
+                        <MudNumericField @bind-Value="Model.PlannedQuantity"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" />
+                    </div>
+                    <div>
+                        <label class="vms-form-label">@L["dialog.workorderFieldPlannedStart"]</label>
+                        <MudDatePicker @bind-Date="_plannedStart"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       HelperText="@(L["dialog.workorderFieldPlannedStartHint"])" />
+                    </div>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldNote"]</label>
+                    <MudTextField @bind-Value="Model.Note"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                </div>
+            </div>
         </EditForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["action.cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Color="Color.Primary" Class="vms-btn">
+            @L["action.cancel"]
+        </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
                    Disabled="@(!IsValid())" Class="vms-btn">
             @(IsEdit ? L["action.update"] : L["action.create"])

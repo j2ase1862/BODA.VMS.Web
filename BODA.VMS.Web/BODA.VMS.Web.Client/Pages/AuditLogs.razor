@@ -6,16 +6,19 @@
 
 <PageTitle>@L["page.auditLogs"] - BODA VMS</PageTitle>
 
+@* 8a 패턴 적용 — INFO 배너 + 4b 필터 바 *@
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.auditLogs"]</MudText>
 
-<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-    @L["audit.alertInfo"]
-</MudAlert>
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">INFO</span>
+    <span class="vms-banner-text">@L["audit.alertInfo"]</span>
+</div>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudSelect T="string?" @bind-Value="_entityName" Label="@(L["audit.filterEntity"])" Clearable="true"
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["audit.filterEntity"]</label>
+            <MudSelect T="string?" @bind-Value="_entityName" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var n in _entities)
@@ -23,31 +26,32 @@
                     <MudSelectItem T="string?" Value="@((string?)n)">@n</MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="string?" @bind-Value="_action" Label="@(L["audit.filterAction"])" Clearable="true"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["audit.filterAction"]</label>
+            <MudSelect T="string?" @bind-Value="_action" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="string?" Value="@((string?)null)">@L["common.all"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Create")">@L["audit.actionCreate"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Update")">@L["audit.actionUpdate"]</MudSelectItem>
                 <MudSelectItem T="string?" Value="@("Delete")">@L["audit.actionDelete"]</MudSelectItem>
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.startDate"]</label>
+            <MudDatePicker @bind-Date="_startDate"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.endDate"]</label>
+            <MudDatePicker @bind-Date="_endDate"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="2" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Search"
-                       OnClick="Load" Class="vms-btn">@L["action.search"]</MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Search"
+                   OnClick="Load" Class="vms-btn">@L["action.search"]</MudButton>
+    </div>
+</MudPaper>
 
 <div class="vms-table">
     <MudTable Items="_items" Dense="true" Hover="true" Loading="_loading" Elevation="0">
@@ -61,39 +65,33 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <span class="vms-mono" style="font-size:12px;">
-                    @context.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                </span>
+                <span class="vms-mono-dim">@context.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
             </MudTd>
             <MudTd>
                 @if (context.UserId.HasValue)
                 {
-                    <div style="font-size:13px;">
-                        <strong>@context.UserName</strong>
-                        <div style="font-size:10px; color: var(--vms-text-secondary);">
-                            id=@context.UserId @(context.IpAddress is null ? "" : $"· {context.IpAddress}")
-                        </div>
-                    </div>
+                    <div class="vms-cell-title" style="font-weight:500;">@context.UserName</div>
+                    <div class="vms-cell-when">id=@context.UserId @(context.IpAddress is null ? "" : $"· {context.IpAddress}")</div>
                 }
-                else { <span style="color: var(--vms-text-secondary);">@L["audit.system"]</span> }
+                else { <span class="vms-cell-empty">@L["audit.system"]</span> }
             </MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                         Color="@ActionColor(context.Action)">
-                    @ActionLabel(context.Action, L)
-                </MudChip>
+                <span class="vms-state-chip @ActionClass(context.Action)">@ActionLabel(context.Action, L)</span>
             </MudTd>
-            <MudTd><strong>@context.EntityName</strong></MudTd>
-            <MudTd><span class="vms-mono">@context.EntityId</span></MudTd>
+            <MudTd><span style="font-weight:500;">@context.EntityName</span></MudTd>
+            <MudTd><span class="vms-cell-id w500">@context.EntityId</span></MudTd>
             <MudTd>
                 @if (!string.IsNullOrEmpty(context.Changes))
                 {
-                    <pre style="font-size:11px; max-width: 500px; max-height: 100px; overflow:auto; background: var(--vms-panel-2); padding: 4px 6px; border-radius: 3px; margin: 0;">@context.Changes</pre>
+                    <pre style="font-family: var(--vms-font-mono); font-size:11px; max-width: 500px; max-height: 100px; overflow:auto; background: #0C121D; border: 1px solid var(--vms-hairline); padding: 6px 8px; border-radius: 6px; margin: 0; color: var(--mud-palette-text-secondary);">@context.Changes</pre>
                 }
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <div class="pa-6 text-center" style="color: var(--vms-text-secondary);">@L["audit.noData"]</div>
+            <div class="vms-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.FactCheck" />
+                <span class="vms-empty-text">@L["audit.noData"]</span>
+            </div>
         </NoRecordsContent>
         <PagerContent>
             <MudTablePager />
@@ -146,11 +144,12 @@
         _ => a
     };
 
-    private static Color ActionColor(string a) => a switch
+    // 상태 칩 — 생성 그린 / 수정 블루 / 삭제 레드 (기존 매핑 유지, 저채도)
+    private static string ActionClass(string a) => a switch
     {
-        "Create" => Color.Success,
-        "Update" => Color.Info,
-        "Delete" => Color.Error,
-        _ => Color.Default
+        "Create" => "st-res",
+        "Update" => "st-ack",
+        "Delete" => "st-new",
+        _ => "st-ack"
     };
 }

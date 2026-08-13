@@ -1,4 +1,5 @@
 @page "/"
+@using System.Globalization
 @inject ApiClient Api
 @inject SignalRService SignalR
 @inject ILocalizer L
@@ -8,83 +9,291 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.dashboard"]</MudText>
 
-<MudGrid Spacing="3">
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="vms-stat-card accent-orange pa-4">
-            <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">@L["home.totalClients"]</MudText>
-                <div class="vms-stat-icon orange">
-                    <MudIcon Icon="@Icons.Material.Filled.Router" Size="Size.Small"
-                             Style="color: var(--vms-primary);" />
+@* 3a 대시보드 — 좌 8fr(금일 성과 도넛·7일 트렌드·클라이언트 상태) / 우 4fr(최근 알람·예정 보전).
+   교대 인계 노트 카드는 데이터 소스(기능) 부재로 보류 — 기능 추가 시 이 화면에만 그라데이션 허용. *@
+<div class="vms-dash-grid">
+    <div class="vms-dash-col">
+        <MudPaper Class="vms-panel pa-5">
+            <div class="vms-dash-head">
+                <div>
+                    <MudText Class="vms-panel-header">@L["home.todayPerf"]</MudText>
+                    <MudText Class="vms-dash-head-sub">@L.Format("home.todayPerfSub", _todayTotal)</MudText>
                 </div>
+                <span class="vms-dash-head-date">@DateTime.Now.ToString("yyyy-MM-dd")</span>
             </div>
-            <MudText Class="vms-stat-value">@_totalClients</MudText>
-            <MudText Class="vms-stat-sub mt-1">
-                <span class="vms-status-dot online"></span> @L.Format("home.onlineFmt", _aliveClients)
-            </MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="vms-stat-card accent-blue pa-4">
-            <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">@L["home.todayProd"]</MudText>
-                <div class="vms-stat-icon blue">
-                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small"
-                             Style="color: var(--vms-secondary);" />
-                </div>
+            @* 가동률 = Running 라인 비율(안돈 스냅샷), 3번째는 OEE 대신 가동 클라이언트(연결) 비율 (2026-08-12 지시) *@
+            <div class="vms-donut-grid">
+                @Donut(L["home.passRate"], _todayTotal > 0 ? _passRate : null, "green",
+                       L.Format("home.passRateSub", _todayPass, _todayTotal))
+                @Donut(L["home.availability"], _andonLineCount > 0 ? _runningPct : null, "orange",
+                       L.Format("home.runningSub", _runningLines, _andonLineCount))
+                @Donut(L["home.clientOnlineRatio"], _totalClients > 0 ? _availability : null, "blue",
+                       L.Format("home.availabilitySub", _aliveClients, _totalClients))
+                @Donut(L["home.ngRate"], _todayTotal > 0 ? _ngRate : null, "red",
+                       L.Format("home.ngCountSub", _todayTotal - _todayPass))
             </div>
-            <MudText Class="vms-stat-value">@_todayTotal</MudText>
-            <MudText Class="vms-stat-sub mt-1">@L["home.unitsInspected"]</MudText>
         </MudPaper>
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="vms-stat-card accent-green pa-4">
-            <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">@L["home.todayPass"]</MudText>
-                <div class="vms-stat-icon green">
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"
-                             Style="color: var(--vms-success-light);" />
-                </div>
-            </div>
-            <MudText Class="vms-stat-value" Style="color: var(--vms-success);">@_todayPass</MudText>
-            <MudText Class="vms-stat-sub mt-1">@L["home.passedInsp"]</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" sm="6" md="3">
-        <MudPaper Class="vms-stat-card accent-red pa-4">
-            <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Class="vms-stat-label">@L["home.ngRate"]</MudText>
-                <div class="vms-stat-icon red">
-                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small"
-                             Style="color: var(--vms-error-light);" />
-                </div>
-            </div>
-            <MudText Class="vms-stat-value"
-                     Style="@($"color: {(_ngRate > 5 ? "var(--vms-error)" : "var(--vms-success)")};")">
-                @_ngRate.ToString("F1")%
-            </MudText>
-            <MudText Class="vms-stat-sub mt-1">@L["home.defectRate"]</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
 
-@if (_dailySummary.Count > 0)
-{
-    <MudPaper Class="vms-panel pa-5 mt-4">
-        <MudText Class="vms-panel-header mb-3">@L["home.trend7days"]</MudText>
-        <MudChart ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels"
-                  Width="100%" Height="300px"
-                  ChartOptions="@(new ChartOptions { LineStrokeWidth = 2 })" />
-    </MudPaper>
-}
+        @* 7일 트렌드 — README 3a 사양(선 2.5 round, 그리드 #1E293C, 축 모노 9px, 범례 헤더 우측,
+           최신 지점 r=3.5 원). MudChart 로는 제어 불가 → SVG 직접 구현 (2026-08-12 지시) *@
+        @if (_dailySummary.Count >= 2)
+        {
+            <MudPaper Class="vms-panel pa-5">
+                <div class="vms-dash-head">
+                    <MudText Class="vms-panel-header">@L["home.trend7days"]</MudText>
+                    <div class="vms-trend-legend">
+                        <span class="vms-trend-key"><i class="total"></i>@L["chart.total"]</span>
+                        <span class="vms-trend-key"><i class="pass"></i>@L["chart.pass"]</span>
+                        <span class="vms-trend-key"><i class="ng"></i>@L["chart.ng"]</span>
+                    </div>
+                </div>
+                <div class="vms-trend">
+                    <div class="vms-trend-y">
+                        @foreach (var t in _trendTicks)
+                        {
+                            <span>@t.ToString("N0")</span>
+                        }
+                    </div>
+                    <div class="vms-trend-plot">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                            @for (var i = 0; i < 5; i++)
+                            {
+                                <line class="vms-trend-grid" x1="0" x2="100" y1="@(i * 25)" y2="@(i * 25)" />
+                            }
+                            <polyline class="vms-trend-line total" points="@_ptsTotal" />
+                            <polyline class="vms-trend-line pass" points="@_ptsPass" />
+                            <polyline class="vms-trend-line ng" points="@_ptsNg" />
+                        </svg>
+                        <span class="vms-trend-dot total" style="top:@Pct(_lastY[0])"></span>
+                        <span class="vms-trend-dot pass" style="top:@Pct(_lastY[1])"></span>
+                        <span class="vms-trend-dot ng" style="top:@Pct(_lastY[2])"></span>
+                    </div>
+                    <div></div>
+                    <div class="vms-trend-x">
+                        @foreach (var lb in _labels)
+                        {
+                            <span>@lb</span>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        }
+
+        <MudPaper Class="vms-panel pa-5">
+            <div class="vms-dash-head">
+                <MudText Class="vms-panel-header">@L["home.clientStatus"]</MudText>
+                <a href="/clients" class="vms-dash-link">@L["home.viewAll"]</a>
+            </div>
+            @if (_clients.Count == 0)
+            {
+                <div class="vms-dash-empty">@L["home.noClients"]</div>
+            }
+            else
+            {
+                <MudSimpleTable Class="vms-table" Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>@L["home.colId"]</th>
+                            <th>@L["home.colName"]</th>
+                            <th>@L["home.colIp"]</th>
+                            <th>@L["home.colStatus"]</th>
+                            <th>@L["home.colLastSeen"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _clients)
+                        {
+                            <tr>
+                                <td class="vms-mono vms-dash-id">#@c.ClientIndex.ToString("D2")</td>
+                                <td>@c.Name</td>
+                                <td class="vms-mono-dim">@c.IpAddress</td>
+                                <td>
+                                    <span class="vms-status-dot @(c.IsAlive ? "online" : "offline")"></span>
+                                    @(c.IsAlive ? L["home.online"] : L["home.offline"])
+                                </td>
+                                <td class="vms-mono-dim">
+                                    @(c.LastSeenAt.HasValue ? c.LastSeenAt.Value.ToLocalTime().ToString("MM-dd HH:mm:ss") : "—")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudPaper>
+    </div>
+
+    <div class="vms-dash-col">
+        @* 금일 라인별 검사 실적 — /api/andon/snapshot 재사용, NG율 높은 순 상위 5 (2026-08-12 지시) *@
+        <MudPaper Class="vms-panel pa-5">
+            <div class="vms-dash-head">
+                <MudText Class="vms-panel-header">@L["home.lineToday"]</MudText>
+                <a href="/andon" target="_blank" class="vms-dash-link">@L["home.viewAll"]</a>
+            </div>
+            @if (_lineStats.Count == 0)
+            {
+                <div class="vms-dash-empty">@L["home.noLineData"]</div>
+            }
+            else
+            {
+                @foreach (var l in _lineStats)
+                {
+                    <div class="vms-line-row">
+                        <span class="vms-mono vms-dash-id">#@l.ClientIndex.ToString("D2")</span>
+                        <span class="vms-line-name" title="@l.ClientName">@l.ClientName</span>
+                        <span class="vms-line-counts">@L.Format("home.lineCountsFmt", l.TodayTotal, l.TodayNg)</span>
+                        <span class="vms-line-ngrate @(l.TodayNgRate >= 5 ? "bad" : "")">@l.TodayNgRate.ToString("0.#")%</span>
+                    </div>
+                }
+            }
+        </MudPaper>
+
+        <MudPaper Class="vms-panel pa-5">
+            <div class="vms-dash-head">
+                <MudText Class="vms-panel-header">@L["home.recentAlarms"]</MudText>
+                <a href="/alarms" class="vms-dash-link">@L["home.viewAll"]</a>
+            </div>
+            @if (_recentAlarms.Count == 0)
+            {
+                <div class="vms-dash-empty">@L["home.noAlarms"]</div>
+            }
+            else
+            {
+                @foreach (var a in _recentAlarms)
+                {
+                    <div class="vms-alarm-row">
+                        <span class="vms-alarm-time">@a.OccurredAt.ToLocalTime().ToString("HH:mm:ss")</span>
+                        <span class="vms-lvl-badge @SevClass(a.Severity)">@L[SevLabelKey(a.Severity)]</span>
+                        <span class="vms-alarm-text" title="@a.Title">@a.Title</span>
+                    </div>
+                }
+                <div class="vms-alarm-summary">@L.Format("home.unackedFmt", _newAlarmCount)</div>
+            }
+        </MudPaper>
+
+        <MudPaper Class="vms-panel pa-5">
+            <div class="vms-dash-head">
+                <MudText Class="vms-panel-header">@L["home.upcomingMaint"]</MudText>
+                <a href="/maintenance" class="vms-dash-link">@L["home.viewAll"]</a>
+            </div>
+            @if (_maintDue.Count == 0)
+            {
+                <div class="vms-dash-empty">@L["home.noMaint"]</div>
+            }
+            else
+            {
+                @foreach (var m in _maintDue)
+                {
+                    <div class="vms-maint-row">
+                        <span class="vms-maint-dot @DueClass(m)"></span>
+                        <div class="vms-maint-body">
+                            <div class="vms-maint-title">@m.Name</div>
+                            <div class="vms-maint-sub">@DueText(m) — @(m.ClientName ?? L["home.maintAllClients"])</div>
+                        </div>
+                    </div>
+                }
+            }
+        </MudPaper>
+    </div>
+</div>
 
 @code {
     private int _totalClients, _aliveClients, _todayTotal, _todayPass;
     private double _ngRate;
+    private double _passRate, _availability;
+    private List<ClientDto> _clients = new();
     private List<HistorySummaryDto> _dailySummary = new();
-    private List<ChartSeries> _series = new();
     private string[] _labels = Array.Empty<string>();
     private Dictionary<int, bool> _aliveStatus = new();
+    private List<AlarmEventDto> _recentAlarms = new();
+    private int _newAlarmCount;
+    private List<MaintenanceScheduleDto> _maintDue = new();
+    private List<AndonLineDto> _lineStats = new();
+    private int _runningLines, _andonLineCount;
+    private double _runningPct;
+
+    // 7일 트렌드 SVG 데이터 — viewBox 0~100 좌표, y축은 niceMax 기준 스케일
+    private string _ptsTotal = "", _ptsPass = "", _ptsNg = "";
+    private double[] _lastY = new double[3];
+    private int[] _trendTicks = Array.Empty<int>();
+
+    private static string Pct(double v) => v.ToString("F2", CultureInfo.InvariantCulture) + "%";
+
+    // 축 상한: 4·{1,2,5}·10^k 중 최댓값 이상인 최소값 → 4분할 눈금이 정수
+    private static int NiceMax(int max)
+    {
+        for (var k = 1; k <= 100_000_000; k *= 10)
+            foreach (var c in new[] { 1, 2, 5 })
+                if (4 * c * k >= max) return 4 * c * k;
+        return max;
+    }
+
+    private void BuildTrend()
+    {
+        var n = _dailySummary.Count;
+        if (n < 2) return;
+
+        var niceMax = NiceMax(Math.Max(1, _dailySummary.Max(s => s.TotalCount)));
+        _trendTicks = new[] { niceMax, niceMax * 3 / 4, niceMax / 2, niceMax / 4, 0 };
+
+        double Y(int v) => 100 - v * 100.0 / niceMax;
+        string Pts(Func<HistorySummaryDto, int> sel) => string.Join(" ",
+            _dailySummary.Select((s, i) =>
+                (i * 100.0 / (n - 1)).ToString("F2", CultureInfo.InvariantCulture) + "," +
+                Y(sel(s)).ToString("F2", CultureInfo.InvariantCulture)));
+
+        _ptsTotal = Pts(s => s.TotalCount);
+        _ptsPass = Pts(s => s.PassCount);
+        _ptsNg = Pts(s => s.NgCount);
+        var last = _dailySummary[^1];
+        _lastY = new[] { Y(last.TotalCount), Y(last.PassCount), Y(last.NgCount) };
+    }
+
+    // 도넛 게이지 — SVG 직접 구현 (트랙 #243349, stroke-width 8, r=40, 둘레 251.3)
+    private RenderFragment Donut(string label, double? pct, string colorClass, string sub) => __builder =>
+    {
+        var v = pct.HasValue ? Math.Clamp(pct.Value, 0, 100) : 0;
+        // 2% 미만은 최소 2% 길이로 — round cap 이 점 하나로 보여 얼룩처럼 읽힌다 (2026-08-12 지시)
+        var arcPct = v > 0 ? Math.Max(v, 2) : 0;
+        var dash = (251.3 * arcPct / 100).ToString("F1", CultureInfo.InvariantCulture);
+        <div class="vms-donut">
+            <span class="vms-donut-label">@label</span>
+            <div class="vms-donut-svg">
+                <svg viewBox="0 0 100 100" width="104" height="104">
+                    <circle class="vms-donut-track" cx="50" cy="50" r="40" />
+                    @* v == 0 이면 arc 생략 — round linecap 이 길이 0에서도 점을 그린다 *@
+                    @if (pct.HasValue && v > 0)
+                    {
+                        <circle class="vms-donut-arc @colorClass" cx="50" cy="50" r="40"
+                                stroke-dasharray="@dash 251.3" transform="rotate(-90 50 50)" />
+                    }
+                </svg>
+                <span class="vms-donut-value">@(pct.HasValue ? pct.Value.ToString("0.#") + "%" : "—")</span>
+            </div>
+            <span class="vms-donut-sub">@sub</span>
+        </div>
+    };
+
+    private static string SevClass(string sev) => sev switch
+    {
+        "Critical" => "crit",
+        "Major" => "warn",
+        _ => "info"
+    };
+
+    private static string SevLabelKey(string sev) => sev switch
+    {
+        "Critical" => "home.lvlCrit",
+        "Major" => "home.lvlWarn",
+        _ => "home.lvlInfo"
+    };
+
+    private static string DueClass(MaintenanceScheduleDto m) =>
+        m.DueInDays < 0 ? "overdue" : (m.DueInDays <= 2 ? "soon" : "ok");
+
+    private string DueText(MaintenanceScheduleDto m) =>
+        m.DueInDays < 0 ? L.Format("home.maintOverdueFmt", -m.DueInDays)
+        : m.DueInDays == 0 ? L["home.maintToday"]
+        : L.Format("home.maintDdayFmt", m.DueInDays);
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,10 +304,12 @@
             var clients = await Api.GetAsync<List<ClientDto>>("/api/clients");
             if (clients is not null)
             {
+                _clients = clients;
                 _totalClients = clients.Count;
                 foreach (var c in clients)
                     _aliveStatus[c.Id] = c.IsAlive;
                 _aliveClients = _aliveStatus.Values.Count(v => v);
+                _availability = _totalClients > 0 ? _aliveClients * 100.0 / _totalClients : 0;
             }
 
             var today = DateTime.UtcNow.Date;
@@ -116,27 +327,59 @@
                     _todayTotal = todaySummary.TotalCount;
                     _todayPass = todaySummary.PassCount;
                     _ngRate = todaySummary.NgRate;
+                    _passRate = _todayTotal > 0 ? _todayPass * 100.0 / _todayTotal : 0;
                 }
 
                 _labels = summary.Select(s => s.Date.ToString("MM/dd")).ToArray();
-                _series = new List<ChartSeries>
-                {
-                    new() { Name = L["chart.total"], Data = summary.Select(s => (double)s.TotalCount).ToArray() },
-                    new() { Name = L["chart.pass"], Data = summary.Select(s => (double)s.PassCount).ToArray() },
-                    new() { Name = L["chart.ng"], Data = summary.Select(s => (double)s.NgCount).ToArray() }
-                };
+                BuildTrend();
             }
         }
         catch
         {
             // Dashboard loads even if API is not yet available
         }
+
+        // 우측 요약 — 기존 엔드포인트 재사용 (알람 미리보기/미확인 수, 7일 내 보전 예정)
+        try
+        {
+            var page = await Api.GetAsync<PagedResult<AlarmEventDto>>("/api/alarms?state=New&pageSize=5");
+            _recentAlarms = page?.Items ?? new();
+            var alarmSummary = await Api.GetAsync<AlarmSummaryDto>("/api/alarms/summary");
+            _newAlarmCount = alarmSummary?.NewCount ?? _recentAlarms.Count;
+        }
+        catch { }
+
+        try
+        {
+            var due = await Api.GetAsync<List<MaintenanceScheduleDto>>("/api/maintenance/schedules/due?withinDays=7");
+            _maintDue = due?.OrderBy(m => m.NextDueAt).Take(5).ToList() ?? new();
+        }
+        catch { }
+
+        try
+        {
+            var snap = await Api.GetAsync<AndonSnapshotDto>("/api/andon/snapshot");
+            if (snap is not null)
+            {
+                _lineStats = snap.Lines
+                    .OrderByDescending(l => l.TodayNgRate)
+                    .ThenByDescending(l => l.TodayTotal)
+                    .Take(5).ToList();
+                _runningLines = snap.RunningLines;
+                _andonLineCount = snap.Lines.Count;
+                _runningPct = _andonLineCount > 0 ? _runningLines * 100.0 / _andonLineCount : 0;
+            }
+        }
+        catch { }
     }
 
     private async void HandleStatusChange(int clientId, bool isAlive)
     {
         _aliveStatus[clientId] = isAlive;
         _aliveClients = _aliveStatus.Values.Count(v => v);
+        _availability = _totalClients > 0 ? _aliveClients * 100.0 / _totalClients : 0;
+        var c = _clients.FirstOrDefault(x => x.Id == clientId);
+        if (c is not null) c.IsAlive = isAlive;
         await InvokeAsync(StateHasChanged);
     }
 

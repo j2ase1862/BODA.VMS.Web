@@ -2,110 +2,66 @@
 @inject ILocalizer L
 @implements IDisposable
 
+@* 모바일(md 미만) 드로어 전용 내비 — 데스크톱은 TopNav(상단 pill)가 담당 (3a, 2026-08-12).
+   메뉴 정의는 NavMenuItems 공유 목록 — TopNav와 동일한 Href·권한·i18n 키. *@
 <MudNavMenu>
-    <MudNavGroup Title="@L["menu.monitoring"]" Icon="@Icons.Material.Filled.Visibility"
-                 Expanded="_expanded[MonitoringKey]"
-                 ExpandedChanged="@(v => OnExpandedChanged(MonitoringKey, v))">
-        <MudNavLink Href="/" Match="NavLinkMatch.All"
-                    Icon="@Icons.Material.Filled.GridView" OnClick="HandleClick">@L["menu.dashboard"]</MudNavLink>
-        <MudNavLink Href="/andon" Target="_blank"
-                    Icon="@Icons.Material.Filled.Tv" OnClick="HandleClick">@L["menu.andon"] ↗</MudNavLink>
-        <MudNavLink Href="/alarms"
-                    Icon="@Icons.Material.Filled.NotificationImportant" OnClick="HandleClick">@L["menu.alarms"]</MudNavLink>
-        <MudNavLink Href="/history"
-                    Icon="@Icons.Material.Filled.Assessment" OnClick="HandleClick">@L["menu.history"]</MudNavLink>
-    </MudNavGroup>
-
-    <MudNavGroup Title="@L["menu.production"]" Icon="@Icons.Material.Filled.Factory"
-                 Expanded="_expanded[ProductionKey]"
-                 ExpandedChanged="@(v => OnExpandedChanged(ProductionKey, v))">
-        <MudNavLink Href="/workorders"
-                    Icon="@Icons.Material.Filled.Assignment" OnClick="HandleClick">@L["menu.workorders"]</MudNavLink>
-        <MudNavLink Href="/products"
-                    Icon="@Icons.Material.Filled.Inventory" OnClick="HandleClick">@L["menu.products"]</MudNavLink>
-        <MudNavLink Href="/operators"
-                    Icon="@Icons.Material.Filled.Badge" OnClick="HandleClick">@L["menu.operators"]</MudNavLink>
-    </MudNavGroup>
-
-    <MudNavGroup Title="@L["menu.quality"]" Icon="@Icons.Material.Filled.VerifiedUser"
-                 Expanded="_expanded[QualityKey]"
-                 ExpandedChanged="@(v => OnExpandedChanged(QualityKey, v))">
-        @* 검사항목(레시피 파라미터) = 품질 기준정보 — System(Admin 전용)에서 이동 (2026-08-11).
-           검사 기준값은 Guest 비노출 — Admin/User 만 조회, 편집은 Admin (페이지·API 이중 게이트). *@
-        <AuthorizeView Roles="Admin,User">
-            <Authorized>
-                <MudNavLink Href="/inspection-items"
-                            Icon="@Icons.Material.Filled.Rule" OnClick="HandleClick">@L["menu.inspectionItems"]</MudNavLink>
-            </Authorized>
-        </AuthorizeView>
-        <MudNavLink Href="/quality-analysis"
-                    Icon="@Icons.Material.Filled.Analytics" OnClick="HandleClick">@L["menu.paretoAnalysis"]</MudNavLink>
-        <MudNavLink Href="/spc"
-                    Icon="@Icons.Material.Filled.ShowChart" OnClick="HandleClick">@L["menu.spc"]</MudNavLink>
-        <MudNavLink Href="/defect-codes"
-                    Icon="@Icons.Material.Filled.BugReport" OnClick="HandleClick">@L["menu.defectCodes"]</MudNavLink>
-        @* GS 인증 범위 제외 — 입고/재고(/warehouse-items), 출고(/outbound-orders) 메뉴 비활성화
-        <MudNavLink Href="/warehouse-items"
-                    Icon="@Icons.Material.Filled.QrCode2" OnClick="HandleClick">@L["menu.warehouseItems"]</MudNavLink>
-        <MudNavLink Href="/outbound-orders"
-                    Icon="@Icons.Material.Filled.LocalShipping" OnClick="HandleClick">@L["menu.outboundOrders"]</MudNavLink>
-        *@
-        <MudNavLink Href="/shift-report"
-                    Icon="@Icons.Material.Filled.Schedule" OnClick="HandleClick">@L["menu.shiftReport"]</MudNavLink>
-        <MudNavLink Href="/reports"
-                    Icon="@Icons.Material.Filled.PictureAsPdf" OnClick="HandleClick">@L["menu.pdfReports"]</MudNavLink>
-    </MudNavGroup>
-
-    <MudNavGroup Title="@L["menu.equipment"]" Icon="@Icons.Material.Filled.PrecisionManufacturing"
-                 Expanded="_expanded[EquipmentKey]"
-                 ExpandedChanged="@(v => OnExpandedChanged(EquipmentKey, v))">
-        <MudNavLink Href="/clients"
-                    Icon="@Icons.Material.Filled.Router" OnClick="HandleClick">@L["menu.clients"]</MudNavLink>
-        <MudNavLink Href="/oee"
-                    Icon="@Icons.Material.Filled.Speed" OnClick="HandleClick">@L["menu.oee"]</MudNavLink>
-        <MudNavLink Href="/reliability"
-                    Icon="@Icons.Material.Filled.Insights" OnClick="HandleClick">@L["menu.reliability"]</MudNavLink>
-        <MudNavLink Href="/maintenance"
-                    Icon="@Icons.Material.Filled.Build" OnClick="HandleClick">@L["menu.maintenance"]</MudNavLink>
-        <MudNavLink Href="/forecast"
-                    Icon="@Icons.Material.Filled.TrendingUp" OnClick="HandleClick">@L["menu.forecast"]</MudNavLink>
-    </MudNavGroup>
-
-    <AuthorizeView Roles="Admin">
-        <Authorized>
-            <MudNavGroup Title="@L["menu.system"]" Icon="@Icons.Material.Filled.Settings"
-                         Expanded="_expanded[AdminKey]"
-                         ExpandedChanged="@(v => OnExpandedChanged(AdminKey, v))">
-                <MudNavLink Href="/shifts"
-                            Icon="@Icons.Material.Filled.WatchLater" OnClick="HandleClick">@L["menu.shifts"]</MudNavLink>
-                <MudNavLink Href="/admin/approvals"
-                            Icon="@Icons.Material.Filled.VerifiedUser" OnClick="HandleClick">@L["menu.approvals"]</MudNavLink>
-                <MudNavLink Href="/audit-logs"
-                            Icon="@Icons.Material.Filled.History" OnClick="HandleClick">@L["menu.auditLogs"]</MudNavLink>
-                <MudNavLink Href="/settings"
-                            Icon="@Icons.Material.Filled.Tune" OnClick="HandleClick">@L["menu.settings"]</MudNavLink>
-            </MudNavGroup>
-        </Authorized>
-    </AuthorizeView>
+    @foreach (var g in NavMenuItems.Groups)
+    {
+        if (g.Roles is null)
+        {
+            @NavGroup(g)
+        }
+        else
+        {
+            <AuthorizeView Roles="@g.Roles">
+                <Authorized>@NavGroup(g)</Authorized>
+            </AuthorizeView>
+        }
+    }
 </MudNavMenu>
 
 @code {
     [Parameter]
     public Action? OnNavClick { get; set; }
 
-    private const string MonitoringKey = "monitoring";
-    private const string ProductionKey = "production";
-    private const string QualityKey = "quality";
-    private const string EquipmentKey = "equipment";
-    private const string AdminKey = "admin";
+    private RenderFragment NavGroup(NavGroupDef g) => __builder =>
+    {
+        <MudNavGroup Title="@L[g.TitleKey]" Icon="@g.Icon"
+                     Expanded="_expanded.GetValueOrDefault(g.Key)"
+                     ExpandedChanged="@(v => OnExpandedChanged(g.Key, v))">
+            @foreach (var item in g.Items)
+            {
+                if (item.Roles is null)
+                {
+                    @ItemLink(item)
+                }
+                else
+                {
+                    <AuthorizeView Roles="@item.Roles">
+                        <Authorized>@ItemLink(item)</Authorized>
+                    </AuthorizeView>
+                }
+            }
+        </MudNavGroup>
+    };
+
+    private RenderFragment ItemLink(NavItemDef item) => __builder =>
+    {
+        <MudNavLink Href="@item.Href"
+                    Match="@(item.Href == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                    Target="@(item.NewTab ? "_blank" : null)"
+                    Icon="@item.Icon" OnClick="HandleClick">
+            @L[item.TitleKey]@(item.NewTab ? " ↗" : "")
+        </MudNavLink>
+    };
 
     private Dictionary<string, bool> _expanded = new()
     {
-        [MonitoringKey] = true,
-        [ProductionKey] = true,
-        [QualityKey] = false,
-        [EquipmentKey] = false,
-        [AdminKey] = false
+        ["monitoring"] = true,
+        ["production"] = true,
+        ["quality"] = false,
+        ["equipment"] = false,
+        ["admin"] = false
     };
 
     private const string StorageKey = "vms_navmenu_expanded";

@@ -25,14 +25,19 @@
                     </LayoutView>
                 </NotFound>
             </Router>
+
+            @* 팝오버/다이얼로그 콘텐츠는 이 프로바이더 하위에서 렌더된다 —
+               내부의 AuthorizeView가 인증 캐스케이드를 받도록 반드시
+               CascadingAuthenticationState 안쪽에 둘 것 (TopNav 드롭다운 권한 게이트, 2026-08-12) *@
+            <MudPopoverProvider />
+            @* 8b — 모든 다이얼로그 우측 상단 ✕ (README CRUD 공통) *@
+            <MudDialogProvider CloseButton="true" />
+            <MudSnackbarProvider />
         </CascadingValue>
     </CascadingValue>
 </CascadingAuthenticationState>
 
 <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
 
 @code {
     private bool _isDarkMode = false;
@@ -88,34 +93,37 @@
             LinesInputs = "#C9CDD3",
             HoverOpacity = 0.04
         },
+        // 3a 소프트 다크 — design_handoff_boda_vms_redesign/README.md 의 Design Tokens 를
+        // 그대로 사용 (임의 색 금지). 라이트 팔레트는 기존 값 유지 (README 지침).
         PaletteDark = new PaletteDark
         {
-            Primary = "#FF7A3D",
-            Secondary = "#5B9BE0",
-            Tertiary = "#FFB74D",
-            Background = "#0B1220",
-            Surface = "#111A2B",
-            AppbarBackground = "#111A2B",
-            AppbarText = "#E3E9F2",
-            DrawerBackground = "#081020",
-            DrawerText = "rgba(255,255,255,0.65)",
-            DrawerIcon = "rgba(255,255,255,0.65)",
-            TextPrimary = "#E3E9F2",
-            TextSecondary = "#8C96A6",
+            Primary = "#FF7A3D",                        // 액션/활성 (CI 오렌지)
+            PrimaryContrastText = "#0C121D",            // 오렌지 버튼 텍스트
+            Secondary = "#5B9BE0",                      // 링크/식별자 (블루)
+            Tertiary = "#5B9BE0",                       // 사용처 없음 — 블루 계열로 정합 (2026-08-12 지시)
+            Background = "#0C121D",                     // 페이지 배경 (네이비 잉크)
+            Surface = "#151E2E",                        // 카드/서피스
+            AppbarBackground = "#0C121D",               // 공통 셸 상단바
+            AppbarText = "#E6ECF5",
+            DrawerBackground = "#0C121D",
+            DrawerText = "#8C96A6",                     // 비활성 메뉴 톤
+            DrawerIcon = "#8C96A6",
+            TextPrimary = "#E6ECF5",                    // 주 텍스트
+            TextSecondary = "#8C96A6",                  // 3차 텍스트/라벨
             ActionDefault = "#8C96A6",
-            Success = "#41C463",
-            Error = "#F0564C",
-            Warning = "#E0A32E",
+            Success = "#3DD068",                        // 양품/정상
+            Error = "#F0564C",                          // NG/오류
+            Warning = "#E0A32E",                        // 경고
             Info = "#5B9BE0",
-            Divider = "#1E2A3E",
-            TableLines = "#1E2A3E",
-            LinesDefault = "#1E2A3E",
-            LinesInputs = "#2A3850",
+            Divider = "rgba(255,255,255,.07)",          // 구분선 (헤더)
+            TableLines = "rgba(255,255,255,.04)",       // 구분선 (행)
+            LinesDefault = "rgba(255,255,255,.05)",     // 카드 테두리
+            LinesInputs = "rgba(255,255,255,.1)",       // 입력 테두리
             HoverOpacity = 0.06
         },
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "3px",
+            DefaultBorderRadius = "10px",               // 입력/버튼 radius (README 간격·형태)
             DrawerWidthLeft = "240px",
             DrawerMiniWidthLeft = "56px"
         },

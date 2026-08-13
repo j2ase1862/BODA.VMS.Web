@@ -6,81 +6,84 @@
 
 <PageTitle>@L["page.approvals"] - BODA VMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="vms-page-title">@L["page.approvals"]</MudText>
+@* 12b — 헤더 우측 부제: 권한 범위 + 승인 방식 안내 (시안) *@
+<div class="vms-page-head" style="align-items:baseline;">
+    <MudText Typo="Typo.h4" Class="vms-page-title" Style="margin-bottom:0 !important;">@L["page.approvals"]</MudText>
+    <span class="vms-appr-pagesub">@L["approval.pageSub"]</span>
+</div>
 
+@* 탭 2개 (오렌지 언더라인은 .vms-tabs), 대기 배지는 인라인 앰버(경고이지 오류가 아님) *@
 <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4"
          SliderColor="Color.Primary"
-         Class="vms-tabs"
+         Class="vms-tabs vms-appr-tabs"
          Style="background: transparent;">
-    <MudTabPanel Text="@(L["approval.tabPending"])" BadgeData="@_pendingUsers.Count" BadgeColor="Color.Warning">
+    <MudTabPanel>
+        <TabContent>
+            <span>@L["approval.tabPending"]</span>
+            @if (_pendingUsers.Count > 0)
+            {
+                <span class="vms-tab-badge">@_pendingUsers.Count</span>
+            }
+        </TabContent>
+        <ChildContent>
         @if (_pendingUsers.Count == 0)
         {
-            <div class="pa-8 d-flex flex-column align-center">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"
-                         Style="color: var(--vms-success); opacity: 0.3;" Class="mb-2" />
-                <MudText Style="color: var(--vms-text-secondary);">@L["approval.noPending"]</MudText>
-            </div>
+            <MudPaper Class="vms-panel">
+                <div class="vms-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" />
+                    <span class="vms-empty-text">@L["approval.noPending"]</span>
+                </div>
+            </MudPaper>
         }
         else
         {
-            <div class="vms-table">
-                <MudTable Items="_pendingUsers" Dense="true" Hover="true" Elevation="0">
+            <div class="vms-table vms-appr-table">
+                <MudTable Items="_pendingUsers" Dense="false" Hover="true" Elevation="0">
                     <HeaderContent>
                         <MudTh>@L["approval.colUsername"]</MudTh>
                         <MudTh>@L["approval.colDisplayName"]</MudTh>
                         <MudTh>@L["approval.colCreatedAt"]</MudTh>
-                        <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
+                        <MudTh Style="text-align: right;">@L["approval.colApproveActions"]</MudTh>
                     </HeaderContent>
                     <RowTemplate>
+                        <MudTd><span class="vms-appr-id">@context.Username</span></MudTd>
+                        <MudTd><span class="vms-appr-name">@context.DisplayName</span></MudTd>
                         <MudTd>
-                            <MudText Style="font-weight: 500;">@context.Username</MudText>
+                            <span class="vms-mono-dim" style="font-size:13px;">@context.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
                         </MudTd>
-                        <MudTd>@context.DisplayName</MudTd>
-                        <MudTd>
-                            <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">
-                                @context.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                            </MudText>
-                        </MudTd>
-                        <MudTd Style="text-align: right;">
-                            <MudButtonGroup Size="Size.Small" OverrideStyles="false">
-                                <MudButton Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small"
-                                           OnClick="@(() => ApproveUser(context, "Guest"))"
-                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                                    Guest
-                                </MudButton>
-                                <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
-                                           OnClick="@(() => ApproveUser(context, "User"))"
-                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                                    User
-                                </MudButton>
-                                <MudButton Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small"
-                                           OnClick="@(() => ApproveUser(context, "Admin"))"
-                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                                    Admin
-                                </MudButton>
-                                <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small"
-                                           OnClick="@(() => RejectUser(context))"
-                                           Style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                                    @L["approval.btnReject"]
-                                </MudButton>
-                            </MudButtonGroup>
+                        <MudTd Style="text-align: right; white-space: nowrap;">
+                            @* 역할 지정 승인 — 전부 아웃라인, 권한 강도 순 좌→우, 테두리 색으로만 강도 구분.
+                               채운 버튼 금지(최고 권한 강조 = 오조작 위험) *@
+                            <button type="button" class="vms-role-btn guest"
+                                    @onclick="@(() => ApproveUser(context, "Guest"))">@L["approval.btnApproveGuest"]</button>
+                            <button type="button" class="vms-role-btn user"
+                                    @onclick="@(() => ApproveUser(context, "User"))">@L["approval.btnApproveUser"]</button>
+                            <button type="button" class="vms-role-btn admin"
+                                    @onclick="@(() => ApproveUser(context, "Admin"))">@L["approval.btnApproveAdmin"]</button>
+                            <span class="vms-vdiv"></span>
+                            <button type="button" class="vms-appr-reject"
+                                    @onclick="@(() => RejectUser(context))">@L["approval.btnReject"]</button>
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
+                <div class="vms-slots-info">@L["approval.rejectWarning"]</div>
             </div>
         }
+        </ChildContent>
     </MudTabPanel>
 
     <MudTabPanel Text="@(L["approval.tabAll"])">
-        <div class="vms-table">
-            <MudTable Items="_allUsers" Dense="true" Hover="true" Elevation="0"
+        <div class="vms-table vms-appr-table">
+            <MudTable Items="_allUsers" Dense="false" Hover="true" Elevation="0"
                       Filter="new Func<UserDto, bool>(FilterFunc)">
                 <ToolBarContent>
+                    <MudSpacer />
+                    @* 검색 — 사용자명·표시 이름 부분 일치 (FilterFunc 유지, README 12b 필수) *@
                     <MudTextField @bind-Value="_searchString" Placeholder="@(L["approval.searchPlaceholder"])"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                                   Variant="Variant.Outlined" Margin="Margin.Dense"
                                   IconSize="Size.Small" Class="mt-0" Immediate="true"
-                                  Style="max-width: 300px;" />
+                                  Style="width: 440px; max-width: 100%;" />
                 </ToolBarContent>
                 <HeaderContent>
                     <MudTh>@L["approval.colUsername"]</MudTh>
@@ -90,24 +93,16 @@
                     <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd>
-                        <MudText Style="font-weight: 500;">@context.Username</MudText>
-                    </MudTd>
-                    <MudTd>@context.DisplayName</MudTd>
+                    <MudTd><span class="vms-appr-id w500">@context.Username</span></MudTd>
+                    <MudTd><span class="vms-appr-name">@context.DisplayName</span></MudTd>
                     <MudTd>
                         @if (context.IsApproved && context.Username != "admin")
                         {
-                            @* 역할 칩 클릭 → 변경 메뉴 (2026-08-11). 최초 admin 계정과
-                               승인 대기(Pending)는 제외 — Pending 은 승인 시 역할 지정. *@
+                            @* 역할 칩이 곧 변경 컨트롤 — ▼ 로 누를 수 있음을 표시, 현재 역할은 메뉴에서 비활성 *@
                             <MudMenu ActivationEvent="MouseEvent.LeftClick" Dense="true"
                                      AnchorOrigin="Origin.BottomLeft">
                                 <ActivatorContent>
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                             Color="GetRoleColor(context.Role)"
-                                             Icon="@Icons.Material.Filled.ArrowDropDown"
-                                             Style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600; cursor: pointer;">
-                                        @context.Role.ToUpper()
-                                    </MudChip>
+                                    <span class="vms-role-chip @RoleChipClass(context)">@RoleChipLabel(context) ▼</span>
                                 </ActivatorContent>
                                 <ChildContent>
                                     @foreach (var role in new[] { "Admin", "User", "Guest" })
@@ -120,45 +115,44 @@
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                     Color="GetRoleColor(context.Role)"
-                                     Style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600;">
-                                @context.Role.ToUpper()
-                            </MudChip>
+                            @* 승인 대기·admin 계정은 정적 칩 (▼ 없음) *@
+                            <span class="vms-role-chip @RoleChipClass(context)">@RoleChipLabel(context)</span>
                         }
                     </MudTd>
                     <MudTd>
                         @if (context.IsApproved)
                         {
                             <span class="d-flex align-center">
-                                <span class="vms-status-dot online"></span>
-                                <MudText Style="color: var(--vms-success); font-size: 0.8rem;">@L["approval.stateActive"]</MudText>
+                                <span class="vms-appr-led on"></span>
+                                <span class="vms-appr-state on">@L["approval.stateActive"]</span>
                             </span>
                         }
                         else
                         {
                             <span class="d-flex align-center">
-                                <span class="vms-status-dot offline"></span>
-                                <MudText Style="color: var(--vms-text-secondary); font-size: 0.8rem;">@L["approval.statePending"]</MudText>
+                                <span class="vms-appr-led off"></span>
+                                <span class="vms-appr-state off">@L["approval.statePending"]</span>
                             </span>
                         }
                     </MudTd>
-                    <MudTd Style="text-align: right;">
+                    <MudTd Style="text-align: right; white-space: nowrap;">
                         @if (context.Username != "admin")
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.LockReset" Size="Size.Small"
-                                           Color="Color.Default"
-                                           Title="@(L["approval.tooltipResetPassword"])"
-                                           OnClick="@(() => ResetPassword(context))" />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                       OnClick="@(() => ResetPassword(context))">@L["approval.actResetPw"]</MudButton>
                             @* 사용자 삭제 (2026-08-11) — 자기 자신·마지막 Admin 은 서버가 409 로 차단 *@
-                            <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Small"
-                                           Color="Color.Error"
-                                           Title="@(L["approval.tooltipDeleteUser"])"
-                                           OnClick="@(() => DeleteUser(context))" />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                       OnClick="@(() => DeleteUser(context))">@L["approval.actDelete"]</MudButton>
+                        }
+                        else
+                        {
+                            @* admin 은 왜 버튼이 없는지를 설명 *@
+                            <span class="vms-admin-locked">@L["approval.adminLocked"]</span>
                         }
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+            <div class="vms-slots-info">@L["approval.footerHint"]</div>
         </div>
     </MudTabPanel>
 </MudTabs>
@@ -179,19 +173,66 @@
         _allUsers = await Api.GetAsync<List<UserDto>>("/api/admin/users") ?? new();
     }
 
+    private static string RoleChipClass(UserDto user)
+    {
+        if (!user.IsApproved) return "pending";
+        return user.Role switch
+        {
+            "Admin" => "admin",
+            "User" => "user",
+            _ => "guest"
+        };
+    }
+
+    private static string RoleChipLabel(UserDto user) =>
+        (!user.IsApproved ? "PENDING" : user.Role.ToUpperInvariant());
+
     private async Task ApproveUser(UserDto user, string role)
     {
-        await Api.PostAsync("/api/admin/approve", new ApprovalDto { UserId = user.Id, Role = role });
+        // 실패(검증 400 등)를 무음으로 삼키지 않는다 — Guest 승인 무동작 버그의 절반 (2026-08-13)
+        var response = await Api.PostWithResponseAsync(
+            "/api/admin/approve", new ApprovalDto { UserId = user.Id, Role = role });
+        if (!response.IsSuccessStatusCode)
+        {
+            string? reason = null;
+            try
+            {
+                var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                if (body.TryGetProperty("errors", out var errors)
+                    && errors.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var msgs = new List<string>();
+                    foreach (var f in errors.EnumerateObject())
+                        foreach (var m in f.Value.EnumerateArray())
+                            if (m.GetString() is { Length: > 0 } s) msgs.Add(s);
+                    if (msgs.Count > 0) reason = string.Join(" / ", msgs);
+                }
+                else if (body.TryGetProperty("message", out var msg))
+                {
+                    reason = msg.GetString();
+                }
+            }
+            catch { }
+            Snackbar.Add(reason ?? L["snackbar.failedFmt"], Severity.Warning);
+            return;
+        }
         Snackbar.Add(L.Format("approval.snackbarApprovedFmt", user.Username, role), Severity.Success);
         await LoadData();
     }
 
     private async Task RejectUser(UserDto user)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["approval.confirmRejectTitle"],
-            L.Format("approval.confirmRejectFmt", user.Username),
-            L["action.yes"], L["action.no"]);
-        if (confirmed != true) return;
+        // 거부 = 계정 삭제 — 8b 파괴적 확인, 대상 사용자명 모노 명시
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, user.Username },
+            { x => x.Message, L["approval.rejectWarning"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["approval.btnReject"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["approval.confirmRejectTitle"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         await Api.PostAsync<object>($"/api/admin/reject/{user.Id}", new { });
         Snackbar.Add(L.Format("approval.snackbarRejectedFmt", user.Username), Severity.Warning);
@@ -200,10 +241,15 @@
 
     private async Task ChangeRole(UserDto user, string role)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["approval.changeRoleTitle"],
-            L.Format("approval.confirmChangeRoleFmt", user.Username, user.Role, role),
-            L["action.yes"], L["action.no"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, user.Username },
+            { x => x.Message, L.Format("approval.confirmChangeRoleFmt", user.Username, user.Role, role) },
+            { x => x.ConfirmText, L["action.confirm"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["approval.changeRoleTitle"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         var response = await Api.PutWithResponseAsync(
             $"/api/admin/users/{user.Id}/role", new { Role = role });
@@ -214,7 +260,7 @@
         }
         else
         {
-            // 409(마지막 Admin 강등 등)의 서버 사유를 그대로 안내
+            // 409(마지막 Admin 강등 등)의 서버 사유를 그대로 안내 — 자체 문구로 덮지 않는다
             string? reason = null;
             try
             {
@@ -228,10 +274,16 @@
 
     private async Task DeleteUser(UserDto user)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["approval.deleteUserTitle"],
-            L.Format("approval.confirmDeleteUserFmt", user.Username, user.DisplayName),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, $"{user.Username} — {user.DisplayName}" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["approval.deleteUserTitle"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         var response = await Api.DeleteWithResponseAsync($"/api/admin/users/{user.Id}");
         if (response.IsSuccessStatusCode)
@@ -255,13 +307,17 @@
 
     private async Task ResetPassword(UserDto user)
     {
-        var result = await Dialog.ShowMessageBox(L["approval.resetPasswordTitle"],
-            L.Format("approval.resetPasswordConfirmFmt", user.Username),
-            L["action.yes"], L["action.no"]);
-        if (result != true) return;
+        var confirmParams = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, user.Username },
+            { x => x.Message, L.Format("approval.resetPasswordConfirmFmt", user.Username) },
+            { x => x.ConfirmText, L["approval.actResetPw"] }
+        };
+        var confirmDlg = await Dialog.ShowAsync<ConfirmDialog>(L["approval.resetPasswordTitle"], confirmParams);
+        var confirmResult = await confirmDlg.Result;
+        if (confirmResult is null || confirmResult.Canceled) return;
 
-        // 임시 비밀번호 재설계 (2026-08-11) — 서버가 생성한 임시 비밀번호를
-        // 응답으로 1회만 수신, MessageBox 로 표시해 관리자가 받아 적도록 한다.
+        // 임시 비밀번호 재설계 (2026-08-11) — 서버가 생성한 임시 비밀번호를 응답으로 1회만 수신
         var response = await Api.PostWithResponseAsync(
             $"/api/admin/users/{user.Id}/reset-password", new { });
         if (!response.IsSuccessStatusCode)
@@ -284,10 +340,14 @@
             return;
         }
 
-        // 임시 비밀번호는 특수문자 화이트리스트로 생성돼 마크업 안전 (&, <, > 미포함)
-        var message = new MarkupString(
-            L.Format("approval.tempPasswordMsgFmt", user.Username, temp).Replace("\n", "<br/>"));
-        await Dialog.ShowMessageBox(L["approval.resetPasswordTitle"], message, L["action.ok"]);
+        // 12b — 복사 가능한 모노 텍스트 다이얼로그로 1회 표시
+        var showParams = new DialogParameters<TempPasswordDialog>
+        {
+            { x => x.Username, user.Username },
+            { x => x.TempPassword, temp }
+        };
+        var showDlg = await Dialog.ShowAsync<TempPasswordDialog>(L["approval.resetPasswordTitle"], showParams);
+        await showDlg.Result;
         Snackbar.Add(L["approval.snackbarResetDone"], Severity.Success);
     }
 
@@ -295,12 +355,4 @@
         string.IsNullOrWhiteSpace(_searchString) ||
         user.Username.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
         user.DisplayName.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
-
-    private Color GetRoleColor(string role) => role switch
-    {
-        "Admin" => Color.Warning,
-        "User" => Color.Primary,
-        "Guest" => Color.Default,
-        _ => Color.Secondary
-    };
 }
