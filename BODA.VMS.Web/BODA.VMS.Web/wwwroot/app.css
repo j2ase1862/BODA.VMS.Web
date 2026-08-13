@@ -2590,6 +2590,14 @@ body {
     color: #FFEDEB !important;
 }
 
+/* 파괴적 보조 액션 — 적색 아웃라인 (12a 레시피 삭제 등) */
+.vms-btn-danger-outline {
+    border: 1px solid rgba(168, 68, 60, 0.6) !important;
+    color: #DE857D !important;
+}
+
+.vms-btn-danger-outline:hover { background: rgba(168, 68, 60, 0.12) !important; }
+
 /* 스낵바 4종 — 좌측 3px 색띠 + 모노 레벨 라벨 + 13px 본문 (원색 필 제거) */
 .mud-snackbar {
     background: #151E2E !important;

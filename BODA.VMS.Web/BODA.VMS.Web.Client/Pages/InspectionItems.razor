@@ -9,13 +9,13 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.inspectionItems"]</MudText>
 
-<div class="vms-panel pa-4 mb-4">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="5">
-            <MudSelect T="int?" Label="@(L["inspection.selectLine"])" Variant="Variant.Outlined"
+@* 12a — 필터 바는 '선택 단계': 라인 → 레시피, 둘 다 필수(*). 우측 레시피 등록(보조, Admin) *@
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field wide">
+            <label class="vms-filter-label">@L["inspection.selectLine"]<span class="req" style="color:var(--vms-primary);">*</span></label>
+            <MudSelect T="int?" Variant="Variant.Outlined" Margin="Margin.Dense"
                        Value="_selectedClientId" ValueChanged="OnClientChanged"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Router"
-                       Margin="Margin.Dense"
                        ToStringFunc="@(id => id is null ? "" : _clients.FirstOrDefault(c => c.Id == id) is { } x ? $"#{x.ClientIndex:D2} — {x.Name}" : "")">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["inspection.lineSelectPlaceholder"]</MudSelectItem>
                 @foreach (var client in _clients)
@@ -25,12 +25,11 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="10" sm="5">
-            <MudSelect T="int?" Label="@(L["inspection.selectRecipe"])" Variant="Variant.Outlined"
+        </div>
+        <div class="vms-filter-field wide">
+            <label class="vms-filter-label">@L["inspection.selectRecipe"]<span class="req" style="color:var(--vms-primary);">*</span></label>
+            <MudSelect T="int?" Variant="Variant.Outlined" Margin="Margin.Dense"
                        Value="_selectedRecipeId" ValueChanged="OnRecipeChanged"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.MenuBook"
-                       Margin="Margin.Dense"
                        Disabled="@(!_selectedClientId.HasValue)"
                        ToStringFunc="@(id => id is null ? "" : _recipes.FirstOrDefault(r => r.Id == id)?.Name ?? "")">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["inspection.recipeSelectPlaceholder"]</MudSelectItem>
@@ -41,42 +40,42 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="2" sm="2" Class="d-flex align-center justify-center">
-            @* 생성/수정/삭제는 Admin 전용 — User 는 조회만 (2026-08-11 정책) *@
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                                   Size="Size.Medium"
-                                   OnClick="OpenCreateRecipeDialog"
-                                   Disabled="@(!_selectedClientId.HasValue)"
-                                   Title="@(L["inspection.tooltipNewRecipe"])" />
-                </Authorized>
-            </AuthorizeView>
-        </MudItem>
-    </MudGrid>
-</div>
-
-@if (_selectedClientId.HasValue && !_selectedRecipeId.HasValue && _recipes.Count == 0)
-{
-    <div class="vms-panel pa-8 d-flex flex-column align-center">
-        <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Large"
-                 Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-3" />
-        <MudText Typo="Typo.h6" Style="color: var(--vms-text-secondary);">@L["inspection.noRecipes"]</MudText>
-        <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); opacity: 0.7;" Class="mb-4">
-            @L["inspection.noRecipesHint"]
-        </MudText>
+        </div>
+        <div class="vms-filter-spacer"></div>
+        @* 생성/수정/삭제는 Admin 전용 — User 는 조회만 (2026-08-11 정책) *@
         <AuthorizeView Roles="Admin">
             <Authorized>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
                            OnClick="OpenCreateRecipeDialog"
+                           Disabled="@(!_selectedClientId.HasValue)"
                            Class="vms-btn">
                     @L["inspection.btnCreateRecipe"]
                 </MudButton>
             </Authorized>
         </AuthorizeView>
     </div>
+</MudPaper>
+
+@if (_selectedClientId.HasValue && !_selectedRecipeId.HasValue && _recipes.Count == 0)
+{
+    @* 레시피 없음 — 8b 빈 상태 패턴 + 주 액션 *@
+    <MudPaper Class="vms-panel">
+        <div class="vms-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.MenuBook" />
+            <span class="vms-empty-text">@L["inspection.noRecipes"] — @L["inspection.noRecipesHint"]</span>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="OpenCreateRecipeDialog"
+                               Class="vms-btn mt-2">
+                        @L["inspection.btnCreateRecipe"]
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </MudPaper>
 }
 
 @if (_selectedRecipeId.HasValue)
@@ -85,42 +84,46 @@
         <MudTable Items="_params" Dense="true" Hover="true" Loading="_loading" Elevation="0"
                   GroupBy="_groupDefinition" GroupHeaderStyle="background-color: rgba(255,255,255,0.03);">
             <ToolBarContent>
-                <div class="d-flex align-center flex-wrap gap-1" style="width: 100%;">
+                @* 12a 표 툴바 — 레시피명 15px/700 + 파라미터 수 모노, 우측 프리셋(보조)·항목 추가(오렌지)·
+                   레시피 삭제(적 아웃라인 — 파괴적 액션은 항상 맨 오른쪽 끝) *@
+                <div class="d-flex align-center flex-wrap gap-2" style="width: 100%;">
                     <MudText Class="vms-panel-header">
                         @(_recipes.FirstOrDefault(r => r.Id == _selectedRecipeId)?.Name ?? "")
                     </MudText>
-                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                    <span class="vms-mono-dim" style="font-size:11px;">
                         @L.Format("inspection.totalCodesFmt", _params.Count)
-                    </MudText>
+                    </span>
                     <MudSpacer />
                     <AuthorizeView Roles="Admin">
                         <Authorized>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="DeleteSelectedRecipe"
-                                           Title="@(L["inspection.tooltipDeleteRecipe"])" />
-                        </Authorized>
-                    </AuthorizeView>
-                    <AuthorizeView Roles="Admin">
-                        <Authorized>
-                            <MudMenu Icon="@Icons.Material.Filled.PlaylistAdd"
-                                     Variant="Variant.Outlined" Size="Size.Small"
-                                     Dense="true" AnchorOrigin="Origin.BottomRight"
-                                     Title="@(L["inspection.tooltipPresetMenu"])">
-                                @foreach (var group in ParameterPresetGroup.PresetGroups)
-                                {
-                                    <MudMenuItem OnClick="@(() => AddPresetGroup(group))">
-                                        <span style="font-weight: 600;">@group.GroupName</span>
-                                        <span style="color: var(--mud-palette-text-secondary); margin-left: 8px; font-size: 0.8rem;">
-                                            (@group.Entries.Count)
-                                        </span>
-                                    </MudMenuItem>
-                                }
+                            <MudMenu Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                <ActivatorContent>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                               EndIcon="@Icons.Material.Filled.ArrowDropDown" Class="vms-btn">
+                                        @L["inspection.btnPreset"]
+                                    </MudButton>
+                                </ActivatorContent>
+                                <ChildContent>
+                                    @foreach (var group in ParameterPresetGroup.PresetGroups)
+                                    {
+                                        <MudMenuItem OnClick="@(() => AddPresetGroup(group))">
+                                            <span style="font-weight: 600;">@group.GroupName</span>
+                                            <span style="color: var(--mud-palette-text-secondary); margin-left: 8px; font-size: 0.8rem;">
+                                                (@group.Entries.Count)
+                                            </span>
+                                        </MudMenuItem>
+                                    }
+                                </ChildContent>
                             </MudMenu>
-                            <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                                           Variant="Variant.Filled" Size="Size.Small"
-                                           OnClick="OpenCreateDialog"
-                                           Title="@(L["inspection.tooltipAddParam"])" />
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       OnClick="OpenCreateDialog" Class="vms-btn">
+                                @L["inspection.btnAddItem"]
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                       OnClick="DeleteSelectedRecipe" Class="vms-btn vms-btn-danger-outline">
+                                @L["inspection.btnDeleteRecipe"]
+                            </MudButton>
                         </Authorized>
                     </AuthorizeView>
                 </div>
@@ -133,67 +136,62 @@
                 <MudTh Style="text-align: right;">@L["common.actions"]</MudTh>
             </HeaderContent>
             <GroupHeaderTemplate>
+                @* 분류 그룹 행 — 색칩 대신 그룹 행 자체가 구분자 (README 12a) *@
                 <MudTd colspan="5" Style="padding: 8px 16px;">
-                    <span style="font-weight: 600; color: var(--vms-text-primary);">@context.Key</span>
-                    <span style="color: var(--vms-text-secondary); margin-left: 8px; font-size: 0.8rem;">
+                    <span style="font-weight: 600; font-size: 13px; color: var(--mud-palette-text-primary);">@context.Key</span>
+                    <span class="vms-mono-dim" style="margin-left: 8px; font-size: 11px;">
                         @L.Format("inspection.categoryCountFmt", context.Items.Count())
                     </span>
                 </MudTd>
             </GroupHeaderTemplate>
             <RowTemplate>
                 <MudTd>
-                    <MudText Style="font-family: 'Roboto Mono', monospace; font-weight: 700;">
-                        @context.ParamCode
-                    </MudText>
+                    <span class="vms-cell-id">@context.ParamCode</span>
                 </MudTd>
                 <MudTd>
-                    <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Description</MudText>
+                    <div class="vms-cell-title" style="font-weight:500;">@context.Description</div>
                     @if (!string.IsNullOrEmpty(context.Unit))
                     {
-                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@context.Unit</MudText>
+                        <div class="vms-cell-when">@context.Unit</div>
                     }
                 </MudTd>
                 <MudTd Style="text-align: right;">
                     <span class="vms-mono">@context.ParamValue.ToString("F4")</span>
                 </MudTd>
                 <MudTd>
-                    @if (context.IsActive)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["status.active"]</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["status.inactive"]</MudChip>
-                    }
+                    <span class="vms-wo-chip @(context.IsActive ? "st-done" : "st-flat")">
+                        @(context.IsActive ? L["status.active"] : L["status.inactive"])
+                    </span>
                 </MudTd>
                 <MudTd Style="text-align: right; white-space: nowrap;">
                     <AuthorizeView Roles="Admin">
                         <Authorized Context="authContext1">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => OpenEditDialog(context))" />
-                        </Authorized>
-                    </AuthorizeView>
-                    <AuthorizeView Roles="Admin">
-                        <Authorized Context="authContext2">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="@(() => DeleteParam(context))" />
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action"
+                                       OnClick="@(() => OpenEditDialog(context))">@L["workorder.actEdit"]</MudButton>
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Class="vms-row-action danger"
+                                       OnClick="@(() => DeleteParam(context))">@L["workorder.actDelete"]</MudButton>
                         </Authorized>
                     </AuthorizeView>
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <div class="pa-8 d-flex flex-column align-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large"
-                             Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-                    <MudText Style="color: var(--vms-text-secondary);">@L["inspection.noParams"]</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--vms-text-secondary); opacity: 0.6;" Class="mt-1">
-                        @L["inspection.noParamsHint"]
-                    </MudText>
+                @* 파라미터 없음 — 8b 빈 상태 + 주 액션 *@
+                <div class="vms-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                    <span class="vms-empty-text">@L["inspection.noParams"] — @L["inspection.noParamsHint"]</span>
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       OnClick="OpenCreateDialog" Class="vms-btn mt-2">
+                                @L["inspection.btnAddItem"]
+                            </MudButton>
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
             </NoRecordsContent>
         </MudTable>
+        <div class="vms-slots-info">@L.Format("inspection.footerHintFmt", _nextCode?.ToString() ?? "—")</div>
     </div>
 }
 
@@ -248,6 +246,8 @@
             _params = new();
     }
 
+    private int? _nextCode;
+
     private async Task LoadParams()
     {
         if (!_selectedRecipeId.HasValue) return;
@@ -255,6 +255,8 @@
         _params = await Api.GetAsync<List<RecipeParameterDto>>(
             $"/api/parameters/recipe/{_selectedRecipeId.Value}") ?? new();
         _loading = false;
+        // 표 하단 안내용 다음 자동 코드
+        try { _nextCode = await GetNextCode(); } catch { _nextCode = null; }
     }
 
     private async Task<int> GetNextCode()
@@ -383,10 +385,16 @@
 
     private async Task DeleteParam(RecipeParameterDto param)
     {
-        var confirmed = await Dialog.ShowMessageBox(L["inspection.confirmDeleteParamTitle"],
-            L.Format("inspection.confirmDeleteParamFmt", param.ParamCode, param.Description),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, $"{param.ParamCode} — {param.Description}" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["inspection.confirmDeleteParamTitle"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {
@@ -442,10 +450,16 @@
         if (!_selectedRecipeId.HasValue) return;
 
         var recipe = _recipes.FirstOrDefault(r => r.Id == _selectedRecipeId);
-        var confirmed = await Dialog.ShowMessageBox(L["inspection.confirmDeleteRecipeTitle"],
-            L.Format("inspection.confirmDeleteRecipeFmt", recipe?.Name ?? ""),
-            L["action.delete"], L["action.cancel"]);
-        if (confirmed != true) return;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.TargetId, recipe?.Name ?? "" },
+            { x => x.Message, L["confirm.deleteIrreversible"] },
+            { x => x.Danger, true },
+            { x => x.ConfirmText, L["action.delete"] }
+        };
+        var dlg = await Dialog.ShowAsync<ConfirmDialog>(L["inspection.confirmDeleteRecipeTitle"], parameters);
+        var result = await dlg.Result;
+        if (result is null || result.Canceled) return;
 
         try
         {
@@ -470,14 +484,6 @@
             Snackbar.Add(L.Format("snackbar.failedFmt", ex.Message), Severity.Error);
         }
     }
-
-    private static string GetCategoryStyle(string category) => category switch
-    {
-        "Pattern" => "background-color: rgba(66, 165, 245, 0.15); color: #42a5f5; font-size: 0.7rem;",
-        "Blob" => "background-color: rgba(255, 167, 38, 0.15); color: #ffa726; font-size: 0.7rem;",
-        "Dimension" => "background-color: rgba(102, 187, 106, 0.15); color: #66bb6a; font-size: 0.7rem;",
-        _ => "background-color: rgba(158, 158, 158, 0.15); color: #9e9e9e; font-size: 0.7rem;"
-    };
 
     private class NextCodeResponse { public int NextCode { get; set; } }
 }
