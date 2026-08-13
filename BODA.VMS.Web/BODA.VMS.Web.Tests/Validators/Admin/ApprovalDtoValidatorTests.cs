@@ -10,8 +10,8 @@ public class ApprovalDtoValidatorTests
 
     [Theory]
     [InlineData("Admin")]
-    [InlineData("Manager")]
     [InlineData("User")]
+    [InlineData("Guest")]
     public void Allowed_roles_pass(string role)
     {
         _validator.TestValidate(new ApprovalDto { UserId = 1, Role = role })
@@ -29,6 +29,7 @@ public class ApprovalDtoValidatorTests
 
     [Theory]
     [InlineData("SuperUser")]
+    [InlineData("Manager")] // 죽은 역할 — 2026-08-13 화이트리스트에서 제거됨
     [InlineData("admin")]   // case-sensitive
     [InlineData("")]
     public void Invalid_role_fails(string role)

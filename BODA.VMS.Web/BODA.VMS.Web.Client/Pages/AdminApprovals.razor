@@ -189,7 +189,33 @@
 
     private async Task ApproveUser(UserDto user, string role)
     {
-        await Api.PostAsync("/api/admin/approve", new ApprovalDto { UserId = user.Id, Role = role });
+        // 실패(검증 400 등)를 무음으로 삼키지 않는다 — Guest 승인 무동작 버그의 절반 (2026-08-13)
+        var response = await Api.PostWithResponseAsync(
+            "/api/admin/approve", new ApprovalDto { UserId = user.Id, Role = role });
+        if (!response.IsSuccessStatusCode)
+        {
+            string? reason = null;
+            try
+            {
+                var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                if (body.TryGetProperty("errors", out var errors)
+                    && errors.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    var msgs = new List<string>();
+                    foreach (var f in errors.EnumerateObject())
+                        foreach (var m in f.Value.EnumerateArray())
+                            if (m.GetString() is { Length: > 0 } s) msgs.Add(s);
+                    if (msgs.Count > 0) reason = string.Join(" / ", msgs);
+                }
+                else if (body.TryGetProperty("message", out var msg))
+                {
+                    reason = msg.GetString();
+                }
+            }
+            catch { }
+            Snackbar.Add(reason ?? L["snackbar.failedFmt"], Severity.Warning);
+            return;
+        }
         Snackbar.Add(L.Format("approval.snackbarApprovedFmt", user.Username, role), Severity.Success);
         await LoadData();
     }
