@@ -15,9 +15,12 @@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                        Class="d-md-none" OnClick="@ToggleDrawer" />
         <div class="d-flex align-center">
-            <MudText Class="vms-logo ml-2">
-                <span class="navy">BODA</span><span class="vms-logo-accent"> VMS</span>
-            </MudText>
+            @* 로고 클릭 → 홈 (웹 관례, 사용자 요청 2026-08-13) *@
+            <a href="/" class="vms-logo-link" aria-label="BODA VMS — 홈으로">
+                <MudText Class="vms-logo ml-2">
+                    <span class="navy">BODA</span><span class="vms-logo-accent"> VMS</span>
+                </MudText>
+            </a>
             @* 셸 부제는 버전 라벨 — "Vision Management System" 문구는 로그인/키오스크에만 (2026-08-12 지시) *@
             <MudText Class="vms-logo-sub d-none d-lg-block">@_versionLabel</MudText>
         </div>
