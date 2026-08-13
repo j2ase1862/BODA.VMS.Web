@@ -1140,6 +1140,13 @@ body {
 
 .vms-filter-field.wide { min-width: 240px; }
 
+/* 버튼 Y 정렬 보정 — Mud 입력 컨트롤 루트가 외곽선 아래 4px 여백을 가져
+   flex-end 정렬 시 버튼만 4px 내려앉음. 실측 기반 보정 (사용자 피드백 2026-08-13) */
+.vms-filter-flex .mud-button-filled,
+.vms-filter-flex .mud-button-outlined {
+    margin-bottom: 4px;
+}
+
 /* 검색 등 placeholder 가 긴 필드 — 잘림 방지 (2026-08-13 피드백) */
 .vms-filter-field.xwide { min-width: 400px; }
 
