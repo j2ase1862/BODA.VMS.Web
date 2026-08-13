@@ -8,23 +8,27 @@
 
 <MudText Typo="Typo.h4" Class="vms-page-title">@L["page.reliability"]</MudText>
 
-<MudAlert Severity="MudBlazor.Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-    @L["reliability.formulaAlert"]
-    <br />@L["reliability.formulaDetail"]
-</MudAlert>
+@* 9f — FORMULA 배너 (6b 동일 패턴) *@
+<div class="vms-banner info mb-4">
+    <span class="vms-banner-label">FORMULA</span>
+    <span class="vms-banner-text">@L["reliability.formulaAlert"] @L["reliability.formulaDetail"]</span>
+</div>
 
-<div class="vms-panel pa-3 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_startDate" Label="@(L["common.startDate"])"
+<MudPaper Class="vms-filter-bar pa-0 mb-4">
+    <div class="vms-filter-flex">
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.startDate"]</label>
+            <MudDatePicker @bind-Date="_startDate"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_endDate" Label="@(L["common.endDate"])"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.endDate"]</label>
+            <MudDatePicker @bind-Date="_endDate"
                            Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="int?" @bind-Value="_clientId" Label="@(L["common.line"])" Clearable="true"
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.line"]</label>
+            <MudSelect T="int?" @bind-Value="_clientId" Clearable="true"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem T="int?" Value="@((int?)null)">@L["common.all"]</MudSelectItem>
                 @foreach (var c in _clients)
@@ -34,65 +38,54 @@
                     </MudSelectItem>
                 }
             </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-center">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Calculate"
-                       OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
-        </MudItem>
-    </MudGrid>
-</div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Calculate"
+                   OnClick="Calculate" Class="vms-btn">@L["action.calculate"]</MudButton>
+    </div>
+</MudPaper>
 
 @if (_stats.Count > 0)
 {
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
+    @* 라인 카드 — 상단 3px 색띠 = 가용률 등급 (기존 임계값 유지, 저채도) *@
+    <div class="vms-rel-grid">
         @foreach (var s in _stats)
         {
-            <div class="vms-panel pa-3" style="border-top: 4px solid @(AvailColor(s.Availability));">
-                <div class="d-flex align-center mb-2">
-                    <MudText Typo="Typo.h6" Style="font-weight:700;">
-                        #@s.ClientIndex.ToString("D2") @s.ClientName
-                    </MudText>
-                    <MudSpacer />
-                    <div style="text-align:right;">
-                        <div style="font-size:10px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.failureCount"]</div>
-                        <div style="font-size:24px; font-weight:800; font-family:'Roboto Mono',monospace; color:@(s.FailureCount > 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)");">
-                            @s.FailureCount
-                        </div>
+            var g = Grade(s.Availability);
+            <div class="vms-panel vms-rel-card @g">
+                <div class="vms-rel-head">
+                    <div class="vms-rel-title">
+                        <span class="vms-oee-idx">#@s.ClientIndex.ToString("D2")</span> @s.ClientName
+                    </div>
+                    <div class="vms-rel-fail">
+                        <span class="vms-oee-label">@L["reliability.failureCount"]</span>
+                        <span class="vms-rel-fail-count @(s.FailureCount > 0 ? "bad" : "ok")">@s.FailureCount</span>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
-                    <div style="text-align:center; padding:8px; background:rgba(255,255,255,0.03); border-radius:6px;">
-                        <div style="font-size:10px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.mtbf"]</div>
-                        <div style="font-size:22px; font-weight:800; font-family:'Roboto Mono',monospace;">
-                            @(s.MtbfHours.HasValue ? $"{s.MtbfHours.Value:F1}h" : "—")
-                        </div>
-                        <div style="font-size:10px; color:var(--vms-text-secondary);">@L["reliability.mtbfDescription"]</div>
+                <div class="vms-rel-duo">
+                    <div class="vms-rel-duo-cell">
+                        <span class="vms-rel-duo-label">@L["reliability.mtbf"]</span>
+                        <span class="vms-rel-duo-value">@(s.MtbfHours.HasValue ? $"{s.MtbfHours.Value:F1}h" : "—")</span>
+                        <span class="vms-rel-duo-desc">@L["reliability.mtbfDescription"]</span>
                     </div>
-                    <div style="text-align:center; padding:8px; background:rgba(255,255,255,0.03); border-radius:6px;">
-                        <div style="font-size:10px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.mttr"]</div>
-                        <div style="font-size:22px; font-weight:800; font-family:'Roboto Mono',monospace;">
-                            @(s.MttrHours.HasValue ? $"{s.MttrHours.Value:F1}h" : "—")
-                        </div>
-                        <div style="font-size:10px; color:var(--vms-text-secondary);">@L["reliability.mttrDescription"]</div>
+                    <div class="vms-rel-duo-cell">
+                        <span class="vms-rel-duo-label">@L["reliability.mttr"]</span>
+                        <span class="vms-rel-duo-value">@(s.MttrHours.HasValue ? $"{s.MttrHours.Value:F1}h" : "—")</span>
+                        <span class="vms-rel-duo-desc">@L["reliability.mttrDescription"]</span>
                     </div>
                 </div>
 
-                @if (s.Availability.HasValue)
-                {
-                    <div style="text-align:center; padding:10px; background:rgba(79,195,247,0.08); border-radius:6px;">
-                        <div style="font-size:11px; color:var(--vms-text-secondary); text-transform:uppercase;">@L["reliability.availability"]</div>
-                        <div style="font-size:30px; font-weight:800; font-family:'Roboto Mono',monospace; color:@(AvailColor(s.Availability));">
-                            @((s.Availability * 100).Value.ToString("F2"))%
-                        </div>
-                    </div>
-                }
+                <div class="vms-rel-avail">
+                    <span class="vms-rel-avail-label">@L["reliability.availability"]</span>
+                    <span class="vms-rel-avail-value">
+                        @(s.Availability.HasValue ? (s.Availability.Value * 100).ToString("F2") + "%" : "—")
+                    </span>
+                </div>
 
-                <MudDivider Class="my-2" />
-                <div class="d-flex justify-space-between" style="font-size:12px;">
-                    <span style="color: var(--mud-palette-success);">@L.Format("reliability.runningHoursFmt", s.TotalRunningHours.ToString("F1"))</span>
-                    <span style="color: var(--mud-palette-error);">@L.Format("reliability.downHoursFmt", s.TotalDownHours.ToString("F1"))</span>
+                <div class="vms-rel-foot">
+                    <span class="run">@L.Format("reliability.runningHoursFmt", s.TotalRunningHours.ToString("F1"))</span>
+                    <span class="down">@L.Format("reliability.downHoursFmt", s.TotalDownHours.ToString("F1"))</span>
                 </div>
             </div>
         }
@@ -100,17 +93,21 @@
 }
 else if (_loaded)
 {
-    <div class="vms-panel pa-8 d-flex flex-column align-center">
-        <MudText Style="color: var(--vms-text-secondary);">@L["reliability.noData"]</MudText>
-    </div>
+    <MudPaper Class="vms-panel">
+        <div class="vms-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Insights" />
+            <span class="vms-empty-text">@L["reliability.noData"]</span>
+        </div>
+    </MudPaper>
 }
 else
 {
-    <div class="vms-panel pa-8 d-flex flex-column align-center">
-        <MudIcon Icon="@Icons.Material.Filled.Insights" Size="Size.Large"
-                 Style="color: var(--vms-text-secondary); opacity: 0.3;" Class="mb-2" />
-        <MudText Style="color: var(--vms-text-secondary);">@L["reliability.promptCalc"]</MudText>
-    </div>
+    <MudPaper Class="vms-panel">
+        <div class="vms-empty">
+            <MudIcon Icon="@Icons.Material.Outlined.Insights" />
+            <span class="vms-empty-text">@L["reliability.promptCalc"]</span>
+        </div>
+    </MudPaper>
 }
 
 @code {
@@ -148,12 +145,13 @@ else
         }
     }
 
-    private static string AvailColor(double? avail)
+    // 가용률 등급 — 기존 임계값 유지 (≥95 / ≥85 / ≥70 / 미달)
+    private static string Grade(double? avail)
     {
-        if (!avail.HasValue) return "var(--mud-palette-default)";
-        if (avail >= 0.95) return "var(--mud-palette-success)";
-        if (avail >= 0.85) return "var(--mud-palette-info)";
-        if (avail >= 0.70) return "var(--mud-palette-warning)";
-        return "var(--mud-palette-error)";
+        if (!avail.HasValue) return "g-none";
+        if (avail >= 0.95) return "g95";
+        if (avail >= 0.85) return "g85";
+        if (avail >= 0.70) return "g70";
+        return "g-bad";
     }
 }

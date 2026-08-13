@@ -1790,6 +1790,144 @@ body {
 .vms-oee-foot .pass { color: #7FA98C; }
 .vms-oee-foot .ng   { color: #C4756E; }
 
+/* ---- 9f 신뢰성 분석 — MTBF/MTTR 라인 카드 (저채도 가용률 등급) ---- */
+
+.vms-rel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 1100px) {
+    .vms-rel-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+    .vms-rel-grid { grid-template-columns: 1fr; }
+}
+
+.vms-rel-card {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 상단 3px 색띠 + 가용률 텍스트 톤 — 등급별 (≥95/≥85/≥70/미달) */
+.vms-rel-card.g95   { border-top: 3px solid #4E8C63 !important; }
+.vms-rel-card.g85   { border-top: 3px solid #3C5F80 !important; }
+.vms-rel-card.g70   { border-top: 3px solid #8A6E37 !important; }
+.vms-rel-card.g-bad { border-top: 3px solid #A8443C !important; }
+
+.vms-rel-card.g95   .vms-rel-avail-value { color: #7FA98C; }
+.vms-rel-card.g85   .vms-rel-avail-value { color: #7FA6CC; }
+.vms-rel-card.g70   .vms-rel-avail-value { color: #C9A05A; }
+.vms-rel-card.g-bad .vms-rel-avail-value { color: #C4756E; }
+.vms-rel-card.g-none .vms-rel-avail-value { color: var(--vms-text-mono-caption); }
+
+.vms-rel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vms-rel-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mud-palette-text-primary);
+}
+
+.vms-rel-fail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.vms-rel-fail-count {
+    font-family: var(--vms-font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-rel-fail-count.ok  { color: #7FA98C; }
+.vms-rel-fail-count.bad { color: #C4756E; }
+
+/* MTBF/MTTR 2분할 */
+.vms-rel-duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.vms-rel-duo-cell {
+    background: #0C121D;
+    border-radius: 8px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.vms-rel-duo-label {
+    font-family: var(--vms-font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-rel-duo-value {
+    font-family: var(--vms-font-mono);
+    font-size: 20px;
+    color: #E6ECF5;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-rel-duo-desc { font-size: 10px; color: var(--mud-palette-text-secondary); }
+
+/* 가용률 박스 */
+.vms-rel-avail {
+    background: rgba(60, 95, 128, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.vms-rel-avail-label {
+    font-family: var(--vms-font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--vms-text-mono-caption);
+}
+
+.vms-rel-avail-value {
+    font-family: var(--vms-font-mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.vms-rel-foot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    border-top: 1px solid var(--vms-hairline);
+    padding-top: 10px;
+    margin-top: 2px;
+}
+
+.vms-rel-foot .run  { color: #7FA98C; }
+.vms-rel-foot .down { color: #C4756E; }
+
 /* ---- 9e 수요 예측 — 예측 카드 + 실적 대조/잔차 관리도 ---- */
 
 .vms-fc-grid {
