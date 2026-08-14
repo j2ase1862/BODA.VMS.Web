@@ -11,7 +11,17 @@
    - "기능 보존" 주석 블록(입력 40px 통일·MudTable 모바일·iOS 줌)은 수정 금지.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ---- 서체 (셀프호스트 — GS 오프라인, CDN 금지) ---- */
+/* ---- 서체 (셀프호스트 — GS 오프라인, CDN 금지) ----
+   본문/UI = Pretendard (한글+라틴 통합 설계 — 실증 PC 가독성 피드백 2026-08-14,
+   OFL 1.1, fonts/LICENSE-Pretendard.txt). Saira 는 로고 전용으로 강등. */
+@font-face {
+    font-family: 'Pretendard';
+    font-style: normal;
+    font-weight: 45 920;
+    font-display: swap;
+    src: url('/fonts/PretendardVariable.woff2') format('woff2-variations'),
+         url('/fonts/PretendardVariable.woff2') format('woff2');
+}
 @font-face {
     font-family: 'Saira';
     font-style: normal;
@@ -41,16 +51,16 @@
     font-style: normal;
     font-weight: 400 800;
     font-display: swap;
-    src: url('/fonts/Saira-Variable.woff2') format('woff2-variations'),
-         url('/fonts/Saira-Variable.woff2') format('woff2');
+    src: url('/fonts/PretendardVariable.woff2') format('woff2-variations'),
+         url('/fonts/PretendardVariable.woff2') format('woff2');
 }
 @font-face {
     font-family: 'Roboto';
     font-style: normal;
     font-weight: 400 800;
     font-display: swap;
-    src: url('/fonts/Saira-Variable.woff2') format('woff2-variations'),
-         url('/fonts/Saira-Variable.woff2') format('woff2');
+    src: url('/fonts/PretendardVariable.woff2') format('woff2-variations'),
+         url('/fonts/PretendardVariable.woff2') format('woff2');
 }
 @font-face {
     font-family: 'Roboto Mono';
@@ -92,8 +102,9 @@
     --vms-radius-judge: 5px;            /* 판정 칩 */
 
     --vms-hairline: var(--mud-palette-lines-default);   /* 카드 테두리 */
-    --vms-font-display: 'Saira', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-    --vms-font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+    --vms-font-display: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    --vms-font-logo: 'Saira', 'Pretendard', sans-serif;    /* 로고 전용 (브랜드) */
+    --vms-font-mono: 'IBM Plex Mono', 'Pretendard', 'Consolas', monospace;  /* 모노 내 한글은 Pretendard 폴백 */
     --vms-ease: cubic-bezier(0.2, 0, 0, 1);
 
     /* 표 행 hover — README Interactions (rgba(255,122,61,.06~.07)) */
@@ -279,7 +290,7 @@ body {
 
 /* 로고 — README 공통 셸: 19px/800/.04em/uppercase */
 .vms-logo {
-    font-family: var(--vms-font-display);
+    font-family: var(--vms-font-logo);
     font-weight: 800;
     font-size: 19px;
     letter-spacing: 0.04em;
@@ -991,7 +1002,7 @@ body {
 }
 
 .vms-login-logo {
-    font-family: var(--vms-font-display);
+    font-family: var(--vms-font-logo);
     font-weight: 800;
     font-size: 30px;
     letter-spacing: 0.06em;
