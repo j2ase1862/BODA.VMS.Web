@@ -541,6 +541,7 @@ using (var scope = app.Services.CreateScope())
             ""PassQuantity""      INTEGER NOT NULL DEFAULT 0,
             ""NgQuantity""        INTEGER NOT NULL DEFAULT 0,
             ""Status""            TEXT NOT NULL DEFAULT 'Planned',
+            ""CompletionBasis""   TEXT NOT NULL DEFAULT 'Pass',
             ""PlannedStartAt""    TEXT,
             ""ActualStartAt""     TEXT,
             ""ActualEndAt""       TEXT,
@@ -555,6 +556,23 @@ using (var scope = app.Services.CreateScope())
         "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_WorkOrders_OrderNo\" ON \"WorkOrders\" (\"OrderNo\");");
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_WorkOrders_Status_PlannedStartAt\" ON \"WorkOrders\" (\"Status\", \"PlannedStartAt\");");
+
+    // 기존 DB 에 완료 기준 컬럼 보강 — 기존 행은 'Produced'(구버전 동작 유지),
+    // 신규 설치는 위 CREATE 의 DEFAULT 'Pass'. 신규 생성 WO 의 기본값은 서비스에서 결정.
+    using (var cmdWo = conn.CreateCommand())
+    {
+        cmdWo.CommandText = "PRAGMA table_info(WorkOrders);";
+        var woColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var readerWo = await cmdWo.ExecuteReaderAsync())
+        {
+            while (await readerWo.ReadAsync())
+                woColumns.Add(readerWo.GetString(1));
+        }
+
+        if (!woColumns.Contains("CompletionBasis"))
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE WorkOrders ADD COLUMN CompletionBasis TEXT NOT NULL DEFAULT 'Produced';");
+    }
 
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""Lots"" (

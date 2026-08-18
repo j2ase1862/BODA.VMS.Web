@@ -46,6 +46,14 @@ public class WorkOrder
     [Required, MaxLength(20)]
     public string Status { get; set; } = WorkOrderStatus.Planned;
 
+    /// <summary>
+    /// 완료 기준 — Pass(양품 수량이 계획 수량 도달 시 완료, 신규 기본값) /
+    /// Produced(총 생산 수량 기준, 구버전 동작). 기존 DB 행은 마이그레이션 기본값
+    /// Produced 로 채워져 동작이 바뀌지 않는다 (2026-08-18, 양품 100개 채우기 요구).
+    /// </summary>
+    [Required, MaxLength(20)]
+    public string CompletionBasis { get; set; } = WorkOrderCompletionBasis.Pass;
+
     public DateTime? PlannedStartAt { get; set; }
 
     public DateTime? ActualStartAt { get; set; }
@@ -77,4 +85,14 @@ public static class WorkOrderStatus
     public const string InProgress = "InProgress";
     public const string Completed = "Completed";
     public const string Closed = "Closed";
+}
+
+public static class WorkOrderCompletionBasis
+{
+    /// <summary>총 생산 수량 기준 (구버전 동작 — 기존 WO 호환)</summary>
+    public const string Produced = "Produced";
+    /// <summary>양품 수량 기준 (신규 WO 기본값 — NG 만큼 자동으로 더 생산)</summary>
+    public const string Pass = "Pass";
+
+    public static bool IsValid(string? value) => value is Produced or Pass;
 }
