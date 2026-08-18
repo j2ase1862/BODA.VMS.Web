@@ -51,6 +51,14 @@ public class ParameterResultUploadRequest
     /// </summary>
     public string? CorrelationKey { get; set; }
 
+    /// <summary>
+    /// 사이클 전체 판정 (AUTO RUN "1사이클 = 1개" 집계용). 이 값이 있으면 Results 가
+    /// 비어 있어도 판정 전용 업로드로 접수한다 — 파라미터 연동 툴이 없는 레시피(예:
+    /// BlobTool)도 WO 수량·검사 이력이 집계되도록. nullable — 구버전 VMS 는 미전송이며,
+    /// 그 경우 기존과 동일하게 Results 로 판정을 계산한다.
+    /// </summary>
+    public bool? OverallPass { get; set; }
+
     // === Predictive_DefectRate_Plan §5.1 (V1/V2/V3) 예측 피처 ===
     // 모두 nullable — 구버전 VMS 클라이언트는 보내지 않으므로 NULL 허용.
     /// <summary>V2: 검사 1회 소요 시간(ms).</summary>

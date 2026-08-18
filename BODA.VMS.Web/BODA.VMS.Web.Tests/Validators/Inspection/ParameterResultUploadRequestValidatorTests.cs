@@ -42,6 +42,37 @@ public class ParameterResultUploadRequestValidatorTests
         _validator.TestValidate(dto).ShouldHaveValidationErrorFor(x => x.Results);
     }
 
+    [Fact]
+    public void Empty_results_with_overall_pass_passes()
+    {
+        // 판정 전용(사이클) 업로드 — AUTO RUN "1사이클 = 1개" 집계 (VMS v1.5.18+).
+        var dto = Valid();
+        dto.Results = new List<ParameterResultDto>();
+        dto.OverallPass = true;
+        _validator.TestValidate(dto).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Empty_results_with_overall_fail_passes()
+    {
+        var dto = Valid();
+        dto.Results = new List<ParameterResultDto>();
+        dto.OverallPass = false;
+        _validator.TestValidate(dto).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Overall_pass_with_over_1000_results_still_fails()
+    {
+        // OverallPass 가 있어도 상한은 그대로 적용된다.
+        var dto = Valid();
+        dto.OverallPass = true;
+        dto.Results = Enumerable.Range(1, 1001)
+            .Select(i => new ParameterResultDto { ParamCode = i, Judgment = "Pass" })
+            .ToList();
+        _validator.TestValidate(dto).ShouldHaveValidationErrorFor(x => x.Results);
+    }
+
     [Theory]
     [InlineData(-1.0)]
     [InlineData(256.0)]
