@@ -116,7 +116,13 @@ public static class InspectionItemEndpoints
                 IsPass = r.Judgment == "OK"
             }).ToList();
 
-            var isPass = request.Results.All(r => r.Judgment == "OK");
+            // 판정: 측정값이 있으면 전건 OK 여부 AND OverallPass(있으면), 없으면 OverallPass.
+            // 판정 전용(사이클) 업로드는 Results 가 비어 있고 OverallPass 만 온다 — validator 가
+            // 둘 중 하나는 반드시 있도록 보장한다.
+            var resultsPass = request.Results.All(r => r.Judgment == "OK");
+            var isPass = request.OverallPass.HasValue
+                ? request.OverallPass.Value && resultsPass
+                : resultsPass;
             var ngCodes = request.Results
                 .Where(r => r.Judgment == "NG")
                 .Select(r => r.ParamCode.ToString());

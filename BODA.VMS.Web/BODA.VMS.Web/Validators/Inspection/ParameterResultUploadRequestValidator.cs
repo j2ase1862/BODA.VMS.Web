@@ -15,8 +15,14 @@ public sealed class ParameterResultUploadRequestValidator : AbstractValidator<Pa
 
         RuleFor(x => x.Results)
             .NotNull().WithMessage("Results is required")
-            .Must(r => r.Count > 0).WithMessage("Results must contain at least 1 entry")
             .Must(r => r.Count <= 1000).WithMessage("Results count must not exceed 1000 per upload");
+
+        // 판정 전용(사이클) 업로드는 OverallPass 만으로 접수 — 그 외에는 기존과 동일하게
+        // 측정값 1건 이상을 요구한다 (구버전 VMS 계약 유지).
+        RuleFor(x => x.Results)
+            .Must(r => r.Count > 0)
+            .When(x => !x.OverallPass.HasValue)
+            .WithMessage("Results must contain at least 1 entry (or provide OverallPass)");
 
         RuleForEach(x => x.Results).SetValidator(new ParameterResultDtoValidator());
 
