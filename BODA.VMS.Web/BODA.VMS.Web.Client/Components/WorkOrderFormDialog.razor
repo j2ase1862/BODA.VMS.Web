@@ -58,11 +58,20 @@
                                          Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" />
                     </div>
                     <div>
-                        <label class="vms-form-label">@L["dialog.workorderFieldPlannedStart"]</label>
-                        <MudDatePicker @bind-Date="_plannedStart"
-                                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                                       HelperText="@(L["dialog.workorderFieldPlannedStartHint"])" />
+                        <label class="vms-form-label">@L["dialog.workorderFieldBasis"]</label>
+                        <MudSelect T="string" @bind-Value="Model.CompletionBasis"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   HelperText="@(L["dialog.workorderFieldBasisHint"])">
+                            <MudSelectItem T="string" Value="@("Pass")">@L["dialog.workorderFieldBasisPass"]</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Produced")">@L["dialog.workorderFieldBasisProduced"]</MudSelectItem>
+                        </MudSelect>
                     </div>
+                </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldPlannedStart"]</label>
+                    <MudDatePicker @bind-Date="_plannedStart"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   HelperText="@(L["dialog.workorderFieldPlannedStartHint"])" />
                 </div>
                 <div>
                     <label class="vms-form-label">@L["dialog.workorderFieldNote"]</label>

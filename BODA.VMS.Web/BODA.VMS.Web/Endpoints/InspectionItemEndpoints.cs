@@ -211,8 +211,13 @@ public static class InspectionItemEndpoints
                         if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
                         wo.UpdatedAt = DateTime.UtcNow;
 
-                        // Stage 3: 계획 수량 도달 → 자동 Completed 전이
-                        if (wo.PlannedQuantity > 0 && wo.ProducedQuantity >= wo.PlannedQuantity)
+                        // Stage 3: 계획 수량 도달 → 자동 Completed 전이.
+                        // 완료 기준(CompletionBasis)에 따라 진행 수량이 다르다 —
+                        // Pass = 양품 수량(NG 만큼 더 생산, 신규 기본), Produced = 총 생산 수량.
+                        var progressQty = wo.CompletionBasis == Data.Entities.WorkOrderCompletionBasis.Pass
+                            ? wo.PassQuantity
+                            : wo.ProducedQuantity;
+                        if (wo.PlannedQuantity > 0 && progressQty >= wo.PlannedQuantity)
                         {
                             wo.Status = Data.Entities.WorkOrderStatus.Completed;
                             wo.ActualEndAt = DateTime.UtcNow;
@@ -256,6 +261,7 @@ public static class InspectionItemEndpoints
                     passQuantity = touchedWo.PassQuantity,
                     ngQuantity = touchedWo.NgQuantity,
                     status = touchedWo.Status,
+                    completionBasis = touchedWo.CompletionBasis,
                     completed = woJustCompleted
                 };
 

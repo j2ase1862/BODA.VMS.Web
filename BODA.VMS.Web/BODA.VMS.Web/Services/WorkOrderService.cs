@@ -58,6 +58,10 @@ public class WorkOrderService : IWorkOrderService
             RecipeId = dto.RecipeId,
             PlannedQuantity = dto.PlannedQuantity,
             Status = WorkOrderStatus.Planned,
+            // 미지정/잘못된 값은 기본 Pass(양품 수량 기준) — 2026-08-18 정책
+            CompletionBasis = WorkOrderCompletionBasis.IsValid(dto.CompletionBasis)
+                ? dto.CompletionBasis
+                : WorkOrderCompletionBasis.Pass,
             PlannedStartAt = dto.PlannedStartAt,
             Note = dto.Note,
             CreatedAt = DateTime.UtcNow
@@ -82,6 +86,8 @@ public class WorkOrderService : IWorkOrderService
         entity.ClientId = dto.ClientId;
         entity.RecipeId = dto.RecipeId;
         entity.PlannedQuantity = dto.PlannedQuantity;
+        if (WorkOrderCompletionBasis.IsValid(dto.CompletionBasis))
+            entity.CompletionBasis = dto.CompletionBasis;
         entity.PlannedStartAt = dto.PlannedStartAt;
         entity.Note = dto.Note;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -181,6 +187,7 @@ public class WorkOrderService : IWorkOrderService
         PassQuantity = w.PassQuantity,
         NgQuantity = w.NgQuantity,
         Status = w.Status,
+        CompletionBasis = w.CompletionBasis,
         PlannedStartAt = w.PlannedStartAt,
         ActualStartAt = w.ActualStartAt,
         ActualEndAt = w.ActualEndAt,
