@@ -85,37 +85,38 @@ public class WorkOrderServiceTests
         created.OrderNo.Should().Be("WO-CUSTOM-1");
     }
 
-    // ─── 완료 기준 (CompletionBasis) — "양품 100개 채우기" (2026-08-18) ───
+    // ─── 완료 기준 (CompletionBasis) — "양품 100개 채우기" opt-in (2026-08-19) ───
 
     [Fact]
-    public async Task CreateAsync_defaults_completion_basis_to_pass()
+    public async Task CreateAsync_defaults_completion_basis_to_produced()
     {
+        // 양품 채우기(Pass)는 초과 생산이 걸린 결정이라 명시적 opt-in — 기본은 Produced.
         using var ctx = new InMemorySqliteDbContext();
         var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
 
         var svc = new WorkOrderService(ctx.Db);
         var created = await svc.CreateAsync(MakeDto(pid, cid, rid));
 
-        created.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Pass);
+        created.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Produced);
     }
 
     [Fact]
-    public async Task CreateAsync_accepts_produced_basis()
+    public async Task CreateAsync_accepts_pass_basis_optin()
     {
         using var ctx = new InMemorySqliteDbContext();
         var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
 
         var dto = MakeDto(pid, cid, rid);
-        dto.CompletionBasis = WorkOrderCompletionBasis.Produced;
+        dto.CompletionBasis = WorkOrderCompletionBasis.Pass;
 
         var svc = new WorkOrderService(ctx.Db);
         var created = await svc.CreateAsync(dto);
 
-        created.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Produced);
+        created.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Pass);
     }
 
     [Fact]
-    public async Task CreateAsync_invalid_basis_falls_back_to_pass()
+    public async Task CreateAsync_invalid_basis_falls_back_to_produced()
     {
         using var ctx = new InMemorySqliteDbContext();
         var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
@@ -126,7 +127,7 @@ public class WorkOrderServiceTests
         var svc = new WorkOrderService(ctx.Db);
         var created = await svc.CreateAsync(dto);
 
-        created.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Pass);
+        created.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Produced);
     }
 
     [Fact]
@@ -139,10 +140,10 @@ public class WorkOrderServiceTests
         var created = await svc.CreateAsync(MakeDto(pid, cid, rid));
 
         var dto = MakeDto(pid, cid, rid);
-        dto.CompletionBasis = WorkOrderCompletionBasis.Produced;
+        dto.CompletionBasis = WorkOrderCompletionBasis.Pass;
         var updated = await svc.UpdateAsync(created.Id, dto);
 
-        updated!.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Produced);
+        updated!.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Pass);
     }
 
     [Fact]
@@ -152,7 +153,9 @@ public class WorkOrderServiceTests
         var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
 
         var svc = new WorkOrderService(ctx.Db);
-        var created = await svc.CreateAsync(MakeDto(pid, cid, rid));
+        var dtoCreate = MakeDto(pid, cid, rid);
+        dtoCreate.CompletionBasis = WorkOrderCompletionBasis.Pass;
+        var created = await svc.CreateAsync(dtoCreate);
 
         var dto = MakeDto(pid, cid, rid);
         dto.CompletionBasis = "";

@@ -541,7 +541,7 @@ using (var scope = app.Services.CreateScope())
             ""PassQuantity""      INTEGER NOT NULL DEFAULT 0,
             ""NgQuantity""        INTEGER NOT NULL DEFAULT 0,
             ""Status""            TEXT NOT NULL DEFAULT 'Planned',
-            ""CompletionBasis""   TEXT NOT NULL DEFAULT 'Pass',
+            ""CompletionBasis""   TEXT NOT NULL DEFAULT 'Produced',
             ""PlannedStartAt""    TEXT,
             ""ActualStartAt""     TEXT,
             ""ActualEndAt""       TEXT,
@@ -557,8 +557,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync(
         "CREATE INDEX IF NOT EXISTS \"IX_WorkOrders_Status_PlannedStartAt\" ON \"WorkOrders\" (\"Status\", \"PlannedStartAt\");");
 
-    // 기존 DB 에 완료 기준 컬럼 보강 — 기존 행은 'Produced'(구버전 동작 유지),
-    // 신규 설치는 위 CREATE 의 DEFAULT 'Pass'. 신규 생성 WO 의 기본값은 서비스에서 결정.
+    // 기존 DB 에 완료 기준 컬럼 보강 — 기본 'Produced' (신규 설치도 동일).
+    // 양품 기준은 WO 생성/편집에서 명시적으로 선택 (2026-08-19 opt-in 정책).
     using (var cmdWo = conn.CreateCommand())
     {
         cmdWo.CommandText = "PRAGMA table_info(WorkOrders);";
