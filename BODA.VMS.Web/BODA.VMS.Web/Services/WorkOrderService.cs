@@ -58,10 +58,11 @@ public class WorkOrderService : IWorkOrderService
             RecipeId = dto.RecipeId,
             PlannedQuantity = dto.PlannedQuantity,
             Status = WorkOrderStatus.Planned,
-            // 미지정/잘못된 값은 기본 Pass(양품 수량 기준) — 2026-08-18 정책
+            // 미지정/잘못된 값은 기본 Produced(총 생산 기준) — 양품 채우기는 명시적
+            // opt-in (2026-08-19 정책, 초과 생산 방지)
             CompletionBasis = WorkOrderCompletionBasis.IsValid(dto.CompletionBasis)
                 ? dto.CompletionBasis
-                : WorkOrderCompletionBasis.Pass,
+                : WorkOrderCompletionBasis.Produced,
             PlannedStartAt = dto.PlannedStartAt,
             Note = dto.Note,
             CreatedAt = DateTime.UtcNow
