@@ -50,6 +50,24 @@ public class WorkOrderDto
     public double Progress => PlannedQuantity > 0
         ? Math.Round((double)ProgressQuantity / PlannedQuantity * 100, 2)
         : 0;
+
+    /// <summary>
+    /// 레시피별 계획/실적 라인 (혼합 레시피 WO). 단일 레시피 WO 는 라인 1개.
+    /// 본체 수량 필드들은 라인 합계(롤업)와 일치한다.
+    /// </summary>
+    public List<WorkOrderItemDto> Items { get; set; } = new();
+}
+
+/// <summary>혼합 레시피 WO 의 레시피별 라인 (docs/design/wo-mixed-recipe-spec.md)</summary>
+public class WorkOrderItemDto
+{
+    public int Id { get; set; }
+    public int RecipeId { get; set; }
+    public string? RecipeName { get; set; }
+    public int PlannedQty { get; set; }
+    public int ProducedQty { get; set; }
+    public int PassQty { get; set; }
+    public int NgQty { get; set; }
 }
 
 public class WorkOrderStatusChangeRequest

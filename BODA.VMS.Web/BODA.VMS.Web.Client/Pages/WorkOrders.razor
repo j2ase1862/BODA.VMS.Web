@@ -221,7 +221,17 @@
             Status = src.Status,
             CompletionBasis = src.CompletionBasis,
             PlannedStartAt = src.PlannedStartAt,
-            Note = src.Note
+            Note = src.Note,
+            Items = src.Items.Select(i => new WorkOrderItemDto
+            {
+                Id = i.Id,
+                RecipeId = i.RecipeId,
+                RecipeName = i.RecipeName,
+                PlannedQty = i.PlannedQty,
+                ProducedQty = i.ProducedQty,
+                PassQty = i.PassQty,
+                NgQty = i.NgQty
+            }).ToList()
         };
         var parameters = new DialogParameters<WorkOrderFormDialog>
         {

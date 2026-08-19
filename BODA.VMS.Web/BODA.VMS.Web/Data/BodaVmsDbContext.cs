@@ -16,6 +16,7 @@ public class BodaVmsDbContext : DbContext
     public DbSet<RecipeParameter> RecipeParameters => Set<RecipeParameter>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
+    public DbSet<WorkOrderItem> WorkOrderItems => Set<WorkOrderItem>();
     public DbSet<Lot> Lots => Set<Lot>();
     public DbSet<DefectCode> DefectCodes => Set<DefectCode>();
     public DbSet<ParameterMeasurement> ParameterMeasurements => Set<ParameterMeasurement>();

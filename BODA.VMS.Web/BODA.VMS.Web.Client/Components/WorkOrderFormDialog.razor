@@ -41,31 +41,49 @@
                 </div>
                 <div>
                     <label class="vms-form-label">@L["dialog.workorderFieldRecipe"]<span class="req">*</span></label>
-                    <MudSelect T="int" @bind-Value="Model.RecipeId"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
-                               Disabled="@(Model.ClientId == 0)">
-                        <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldRecipePlaceholder"]</MudSelectItem>
-                        @foreach (var r in _recipes)
-                        {
-                            <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    @* 혼합 레시피 라인 — 레시피별 계획 수량. 단일 레시피는 1행 그대로 사용. *@
+                    @foreach (var line in Model.Items)
+                    {
+                        <div class="vms-form-row" style="align-items:center; margin-bottom:6px;">
+                            <MudSelect T="int" Value="line.RecipeId"
+                                       ValueChanged="@((int v) => line.RecipeId = v)"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       Disabled="@(Model.ClientId == 0 || !CanEditLines)">
+                                <MudSelectItem T="int" Value="0">@L["dialog.workorderFieldRecipePlaceholder"]</MudSelectItem>
+                                @foreach (var r in _recipes)
+                                {
+                                    <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudNumericField T="int" Value="line.PlannedQty"
+                                             ValueChanged="@((int v) => line.PlannedQty = v)"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="1"
+                                             Style="max-width:120px;" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Disabled="@(Model.Items.Count <= 1 || !CanEditLines)"
+                                           OnClick="@(() => Model.Items.Remove(line))" />
+                        </div>
+                    }
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                                   Variant="Variant.Outlined" Color="Color.Primary"
+                                   Disabled="@(!CanEditLines)"
+                                   OnClick="@(() => Model.Items.Add(new WorkOrderItemDto { PlannedQty = 100 }))">
+                            @L["dialog.workorderItemAdd"]
+                        </MudButton>
+                        <span class="vms-mono" style="opacity:.75;">
+                            @L.Format("dialog.workorderItemTotalFmt", Model.Items.Sum(i => i.PlannedQty))
+                        </span>
+                    </div>
                 </div>
-                <div class="vms-form-row">
-                    <div>
-                        <label class="vms-form-label">@L["dialog.workorderFieldPlannedQty"]<span class="req">*</span></label>
-                        <MudNumericField @bind-Value="Model.PlannedQuantity"
-                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" />
-                    </div>
-                    <div>
-                        <label class="vms-form-label">@L["dialog.workorderFieldBasis"]</label>
-                        <MudSelect T="string" @bind-Value="Model.CompletionBasis"
-                                   Variant="Variant.Outlined" Margin="Margin.Dense"
-                                   HelperText="@(L["dialog.workorderFieldBasisHint"])">
-                            <MudSelectItem T="string" Value="@("Pass")">@L["dialog.workorderFieldBasisPass"]</MudSelectItem>
-                            <MudSelectItem T="string" Value="@("Produced")">@L["dialog.workorderFieldBasisProduced"]</MudSelectItem>
-                        </MudSelect>
-                    </div>
+                <div>
+                    <label class="vms-form-label">@L["dialog.workorderFieldBasis"]</label>
+                    <MudSelect T="string" @bind-Value="Model.CompletionBasis"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               HelperText="@(L["dialog.workorderFieldBasisHint"])">
+                        <MudSelectItem T="string" Value="@("Pass")">@L["dialog.workorderFieldBasisPass"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Produced")">@L["dialog.workorderFieldBasisProduced"]</MudSelectItem>
+                    </MudSelect>
                 </div>
                 <div>
                     <label class="vms-form-label">@L["dialog.workorderFieldPlannedStart"]</label>
@@ -102,11 +120,25 @@
     private List<RecipeDto> _recipes = new();
     private DateTime? _plannedStart;
 
+    // 라인 편집 가능 여부 — 진행 중에는 수량 조정만 서버가 허용하므로 UI 는
+    // Planned(신규 포함)에서만 추가/삭제/레시피 변경을 연다.
+    private bool CanEditLines => !IsEdit || Model.Status == "Planned";
+
     protected override async Task OnInitializedAsync()
     {
         _products = await Api.GetAsync<List<ProductDto>>("/api/products") ?? new();
         _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
         _plannedStart = Model.PlannedStartAt?.ToLocalTime();
+
+        // 라인이 비어 있으면 1행 구성 — 기존 단일 필드(RecipeId/PlannedQuantity)에서 승계
+        if (Model.Items.Count == 0)
+        {
+            Model.Items.Add(new WorkOrderItemDto
+            {
+                RecipeId = Model.RecipeId,
+                PlannedQty = Model.PlannedQuantity > 0 ? Model.PlannedQuantity : 100
+            });
+        }
 
         if (!IsEdit && string.IsNullOrEmpty(Model.OrderNo))
         {
@@ -122,15 +154,20 @@
     {
         Model.ProductId = productId;
         var product = _products.FirstOrDefault(p => p.Id == productId);
-        // 제품의 DefaultRecipe가 있고 현재 클라이언트의 레시피 중에 있으면 자동 선택
-        if (product?.DefaultRecipeId is int rid && _recipes.Any(r => r.Id == rid))
-            Model.RecipeId = rid;
+        // 제품의 DefaultRecipe가 있고 현재 클라이언트의 레시피 중에 있으면 첫 라인에 자동 선택
+        var firstLine = Model.Items.FirstOrDefault();
+        if (firstLine is { RecipeId: 0 } && product?.DefaultRecipeId is int rid
+            && _recipes.Any(r => r.Id == rid))
+        {
+            firstLine.RecipeId = rid;
+        }
     }
 
     private async Task OnClientChanged(int clientId)
     {
         Model.ClientId = clientId;
-        Model.RecipeId = 0;
+        foreach (var line in Model.Items)
+            line.RecipeId = 0;   // 라인이 다른 라인의 레시피를 가리키지 않도록 초기화
         await LoadRecipes();
     }
 
@@ -141,20 +178,26 @@
             $"/api/clients/{Model.ClientId}/recipes") ?? new();
 
         var product = _products.FirstOrDefault(p => p.Id == Model.ProductId);
-        if (Model.RecipeId == 0 && product?.DefaultRecipeId is int rid
+        var firstLine = Model.Items.FirstOrDefault();
+        if (firstLine is { RecipeId: 0 } && product?.DefaultRecipeId is int rid
             && _recipes.Any(r => r.Id == rid))
         {
-            Model.RecipeId = rid;
+            firstLine.RecipeId = rid;
         }
     }
 
     private bool IsValid() =>
-        Model.ProductId > 0 && Model.ClientId > 0 && Model.RecipeId > 0
-        && Model.PlannedQuantity > 0;
+        Model.ProductId > 0 && Model.ClientId > 0
+        && Model.Items.Count > 0
+        && Model.Items.All(i => i.RecipeId > 0 && i.PlannedQty > 0)
+        && Model.Items.Select(i => i.RecipeId).Distinct().Count() == Model.Items.Count;
 
     private void Submit()
     {
         Model.PlannedStartAt = _plannedStart?.ToUniversalTime();
+        // 레거시 단일 필드 동기화 — 서버도 라인에서 재계산하지만 화면 일관성 유지
+        Model.RecipeId = Model.Items.First().RecipeId;
+        Model.PlannedQuantity = Model.Items.Sum(i => i.PlannedQty);
         MudDialog.Close(DialogResult.Ok(Model));
     }
 

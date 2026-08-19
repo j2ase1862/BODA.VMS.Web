@@ -692,6 +692,8 @@
     "workorderFieldRecipe": "레시피",
     "workorderFieldRecipePlaceholder": "-- 레시피 선택 --",
     "workorderFieldPlannedQty": "계획 수량",
+    "workorderItemAdd": "레시피 추가",
+    "workorderItemTotalFmt": "합계 {0}개",
     "workorderFieldBasis": "완료 기준",
     "workorderFieldBasisPass": "양품 수량 (불량만큼 더 생산)",
     "workorderFieldBasisProduced": "총 생산 수량",

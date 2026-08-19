@@ -78,6 +78,40 @@ public class WorkOrder
     public Recipe Recipe { get; set; } = null!;
 
     public ICollection<Lot> Lots { get; set; } = new List<Lot>();
+
+    /// <summary>
+    /// 레시피별 계획/실적 라인 (혼합 레시피 WO — docs/design/wo-mixed-recipe-spec.md).
+    /// 단일 레시피 WO 는 라인 1개의 특수 케이스. 본체 수량 필드들은 라인 합계(롤업).
+    /// </summary>
+    public ICollection<WorkOrderItem> Items { get; set; } = new List<WorkOrderItem>();
+}
+
+/// <summary>
+/// 혼합 레시피 WO 의 레시피별 계획 수량 라인. (WorkOrderId, RecipeId) 유니크 —
+/// 같은 레시피 중복 라인 금지. 사이클 판정 업로드의 RecipeId 가 귀속 키다.
+/// </summary>
+public class WorkOrderItem
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int WorkOrderId { get; set; }
+
+    public int RecipeId { get; set; }
+
+    public int PlannedQty { get; set; }
+
+    public int ProducedQty { get; set; }
+
+    public int PassQty { get; set; }
+
+    public int NgQty { get; set; }
+
+    [ForeignKey(nameof(WorkOrderId))]
+    public WorkOrder WorkOrder { get; set; } = null!;
+
+    [ForeignKey(nameof(RecipeId))]
+    public Recipe Recipe { get; set; } = null!;
 }
 
 public static class WorkOrderStatus

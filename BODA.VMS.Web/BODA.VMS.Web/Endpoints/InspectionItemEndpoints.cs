@@ -192,39 +192,78 @@ public static class InspectionItemEndpoints
             // Stage 3: WO 진행률 응답을 위한 snapshot 보관
             Data.Entities.WorkOrder? touchedWo = null;
             bool woJustCompleted = false;
+            bool unmatchedRecipe = false;
+            List<Data.Entities.WorkOrderItem> woItems = new();
 
             if (request.WorkOrderId.HasValue)
             {
                 var wo = await db.WorkOrders.FindAsync(request.WorkOrderId.Value);
                 if (wo is not null)
                 {
-                    // Planned 상태였다면 자동 InProgress 전이 (첫 검사 결과 도착 = 시작 시점)
-                    if (wo.Status == Data.Entities.WorkOrderStatus.Planned)
+                    // 혼합 레시피 WO 라인 (docs/design/wo-mixed-recipe-spec.md §4)
+                    woItems = await db.WorkOrderItems
+                        .Where(i => i.WorkOrderId == wo.Id)
+                        .OrderBy(i => i.Id)
+                        .ToListAsync();
+                    var line = woItems.FirstOrDefault(i => i.RecipeId == request.RecipeId);
+
+                    if (woItems.Count > 0 && line is null)
                     {
-                        wo.Status = Data.Entities.WorkOrderStatus.InProgress;
-                        wo.ActualStartAt ??= DateTime.UtcNow;
+                        // WO 에 없는 레시피로 검사됨 — 어느 라인에도 귀속하지 않고 롤업도
+                        // 올리지 않는다 (수량 오염 방지). VMS 가 경고를 띄우도록 플래그만 응답.
+                        unmatchedRecipe = true;
+                        touchedWo = wo;
+                        logger.LogWarning(
+                            "[WO] 미귀속 검사 — WO {OrderNo} 에 RecipeId {RecipeId} 라인이 없음",
+                            wo.OrderNo, request.RecipeId);
                     }
-
-                    if (wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                    else
                     {
-                        wo.ProducedQuantity++;
-                        if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
-                        wo.UpdatedAt = DateTime.UtcNow;
-
-                        // Stage 3: 계획 수량 도달 → 자동 Completed 전이.
-                        // 완료 기준(CompletionBasis)에 따라 진행 수량이 다르다 —
-                        // Pass = 양품 수량(NG 만큼 더 생산, 신규 기본), Produced = 총 생산 수량.
-                        var progressQty = wo.CompletionBasis == Data.Entities.WorkOrderCompletionBasis.Pass
-                            ? wo.PassQuantity
-                            : wo.ProducedQuantity;
-                        if (wo.PlannedQuantity > 0 && progressQty >= wo.PlannedQuantity)
+                        // Planned 상태였다면 자동 InProgress 전이 (첫 검사 결과 도착 = 시작 시점)
+                        if (wo.Status == Data.Entities.WorkOrderStatus.Planned)
                         {
-                            wo.Status = Data.Entities.WorkOrderStatus.Completed;
-                            wo.ActualEndAt = DateTime.UtcNow;
-                            woJustCompleted = true;
+                            wo.Status = Data.Entities.WorkOrderStatus.InProgress;
+                            wo.ActualStartAt ??= DateTime.UtcNow;
                         }
+
+                        if (wo.Status == Data.Entities.WorkOrderStatus.InProgress)
+                        {
+                            wo.ProducedQuantity++;
+                            if (isPass) wo.PassQuantity++; else wo.NgQuantity++;
+                            if (line is not null)
+                            {
+                                line.ProducedQty++;
+                                if (isPass) line.PassQty++; else line.NgQty++;
+                            }
+                            wo.UpdatedAt = DateTime.UtcNow;
+
+                            // Stage 3: 계획 수량 도달 → 자동 Completed 전이.
+                            // 완료 기준(CompletionBasis)에 따라 진행 수량이 다르다 —
+                            // Pass = 양품 수량(NG 만큼 더 생산, opt-in), Produced = 총 생산 수량.
+                            // 라인이 있으면 "모든 라인이 각자 계획 도달", 없으면(구버전 데이터)
+                            // 본체 롤업 기준.
+                            var usePass = wo.CompletionBasis == Data.Entities.WorkOrderCompletionBasis.Pass;
+                            bool reached;
+                            if (woItems.Count > 0)
+                            {
+                                reached = wo.PlannedQuantity > 0 && woItems.All(i =>
+                                    (usePass ? i.PassQty : i.ProducedQty) >= i.PlannedQty);
+                            }
+                            else
+                            {
+                                var progressQty = usePass ? wo.PassQuantity : wo.ProducedQuantity;
+                                reached = wo.PlannedQuantity > 0 && progressQty >= wo.PlannedQuantity;
+                            }
+
+                            if (reached)
+                            {
+                                wo.Status = Data.Entities.WorkOrderStatus.Completed;
+                                wo.ActualEndAt = DateTime.UtcNow;
+                                woJustCompleted = true;
+                            }
+                        }
+                        touchedWo = wo;
                     }
-                    touchedWo = wo;
                 }
             }
 
@@ -262,7 +301,17 @@ public static class InspectionItemEndpoints
                     ngQuantity = touchedWo.NgQuantity,
                     status = touchedWo.Status,
                     completionBasis = touchedWo.CompletionBasis,
-                    completed = woJustCompleted
+                    completed = woJustCompleted,
+                    // 혼합 레시피 WO — 미귀속 경고 + 라인별 스냅샷 (VMS 사이드 패널용)
+                    unmatchedRecipe,
+                    items = woItems.Select(i => new
+                    {
+                        recipeId = i.RecipeId,
+                        plannedQty = i.PlannedQty,
+                        producedQty = i.ProducedQty,
+                        passQty = i.PassQty,
+                        ngQty = i.NgQty
+                    }).ToList()
                 };
 
                 // C5: 모든 연결된 VMS / 라이브 모니터 화면에 진행률 broadcast.
