@@ -692,6 +692,8 @@
     "workorderFieldRecipe": "Recipe",
     "workorderFieldRecipePlaceholder": "-- Select Recipe --",
     "workorderFieldPlannedQty": "Planned Qty",
+    "workorderItemAdd": "Add Recipe",
+    "workorderItemTotalFmt": "Total {0}",
     "workorderFieldBasis": "Completion Basis",
     "workorderFieldBasisPass": "Pass quantity (produce extra for NG)",
     "workorderFieldBasisProduced": "Total produced quantity",

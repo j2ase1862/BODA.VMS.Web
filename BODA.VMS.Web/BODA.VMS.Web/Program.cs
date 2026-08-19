@@ -574,6 +574,30 @@ using (var scope = app.Services.CreateScope())
                 "ALTER TABLE WorkOrders ADD COLUMN CompletionBasis TEXT NOT NULL DEFAULT 'Produced';");
     }
 
+    // 혼합 레시피 WO 라인 (docs/design/wo-mixed-recipe-spec.md §3)
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""WorkOrderItems"" (
+            ""Id""           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""WorkOrderId""  INTEGER NOT NULL,
+            ""RecipeId""     INTEGER NOT NULL,
+            ""PlannedQty""   INTEGER NOT NULL DEFAULT 0,
+            ""ProducedQty""  INTEGER NOT NULL DEFAULT 0,
+            ""PassQty""      INTEGER NOT NULL DEFAULT 0,
+            ""NgQty""        INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (""WorkOrderId"") REFERENCES ""WorkOrders"" (""Id"") ON DELETE CASCADE,
+            FOREIGN KEY (""RecipeId"")    REFERENCES ""Recipes"" (""RecipeID"")
+        );");
+    await db.Database.ExecuteSqlRawAsync(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_WorkOrderItems_WorkOrderId_RecipeId\" ON \"WorkOrderItems\" (\"WorkOrderId\", \"RecipeId\");");
+
+    // 기존 단일 레시피 WO 백필 — 라인이 없는 WO 는 본체 (RecipeId, 수량들) 로 라인 1개 생성.
+    // 멱등: 이미 라인이 있으면 건드리지 않는다 (단일 = 라인 1개 특수 케이스로 통일).
+    await db.Database.ExecuteSqlRawAsync(@"
+        INSERT INTO ""WorkOrderItems"" (""WorkOrderId"", ""RecipeId"", ""PlannedQty"", ""ProducedQty"", ""PassQty"", ""NgQty"")
+        SELECT w.""Id"", w.""RecipeId"", w.""PlannedQuantity"", w.""ProducedQuantity"", w.""PassQuantity"", w.""NgQuantity""
+        FROM ""WorkOrders"" w
+        WHERE NOT EXISTS (SELECT 1 FROM ""WorkOrderItems"" i WHERE i.""WorkOrderId"" = w.""Id"");");
+
     await db.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS ""Lots"" (
             ""Id""           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

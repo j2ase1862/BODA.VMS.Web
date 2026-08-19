@@ -164,6 +164,120 @@ public class WorkOrderServiceTests
         updated!.CompletionBasis.Should().Be(WorkOrderCompletionBasis.Pass);
     }
 
+    // ─── 혼합 레시피 라인 (docs/design/wo-mixed-recipe-spec.md) ───
+
+    private static async Task<int> SeedSecondRecipeAsync(BodaVmsDbContext db, int clientId, int recipeId = 2)
+    {
+        db.Recipes.Add(new Recipe
+        {
+            Id = recipeId, Name = $"R{recipeId}", ClientId = clientId, CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        return recipeId;
+    }
+
+    [Fact]
+    public async Task CreateAsync_without_items_creates_single_line_from_legacy_fields()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+
+        var svc = new WorkOrderService(ctx.Db);
+        var created = await svc.CreateAsync(MakeDto(pid, cid, rid));
+
+        created.Items.Should().ContainSingle();
+        created.Items[0].RecipeId.Should().Be(rid);
+        created.Items[0].PlannedQty.Should().Be(100);
+        created.PlannedQuantity.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task CreateAsync_with_mixed_items_rolls_up_planned_quantity()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+        var rid2 = await SeedSecondRecipeAsync(ctx.Db, cid);
+
+        var dto = MakeDto(pid, cid, rid);
+        dto.Items = new List<WorkOrderItemDto>
+        {
+            new() { RecipeId = rid, PlannedQty = 60 },
+            new() { RecipeId = rid2, PlannedQty = 40 }
+        };
+
+        var svc = new WorkOrderService(ctx.Db);
+        var created = await svc.CreateAsync(dto);
+
+        created.Items.Should().HaveCount(2);
+        created.PlannedQuantity.Should().Be(100);       // 롤업
+        created.RecipeId.Should().Be(rid);              // 대표 레시피 = 첫 라인
+    }
+
+    [Fact]
+    public async Task CreateAsync_duplicate_recipe_lines_throws()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+
+        var dto = MakeDto(pid, cid, rid);
+        dto.Items = new List<WorkOrderItemDto>
+        {
+            new() { RecipeId = rid, PlannedQty = 60 },
+            new() { RecipeId = rid, PlannedQty = 40 }
+        };
+
+        var svc = new WorkOrderService(ctx.Db);
+        var act = () => svc.CreateAsync(dto);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_planned_replaces_lines_and_rollup()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+        var rid2 = await SeedSecondRecipeAsync(ctx.Db, cid);
+
+        var svc = new WorkOrderService(ctx.Db);
+        var created = await svc.CreateAsync(MakeDto(pid, cid, rid));
+
+        var dto = MakeDto(pid, cid, rid);
+        dto.Items = new List<WorkOrderItemDto>
+        {
+            new() { RecipeId = rid, PlannedQty = 30 },
+            new() { RecipeId = rid2, PlannedQty = 70 }
+        };
+        var updated = await svc.UpdateAsync(created.Id, dto);
+
+        updated!.Items.Should().HaveCount(2);
+        updated.PlannedQuantity.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_inprogress_only_adjusts_existing_line_qty()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+        var rid2 = await SeedSecondRecipeAsync(ctx.Db, cid);
+
+        var svc = new WorkOrderService(ctx.Db);
+        var created = await svc.CreateAsync(MakeDto(pid, cid, rid));
+        await svc.ChangeStatusAsync(created.Id, "Start");
+
+        var dto = MakeDto(pid, cid, rid);
+        dto.Items = new List<WorkOrderItemDto>
+        {
+            new() { RecipeId = rid, PlannedQty = 150 },   // 기존 라인 수량 조정 → 반영
+            new() { RecipeId = rid2, PlannedQty = 40 }    // 진행 중 라인 추가 → 무시
+        };
+        var updated = await svc.UpdateAsync(created.Id, dto);
+
+        updated!.Items.Should().ContainSingle();
+        updated.Items[0].PlannedQty.Should().Be(150);
+        updated.PlannedQuantity.Should().Be(150);
+    }
+
     [Fact]
     public async Task GenerateNextOrderNoAsync_increments_sequence()
     {
