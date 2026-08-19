@@ -393,6 +393,59 @@ public class WorkOrderServiceTests
         ctx.Db.WorkOrders.Should().BeEmpty();
     }
 
+    // ─── 수동 상태 변경 브로드캐스트 (2026-08-19 현장) ───
+    // Web 에서 완료 버튼을 눌러도 VMS 가 몰라 완료된 WO 로 계속 생산하던 문제 —
+    // ChangeStatusAsync 가 VmsPublicHub 로 WorkOrderUpdated/WorkOrderCompleted 를
+    // 브로드캐스트해야 VMS 의 자동 정지 + 완료 다이얼로그가 발동한다.
+
+    [Fact]
+    public async Task ChangeStatus_Complete_broadcasts_WorkOrderCompleted()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+        var hub = new SpyHubContext<BODA.VMS.Web.Hubs.VmsPublicHub>();
+        var svc = new WorkOrderService(ctx.Db, hub);
+
+        var w = await svc.CreateAsync(MakeDto(pid, cid, rid));
+        await svc.ChangeStatusAsync(w.Id, "Start");
+        hub.Sent.Clear();
+
+        await svc.ChangeStatusAsync(w.Id, "Complete");
+
+        hub.Sent.Select(s => s.Method).Should().Contain("WorkOrderUpdated");
+        hub.Sent.Select(s => s.Method).Should().Contain("WorkOrderCompleted");
+    }
+
+    [Fact]
+    public async Task ChangeStatus_Start_broadcasts_updated_only()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+        var hub = new SpyHubContext<BODA.VMS.Web.Hubs.VmsPublicHub>();
+        var svc = new WorkOrderService(ctx.Db, hub);
+
+        var w = await svc.CreateAsync(MakeDto(pid, cid, rid));
+        await svc.ChangeStatusAsync(w.Id, "Start");
+
+        hub.Sent.Select(s => s.Method).Should().Contain("WorkOrderUpdated");
+        hub.Sent.Select(s => s.Method).Should().NotContain("WorkOrderCompleted");
+    }
+
+    [Fact]
+    public async Task ChangeStatus_without_hub_does_not_throw()
+    {
+        // 기존 단위 테스트/구버전 호출 경로 호환 — hub 미주입이어도 상태 변경은 정상
+        using var ctx = new InMemorySqliteDbContext();
+        var (pid, cid, rid) = await SeedFkParentsAsync(ctx.Db);
+        var svc = new WorkOrderService(ctx.Db);
+
+        var w = await svc.CreateAsync(MakeDto(pid, cid, rid));
+        await svc.ChangeStatusAsync(w.Id, "Start");
+        var dto = await svc.ChangeStatusAsync(w.Id, "Complete");
+
+        dto!.Status.Should().Be(WorkOrderStatus.Completed);
+    }
+
     [Fact]
     public async Task DeleteAsync_blocks_inprogress_workorder()
     {
