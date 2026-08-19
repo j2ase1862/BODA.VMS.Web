@@ -46,8 +46,12 @@ public static class InspectionImageEndpoints
                     statusCode: StatusCodes.Status409Conflict);
             }
 
-            // 이미 매칭된 이미지가 있으면 멱등 — 그대로 성공 반환(재시도 중복 방지).
-            if (!string.IsNullOrEmpty(history.ImagePath))
+            // 이미 매칭된 이미지가 있으면 기본 멱등(재시도 중복 방지) — 단, 사이클 키 공유
+            // (VMS 사이클 누적: 한 사이클의 여러 카메라 이미지가 같은 키로 도착) 환경에서
+            // NG 이력에 OK 이미지가 먼저 붙은 경우는 NG 이미지가 대체한다 (2026-08-19 현장:
+            // NG 상세에 이미지가 없거나 OK 이미지가 보이는 문제).
+            if (!string.IsNullOrEmpty(history.ImagePath)
+                && !ShouldReplaceExisting(history.ImagePath, meta.Verdict, history.IsPass))
                 return Results.Ok(new { imagePath = history.ImagePath, duplicate = true });
 
             byte[] bytes;
@@ -74,6 +78,16 @@ public static class InspectionImageEndpoints
           .AddEndpointFilter<ClientApiKeyEndpointFilter>()
           .DisableAntiforgery();
     }
+
+    /// <summary>
+    /// 기존 이미지가 있어도 새 이미지로 대체할지 — NG 이력인데 붙어 있는 이미지가
+    /// OK 변형(경로 /OK/)이고 들어온 이미지가 NG 면 대체. 그 외에는 첫 이미지 유지(멱등).
+    /// 저장 경로는 ImageStoreService 가 항상 '/' 구분 + OK|NG 폴더로 생성한다.
+    /// </summary>
+    internal static bool ShouldReplaceExisting(string existingPath, string? incomingVerdict, bool historyIsPass)
+        => !historyIsPass
+           && string.Equals(incomingVerdict, "NG", StringComparison.OrdinalIgnoreCase)
+           && !existingPath.Contains("/NG/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>VMS ImageUploadMeta 와 대응(부분 필드). 대소문자 무시 역직렬화.</summary>
     private sealed class InspectionImageMeta
