@@ -193,6 +193,7 @@ public static class InspectionItemEndpoints
             Data.Entities.WorkOrder? touchedWo = null;
             bool woJustCompleted = false;
             bool unmatchedRecipe = false;
+            bool staleWorkOrder = false;
             List<Data.Entities.WorkOrderItem> woItems = new();
 
             if (request.WorkOrderId.HasValue)
@@ -219,6 +220,19 @@ public static class InspectionItemEndpoints
                     }
                     else
                     {
+                        // 이미 완료/마감된 WO 로 업로드됨 — 아래 InProgress 블록을 타지 못해
+                        // 수량이 조용히 동결된다. VMS 가 운전을 멈추고 사용자에게 알리도록
+                        // 명시적 플래그로 응답 (Web 수동 완료 + SignalR 미수신 시나리오의 폴백,
+                        // 2026-08-19 현장. unmatchedRecipe 와 동일 패턴).
+                        staleWorkOrder = wo.Status is Data.Entities.WorkOrderStatus.Completed
+                                                    or Data.Entities.WorkOrderStatus.Closed;
+                        if (staleWorkOrder)
+                        {
+                            logger.LogWarning(
+                                "[WO] 완료된 작업지시로 업로드 — WO {OrderNo} (상태 {Status}), 수량 미집계",
+                                wo.OrderNo, wo.Status);
+                        }
+
                         // Planned 상태였다면 자동 InProgress 전이 (첫 검사 결과 도착 = 시작 시점)
                         if (wo.Status == Data.Entities.WorkOrderStatus.Planned)
                         {
@@ -304,6 +318,8 @@ public static class InspectionItemEndpoints
                     completed = woJustCompleted,
                     // 혼합 레시피 WO — 미귀속 경고 + 라인별 스냅샷 (VMS 사이드 패널용)
                     unmatchedRecipe,
+                    // 완료/마감된 WO 로 업로드됨 (수량 미집계) — VMS 운전 정지 폴백용
+                    staleWorkOrder,
                     items = woItems.Select(i => new
                     {
                         recipeId = i.RecipeId,

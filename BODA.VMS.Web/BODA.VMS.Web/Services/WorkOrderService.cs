@@ -1,6 +1,8 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
 using BODA.VMS.Web.Data.Entities;
+using BODA.VMS.Web.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Services;
@@ -8,10 +10,14 @@ namespace BODA.VMS.Web.Services;
 public class WorkOrderService : IWorkOrderService
 {
     private readonly BodaVmsDbContext _db;
+    private readonly IHubContext<VmsPublicHub>? _vmsHub;
 
-    public WorkOrderService(BodaVmsDbContext db)
+    // vmsHub 는 optional — DI 에서는 SignalR 등록으로 항상 주입되고,
+    // 기존 단위 테스트(new WorkOrderService(db))는 브로드캐스트 없이 동작.
+    public WorkOrderService(BodaVmsDbContext db, IHubContext<VmsPublicHub>? vmsHub = null)
     {
         _db = db;
+        _vmsHub = vmsHub;
     }
 
     public async Task<List<WorkOrderDto>> GetAllAsync(string? status = null, int? clientId = null)
@@ -219,7 +225,63 @@ public class WorkOrderService : IWorkOrderService
 
         entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        // 상태 변경을 연결된 VMS 에 브로드캐스트 — 특히 수동 완료(Complete)는 이 알림이
+        // 없으면 AUTO RUN 중인 VMS 가 완료 사실을 모른 채 계속 생산한다 (2026-08-19 현장).
+        // VMS 는 WorkOrderCompleted 수신 시 자동 정지 + 완료 다이얼로그를 이미 구현하고 있다.
+        await BroadcastStatusChangedAsync(entity, completed: action == "Complete");
+
         return await GetByIdAsync(id);
+    }
+
+    /// <summary>
+    /// WO 상태 변경 브로드캐스트 — 페이로드는 검사 업로드 경로(InspectionItemEndpoints)의
+    /// workOrderInfo 와 동일 형태 (VMS WorkOrderProgressDto 가 그대로 파싱).
+    /// 실패해도 상태 변경 자체를 막지 않는다 (업로드 경로와 동일 정책).
+    /// </summary>
+    private async Task BroadcastStatusChangedAsync(WorkOrder wo, bool completed)
+    {
+        if (_vmsHub is null) return;
+
+        try
+        {
+            var items = await _db.WorkOrderItems
+                .Where(i => i.WorkOrderId == wo.Id)
+                .OrderBy(i => i.Id)
+                .Select(i => new
+                {
+                    recipeId = i.RecipeId,
+                    plannedQty = i.PlannedQty,
+                    producedQty = i.ProducedQty,
+                    passQty = i.PassQty,
+                    ngQty = i.NgQty
+                })
+                .ToListAsync();
+
+            var payload = new
+            {
+                id = wo.Id,
+                orderNo = wo.OrderNo,
+                plannedQuantity = wo.PlannedQuantity,
+                producedQuantity = wo.ProducedQuantity,
+                passQuantity = wo.PassQuantity,
+                ngQuantity = wo.NgQuantity,
+                status = wo.Status,
+                completionBasis = wo.CompletionBasis,
+                completed,
+                unmatchedRecipe = false,
+                items
+            };
+
+            await _vmsHub.Clients.All.SendAsync("WorkOrderUpdated", payload);
+            if (completed)
+                await _vmsHub.Clients.All.SendAsync("WorkOrderCompleted", payload);
+        }
+        catch
+        {
+            // 브로드캐스트 실패는 무시 — DB 상태 변경이 진실이며, VMS 는 다음 업로드
+            // 응답의 status/staleWorkOrder 폴백으로도 완료를 인지한다.
+        }
     }
 
     public async Task<string> GenerateNextOrderNoAsync()
