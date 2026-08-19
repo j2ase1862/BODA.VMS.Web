@@ -33,4 +33,9 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 내부 정책 헬퍼(예: InspectionImageEndpoints.ShouldReplaceExisting) 단위 테스트용 -->
+    <InternalsVisibleTo Include="BODA.VMS.Web.Tests" />
+  </ItemGroup>
+
 </Project>
