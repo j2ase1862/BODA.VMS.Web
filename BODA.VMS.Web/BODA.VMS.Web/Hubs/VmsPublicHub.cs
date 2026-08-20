@@ -10,8 +10,10 @@ namespace BODA.VMS.Web.Hubs;
 /// 송신 이벤트:
 /// - WorkOrderUpdated   : 검사 결과 업로드로 WO 진행률 변경 시 (모든 클라이언트 broadcast)
 /// - WorkOrderCompleted : 계획 수량 도달로 막 Completed 전이된 WO (모든 클라이언트 broadcast)
+/// - LotIssued          : WO 에 새 Lot 발행 시 { workOrderId, lotId, lotNumber } — VMS Lot 콤보 갱신
+/// - LotClosed          : Lot 마감 시 { workOrderId, lotId, lotNumber } — VMS Lot 콤보 제거/재선택
 ///
-/// 페이로드는 InspectionItemEndpoints 의 workOrder dict 와 동일 형태.
+/// WO 페이로드는 InspectionItemEndpoints 의 workOrder dict 와 동일 형태.
 /// </summary>
 [AllowAnonymous]
 public class VmsPublicHub : Hub
