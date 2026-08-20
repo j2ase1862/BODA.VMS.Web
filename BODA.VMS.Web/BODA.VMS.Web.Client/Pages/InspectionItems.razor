@@ -358,6 +358,10 @@
                     Description = param.Description,
                     Category = param.Category,
                     Unit = param.Unit,
+                    // LSL/USL 누락 시 편집 저장이 규격 한계를 null 로 덮어써
+                    // 조용히 소실되던 버그 (2026-08-20 실증 보고) — 반드시 복사.
+                    LowerLimit = param.LowerLimit,
+                    UpperLimit = param.UpperLimit,
                     IsActive = param.IsActive
                 }
             },
