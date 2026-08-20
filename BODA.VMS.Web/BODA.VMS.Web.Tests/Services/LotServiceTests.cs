@@ -52,6 +52,42 @@ public class LotServiceTests
         return wo;
     }
 
+    // ─── GetOpenByWorkOrder (멀티 Lot 병행) ──────────────────
+
+    [Fact]
+    public async Task GetOpenByWorkOrderAsync_returns_all_open_lots_in_sequence_order()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var wo = await SeedWorkOrderAsync(ctx.Db);
+        var svc = new LotService(ctx.Db);
+
+        var lot1 = await svc.CreateAsync(wo.Id, null);
+        var lot2 = await svc.CreateAsync(wo.Id, null);
+        var lot3 = await svc.CreateAsync(wo.Id, null);
+        await svc.CloseAsync(lot2.Id); // 중간 Lot 마감 — 목록에서 빠져야 함
+
+        var open = await svc.GetOpenByWorkOrderAsync(wo.Id);
+
+        open.Should().HaveCount(2);
+        open.Select(l => l.Id).Should().ContainInOrder(lot1.Id, lot3.Id); // Sequence 오름차순
+        open.Should().OnlyContain(l => l.Status == LotStatus.Open);
+    }
+
+    [Fact]
+    public async Task GetOpenByWorkOrderAsync_returns_empty_when_none_open()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        var wo = await SeedWorkOrderAsync(ctx.Db);
+        var svc = new LotService(ctx.Db);
+
+        (await svc.GetOpenByWorkOrderAsync(wo.Id)).Should().BeEmpty();
+
+        var lot = await svc.CreateAsync(wo.Id, null);
+        await svc.CloseAsync(lot.Id);
+
+        (await svc.GetOpenByWorkOrderAsync(wo.Id)).Should().BeEmpty();
+    }
+
     // ─── Create ─────────────────────────────────────────────
 
     [Fact]

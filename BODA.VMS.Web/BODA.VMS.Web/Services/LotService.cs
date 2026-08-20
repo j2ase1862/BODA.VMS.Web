@@ -51,6 +51,17 @@ public class LotService : ILotService
         return entity is null ? null : ToDto(entity);
     }
 
+    public async Task<List<LotDto>> GetOpenByWorkOrderAsync(int workOrderId)
+    {
+        // 멀티 Lot 병행 운용 — Open 전체를 발행 순서(Sequence)대로.
+        var entities = await _db.Lots
+            .Include(l => l.WorkOrder)
+            .Where(l => l.WorkOrderId == workOrderId && l.Status == LotStatus.Open)
+            .OrderBy(l => l.Sequence)
+            .ToListAsync();
+        return entities.Select(ToDto).ToList();
+    }
+
     public async Task<LotDto> CreateAsync(int workOrderId, string? note)
     {
         var workOrder = await _db.WorkOrders.FindAsync(workOrderId)

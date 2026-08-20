@@ -1,7 +1,9 @@
 using BODA.VMS.Web.Client.Models;
 using BODA.VMS.Web.Data;
+using BODA.VMS.Web.Hubs;
 using BODA.VMS.Web.Middleware;
 using BODA.VMS.Web.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BODA.VMS.Web.Endpoints;
@@ -122,11 +124,33 @@ public static class WorkOrderEndpoints
             return Results.Ok(lots);
         });
 
-        group.MapPost("/{id:int}/lots", async (int id, CreateLotRequest req, ILotService svc) =>
+        group.MapPost("/{id:int}/lots", async (
+            int id,
+            CreateLotRequest req,
+            ILotService svc,
+            IHubContext<VmsPublicHub> hub,
+            ILogger<Program> logger) =>
         {
             try
             {
                 var lot = await svc.CreateAsync(id, req.Note);
+
+                // VMS 에 즉시 푸시 — 선택 중인 WO 의 Lot 콤보 목록 갱신 (멀티 Lot 병행).
+                // 실패해도 요청은 성공 (60초 폴링이 안전망 — RecipeParametersChanged 패턴).
+                try
+                {
+                    await hub.Clients.All.SendAsync("LotIssued", new
+                    {
+                        workOrderId = id,
+                        lotId = lot.Id,
+                        lotNumber = lot.LotNumber
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "[VmsPublicHub] LotIssued broadcast failed");
+                }
+
                 return Results.Created($"/api/lots/{lot.Id}", lot);
             }
             catch (InvalidOperationException ex)
