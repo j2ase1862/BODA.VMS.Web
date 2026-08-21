@@ -199,7 +199,7 @@ else
 
 @code {
     private DateTime? _startDate = DateTime.Today.AddDays(-7);
-    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private DateTime? _endDate = DateTime.Today; // 종료일 하루 끝 포함은 QueryDate.EndUtc 가 처리
     private int? _clientId;
     private int _topN = 20;
 
@@ -224,8 +224,8 @@ else
     private async Task Analyze()
     {
         var q = new List<string>();
-        if (_startDate.HasValue) q.Add($"startDate={_startDate.Value:yyyy-MM-ddTHH:mm:ss}");
-        if (_endDate.HasValue) q.Add($"endDate={_endDate.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_startDate.HasValue) q.Add($"startDate={QueryDate.StartUtc(_startDate)!.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_endDate.HasValue) q.Add($"endDate={QueryDate.EndUtc(_endDate)!.Value:yyyy-MM-ddTHH:mm:ss}");
         if (_clientId.HasValue) q.Add($"clientId={_clientId}");
         q.Add($"topN={_topN}");
         var url = "/api/defect-codes/pareto?" + string.Join("&", q);

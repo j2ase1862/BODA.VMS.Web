@@ -127,7 +127,9 @@ public static class InspectionItemEndpoints
                 .Where(r => r.Judgment == "NG")
                 .Select(r => r.ParamCode.ToString());
 
-            var inspectedAt = request.Results.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            // 클라이언트 시각은 UTC 로 정규화해 저장 (SensorEndpoints 와 동일) — 로컬 시각이
+            // 섞이면 기간 필터·일별 집계가 행마다 9시간 어긋난다
+            var inspectedAt = request.Results.FirstOrDefault()?.Timestamp.ToUniversalTime() ?? DateTime.UtcNow;
             var shiftId = await shiftSvc.ResolveShiftIdAsync(inspectedAt);
 
             // OperatorId 자동 매칭: 명시적 전달 우선, 없으면 라인의 현재 키오스크 세션에서 조회
