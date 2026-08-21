@@ -243,8 +243,10 @@
 
         // clientId 미선택 시 파라미터 자체를 생략 — "clientId=" 빈 값은 int? 바인딩 400
         var clientPart = _filter.ClientId.HasValue ? $"clientId={_filter.ClientId}&" : "";
+        // 시각 유지 필수 — yyyy-MM-dd 로 자르면 EndDate 의 23:59:59 가 자정으로 붕괴해
+        // 시작=종료(하루치) 조회 구간이 0폭이 되고 요약 카드가 통째로 사라진다 (2026-08-21 현장).
         var summary = await Api.GetAsync<List<HistorySummaryDto>>(
-            $"/api/history/summary?{clientPart}startDate={_filter.StartDate:yyyy-MM-dd}&endDate={_filter.EndDate:yyyy-MM-dd}");
+            $"/api/history/summary?{clientPart}startDate={_filter.StartDate:yyyy-MM-ddTHH:mm:ss}&endDate={_filter.EndDate:yyyy-MM-ddTHH:mm:ss}");
 
         if (summary is not null)
         {
