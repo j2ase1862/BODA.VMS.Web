@@ -1,9 +1,11 @@
 @page "/workorders"
 @attribute [Authorize]
+@implements IDisposable
 @inject ApiClient Api
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 @inject ILocalizer L
+@inject SignalRService SignalR
 
 <PageTitle>@L["page.workorders"] - BODA VMS</PageTitle>
 
@@ -165,8 +167,41 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // 실시간: VMS 결과 업로드/수동 상태 변경의 WO 진행 브로드캐스트를 즉시 반영
+        // (기존에는 페이지 재진입/F5 전까지 수량이 갱신되지 않았음 — 2026-08-21 현장)
+        SignalR.OnWorkOrderUpdated += HandleWoProgress;
+        SignalR.OnWorkOrderCompleted += HandleWoProgress;
         _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
         await Load();
+    }
+
+    private async void HandleWoProgress(WorkOrderProgressDto dto) => await InvokeAsync(() =>
+    {
+        // 현재 목록에 있는 행만 제자리 갱신 — 필터 밖 WO 는 무시 (필터 존중).
+        // 상태가 바뀌어 필터와 어긋난 행은 다음 Load 까지 유지 — 완료 전환을 눈으로 볼 수 있어 의도적.
+        var row = _items.FirstOrDefault(w => w.Id == dto.Id);
+        if (row is null) return;
+
+        row.ProducedQuantity = dto.ProducedQuantity;
+        row.PassQuantity = dto.PassQuantity;
+        row.NgQuantity = dto.NgQuantity;
+        row.Status = dto.Status;
+        row.CompletionBasis = dto.CompletionBasis;
+        foreach (var item in dto.Items)
+        {
+            var line = row.Items.FirstOrDefault(i => i.RecipeId == item.RecipeId);
+            if (line is null) continue;
+            line.ProducedQty = item.ProducedQty;
+            line.PassQty = item.PassQty;
+            line.NgQty = item.NgQty;
+        }
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        SignalR.OnWorkOrderUpdated -= HandleWoProgress;
+        SignalR.OnWorkOrderCompleted -= HandleWoProgress;
     }
 
     private async Task Load()
