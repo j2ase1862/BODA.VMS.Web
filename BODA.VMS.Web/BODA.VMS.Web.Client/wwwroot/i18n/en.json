@@ -305,6 +305,9 @@
   },
   "history": {
     "filterPeriod": "Period",
+    "filterWo": "Work Order",
+    "filterLot": "LOT",
+    "colWoLot": "WO / LOT",
     "exportExcel": "Export Excel",
     "dailySummary": "Daily Summary",
     "colId": "ID",

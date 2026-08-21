@@ -305,6 +305,9 @@
   },
   "history": {
     "filterPeriod": "기간",
+    "filterWo": "작업지시",
+    "filterLot": "LOT",
+    "colWoLot": "WO / LOT",
     "exportExcel": "Excel 내보내기",
     "dailySummary": "일별 요약",
     "colId": "번호",
