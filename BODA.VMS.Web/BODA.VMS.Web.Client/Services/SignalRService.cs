@@ -7,6 +7,7 @@ namespace BODA.VMS.Web.Client.Services;
 public class SignalRService : IAsyncDisposable
 {
     private HubConnection? _hub;
+    private HubConnection? _publicHub;
     private readonly NavigationManager _navigation;
     private readonly AuthStateProvider _authProvider;
 
@@ -19,6 +20,8 @@ public class SignalRService : IAsyncDisposable
     public event Action<OutboundOrderDto>? OnOutboundOrderChanged;
     public event Action<int>? OnOutboundOrderDeleted;
     public event Action<InboundConfirmResult>? OnInboundConfirmed;
+    public event Action<WorkOrderProgressDto>? OnWorkOrderUpdated;
+    public event Action<WorkOrderProgressDto>? OnWorkOrderCompleted;
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
     public SignalRService(NavigationManager navigation, AuthStateProvider authProvider)
@@ -69,9 +72,31 @@ public class SignalRService : IAsyncDisposable
         _hub.On<InboundConfirmResult>("InboundConfirmed", (result) =>
             OnInboundConfirmed?.Invoke(result));
 
+        // WO 진행 이벤트는 VMS 클라이언트용 공개 허브(/hubs/vms-public)로만 발신된다
+        // (계약: Hubs/VmsPublicHub.cs) — 이중 브로드캐스트 대신 같은 허브를 추가 구독.
+        _publicHub = new HubConnectionBuilder()
+            .WithUrl(_navigation.ToAbsoluteUri("/hubs/vms-public"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _publicHub.On<WorkOrderProgressDto>("WorkOrderUpdated", (wo) =>
+            OnWorkOrderUpdated?.Invoke(wo));
+
+        _publicHub.On<WorkOrderProgressDto>("WorkOrderCompleted", (wo) =>
+            OnWorkOrderCompleted?.Invoke(wo));
+
         try
         {
             await _hub.StartAsync();
+        }
+        catch
+        {
+            // Hub not available yet — will retry on reconnect
+        }
+
+        try
+        {
+            await _publicHub.StartAsync();
         }
         catch
         {
@@ -85,6 +110,11 @@ public class SignalRService : IAsyncDisposable
         {
             await _hub.DisposeAsync();
             _hub = null;
+        }
+        if (_publicHub is not null)
+        {
+            await _publicHub.DisposeAsync();
+            _publicHub = null;
         }
     }
 
