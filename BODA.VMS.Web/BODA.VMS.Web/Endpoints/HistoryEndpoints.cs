@@ -16,6 +16,8 @@ public static class HistoryEndpoints
             DateTime? endDate,
             bool? isPass,
             string? ngCode,
+            int? workOrderId,
+            int? lotId,
             int page,
             int pageSize,
             IHistoryService historyService) =>
@@ -27,6 +29,8 @@ public static class HistoryEndpoints
                 EndDate = endDate,
                 IsPass = isPass,
                 NgCode = ngCode,
+                WorkOrderId = workOrderId,
+                LotId = lotId,
                 Page = page > 0 ? page : 1,
                 PageSize = pageSize > 0 ? pageSize : 50
             };
@@ -45,9 +49,11 @@ public static class HistoryEndpoints
             int? clientId,
             DateTime startDate,
             DateTime endDate,
+            int? workOrderId,
+            int? lotId,
             IHistoryService historyService) =>
         {
-            var summary = await historyService.GetDailySummaryAsync(clientId, startDate, endDate);
+            var summary = await historyService.GetDailySummaryAsync(clientId, startDate, endDate, workOrderId, lotId);
             return Results.Ok(summary);
         });
 
@@ -57,6 +63,8 @@ public static class HistoryEndpoints
             DateTime? endDate,
             bool? isPass,
             string? ngCode,
+            int? workOrderId,
+            int? lotId,
             IHistoryService historyService) =>
         {
             var filter = new HistoryFilterDto
@@ -65,7 +73,9 @@ public static class HistoryEndpoints
                 StartDate = startDate,
                 EndDate = endDate,
                 IsPass = isPass,
-                NgCode = ngCode
+                NgCode = ngCode,
+                WorkOrderId = workOrderId,
+                LotId = lotId
             };
 
             var bytes = await historyService.ExportToExcelAsync(filter);

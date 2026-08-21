@@ -20,6 +20,11 @@ public class HistoryDetailDto
     public List<ToolResultItem>? ToolResults { get; set; }
     public string? ImagePath { get; set; }
     public DateTime InspectedAt { get; set; }
+    // WO/Lot 귀속 (구형 업로드는 NULL)
+    public int? WorkOrderId { get; set; }
+    public int? LotId { get; set; }
+    public string? WorkOrderNo { get; set; }
+    public string? LotNumber { get; set; }
 }
 
 public class ToolResultItem

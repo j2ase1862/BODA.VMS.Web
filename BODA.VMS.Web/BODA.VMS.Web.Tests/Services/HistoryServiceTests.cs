@@ -13,7 +13,7 @@ namespace BODA.VMS.Web.Tests.Services;
 /// HistoryService — 검사 이력 조회/요약/Excel 내보내기.
 /// 추적성(IATF) 의 근간 — 잘못된 필터/요약/Excel 컬럼 매핑은 출하 후 NG 추적 실패로 이어짐.
 /// ToolResults JSON 역직렬화 안전성, 일자별 PASS/NG 집계 정확성, ClosedXML
-/// xlsx 가 재해석 가능한지(헤더 6 열) 검증.
+/// xlsx 가 재해석 가능한지(헤더 8 열 — WO/Lot 포함) 검증.
 /// </summary>
 public class HistoryServiceTests
 {
@@ -35,7 +35,9 @@ public class HistoryServiceTests
         DateTime? inspectedAt = null,
         string? toolResultsJson = null,
         string? recipeName = null,
-        string? imagePath = null)
+        string? imagePath = null,
+        int? workOrderId = null,
+        int? lotId = null)
         => new()
         {
             ClientId = clientId,
@@ -44,8 +46,37 @@ public class HistoryServiceTests
             InspectedAt = inspectedAt ?? DateTime.UtcNow,
             ToolResults = toolResultsJson,
             RecipeName = recipeName,
-            ImagePath = imagePath
+            ImagePath = imagePath,
+            WorkOrderId = workOrderId,
+            LotId = lotId
         };
+
+    /// <summary>WO 1건 + Lot 2건 시딩 — WO/Lot 필터·프로젝션 테스트용 (FK 대상 Recipe/Product 포함).</summary>
+    private static async Task<(WorkOrder Wo, Lot LotA, Lot LotB)> SeedWorkOrderWithLotsAsync(BodaVmsDbContext db)
+    {
+        // Recipe 는 ValueGeneratedNever — Id 명시 부여 필수 (LotServiceTests 와 동일)
+        db.Recipes.Add(new Recipe { Id = 10, Name = "R0", ClientId = ClientA, CreatedAt = DateTime.UtcNow });
+        db.Products.Add(new Product { Code = "P-001", Name = "Sample", IsActive = true, CreatedAt = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+
+        var wo = new WorkOrder
+        {
+            OrderNo = "WO-20260821-001",
+            ProductId = db.Products.First().Id,
+            ClientId = ClientA,
+            RecipeId = 10,
+            PlannedQuantity = 20,
+            CreatedAt = DateTime.UtcNow
+        };
+        db.WorkOrders.Add(wo);
+        await db.SaveChangesAsync();
+
+        var lotA = new Lot { LotNumber = "20260821-WO-001-001", WorkOrderId = wo.Id, Sequence = 1 };
+        var lotB = new Lot { LotNumber = "20260821-WO-001-002", WorkOrderId = wo.Id, Sequence = 2 };
+        db.Lots.AddRange(lotA, lotB);
+        await db.SaveChangesAsync();
+        return (wo, lotA, lotB);
+    }
 
     // ─── GetHistory: filters + pagination ───────────────────
 
@@ -248,15 +279,78 @@ public class HistoryServiceTests
         using var workbook = new XLWorkbook(stream);
         var ws = workbook.Worksheets.First();
 
-        // 6 헤더 검증 — UI/외부 통합 깨짐 조기 발견
+        // 8 헤더 검증 — UI/외부 통합 깨짐 조기 발견 (WO/Lot 열 추가로 6→8)
         ws.Cell(1, 1).GetString().Should().Be("ID");
-        ws.Cell(1, 4).GetString().Should().Be("Result");
-        ws.Cell(1, 6).GetString().Should().Be("Inspected At");
+        ws.Cell(1, 4).GetString().Should().Be("Work Order");
+        ws.Cell(1, 5).GetString().Should().Be("Lot");
+        ws.Cell(1, 6).GetString().Should().Be("Result");
+        ws.Cell(1, 8).GetString().Should().Be("Inspected At");
 
         // 2 행 데이터 — 최신순 정렬: R-NG, R-PASS
         ws.Cell(2, 3).GetString().Should().Be("R-NG");
-        ws.Cell(2, 4).GetString().Should().Be("NG");
+        ws.Cell(2, 6).GetString().Should().Be("NG");
         ws.Cell(3, 3).GetString().Should().Be("R-PASS");
-        ws.Cell(3, 4).GetString().Should().Be("PASS");
+        ws.Cell(3, 6).GetString().Should().Be("PASS");
+    }
+
+    // ─── WO/Lot 필터 + 귀속 표시 ───────────────────────────
+
+    [Fact]
+    public async Task GetHistoryAsync_filters_by_workorder_and_lot_and_projects_numbers()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        await SeedClientsAsync(ctx.Db);
+        var (wo, lotA, lotB) = await SeedWorkOrderWithLotsAsync(ctx.Db);
+
+        var t = new DateTime(2026, 8, 21, 1, 0, 0, DateTimeKind.Utc);
+        ctx.Db.InspectionHistories.AddRange(
+            MakeHistory(ClientA, inspectedAt: t, workOrderId: wo.Id, lotId: lotA.Id),
+            MakeHistory(ClientA, inspectedAt: t.AddMinutes(1), workOrderId: wo.Id, lotId: lotB.Id),
+            MakeHistory(ClientA, inspectedAt: t.AddMinutes(2))); // 구형 업로드 (WO/Lot NULL)
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = new HistoryService(ctx.Db);
+
+        // WO 필터 — NULL 행 제외, 두 Lot 모두 포함
+        var byWo = await svc.GetHistoryAsync(new HistoryFilterDto { WorkOrderId = wo.Id });
+        byWo.TotalCount.Should().Be(2);
+        byWo.Items.Should().OnlyContain(i => i.WorkOrderNo == "WO-20260821-001");
+
+        // Lot 필터 — 해당 Lot 1건만, LotNumber 프로젝션 확인
+        var byLot = await svc.GetHistoryAsync(new HistoryFilterDto { LotId = lotA.Id });
+        byLot.TotalCount.Should().Be(1);
+        byLot.Items.Single().LotNumber.Should().Be("20260821-WO-001-001");
+
+        // 무필터 — NULL 행의 WO/Lot 표시는 null (미지정)
+        var all = await svc.GetHistoryAsync(new HistoryFilterDto());
+        all.TotalCount.Should().Be(3);
+        all.Items.First().WorkOrderNo.Should().BeNull(); // 최신순 → NULL 행이 첫 번째
+    }
+
+    [Fact]
+    public async Task GetDailySummaryAsync_respects_workorder_and_lot_filters()
+    {
+        using var ctx = new InMemorySqliteDbContext();
+        await SeedClientsAsync(ctx.Db);
+        var (wo, lotA, lotB) = await SeedWorkOrderWithLotsAsync(ctx.Db);
+
+        var t = new DateTime(2026, 8, 21, 1, 0, 0, DateTimeKind.Utc);
+        ctx.Db.InspectionHistories.AddRange(
+            MakeHistory(ClientA, isPass: true, inspectedAt: t, workOrderId: wo.Id, lotId: lotA.Id),
+            MakeHistory(ClientA, isPass: false, ngCode: "NG-1", inspectedAt: t.AddMinutes(1), workOrderId: wo.Id, lotId: lotB.Id),
+            MakeHistory(ClientA, isPass: true, inspectedAt: t.AddMinutes(2)));
+        await ctx.Db.SaveChangesAsync();
+
+        var svc = new HistoryService(ctx.Db);
+
+        var byWo = await svc.GetDailySummaryAsync(null, t.AddHours(-1), t.AddHours(1), workOrderId: wo.Id);
+        byWo.Single().TotalCount.Should().Be(2);
+
+        var byLot = await svc.GetDailySummaryAsync(null, t.AddHours(-1), t.AddHours(1), lotId: lotB.Id);
+        byLot.Single().TotalCount.Should().Be(1);
+        byLot.Single().NgCount.Should().Be(1);
+
+        var all = await svc.GetDailySummaryAsync(null, t.AddHours(-1), t.AddHours(1));
+        all.Single().TotalCount.Should().Be(3);
     }
 }
