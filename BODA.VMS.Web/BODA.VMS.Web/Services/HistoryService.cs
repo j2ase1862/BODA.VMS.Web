@@ -155,7 +155,8 @@ public class HistoryService : IHistoryService
             worksheet.Cell(row, 3).Value = item.RecipeName ?? "";
             worksheet.Cell(row, 4).Value = item.IsPass ? "PASS" : "NG";
             worksheet.Cell(row, 5).Value = item.NgCode ?? "";
-            worksheet.Cell(row, 6).Value = item.InspectedAt.ToString("yyyy-MM-dd HH:mm:ss");
+            // InspectedAt 은 UTC 저장 — 화면(ToLocalTime)과 동일하게 로컬 시각으로 출력
+            worksheet.Cell(row, 6).Value = item.InspectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
         }
 
         worksheet.Columns().AdjustToContents();

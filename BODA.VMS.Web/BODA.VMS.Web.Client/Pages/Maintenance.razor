@@ -216,7 +216,7 @@
     private bool _loadingHist;
     private bool _showInactive;
     private DateTime? _histStart = DateTime.Today.AddDays(-30);
-    private DateTime? _histEnd = DateTime.Today.AddDays(1);
+    private DateTime? _histEnd = DateTime.Today; // 종료일 하루 끝 포함은 QueryDate.EndUtc 가 처리
 
     protected override async Task OnInitializedAsync()
     {
@@ -249,8 +249,8 @@
     {
         _loadingHist = true;
         var q = new List<string> { "limit=200" };
-        if (_histStart.HasValue) q.Add($"startDate={_histStart.Value:yyyy-MM-ddTHH:mm:ss}");
-        if (_histEnd.HasValue) q.Add($"endDate={_histEnd.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_histStart.HasValue) q.Add($"startDate={QueryDate.StartUtc(_histStart)!.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_histEnd.HasValue) q.Add($"endDate={QueryDate.EndUtc(_histEnd)!.Value:yyyy-MM-ddTHH:mm:ss}");
         _history = await Api.GetAsync<List<MaintenanceRecordDto>>(
             "/api/maintenance/records?" + string.Join("&", q)) ?? new();
         _loadingHist = false;

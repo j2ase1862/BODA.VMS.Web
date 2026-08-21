@@ -22,10 +22,17 @@
                 }
             </MudSelect>
         </div>
-        <div class="vms-filter-field wide">
-            <label class="vms-filter-label">@L["history.filterPeriod"]</label>
-            <MudDateRangePicker @bind-DateRange="_dateRange"
-                                Variant="Variant.Outlined" Margin="Margin.Dense" />
+        @* MudDateRangePicker(7.15.0)는 시작=종료 같은 날짜 선택이 불가 — 하루치 조회를 위해
+           타 페이지 공통 패턴(MudDatePicker 2개)으로 교체 (2026-08-21 현장) *@
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.startDate"]</label>
+            <MudDatePicker @bind-Date="_startDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="vms-filter-field">
+            <label class="vms-filter-label">@L["common.endDate"]</label>
+            <MudDatePicker @bind-Date="_endDate"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
         </div>
         <div class="vms-filter-field">
             <label class="vms-filter-label">@L["common.result"]</label>
@@ -158,7 +165,8 @@
 @code {
     private MudTable<HistoryDetailDto>? _table;
     private HistoryFilterDto _filter = new();
-    private DateRange? _dateRange;
+    private DateTime? _startDate;
+    private DateTime? _endDate;
     private List<ClientDto> _clients = new();
     private List<HistorySummaryDto> _summary = new();
     private bool _loading;
@@ -174,7 +182,8 @@
     protected override async Task OnInitializedAsync()
     {
         _clients = await Api.GetAsync<List<ClientDto>>("/api/clients") ?? new();
-        _dateRange = new DateRange(DateTime.Today.AddDays(-7), DateTime.Today);
+        _startDate = DateTime.Today.AddDays(-7);
+        _endDate = DateTime.Today;
         ApplyDateRange();
         await LoadSummary();
     }
@@ -260,10 +269,12 @@
 
     private void ApplyDateRange()
     {
-        if (_dateRange?.Start is not null)
-            _filter.StartDate = _dateRange.Start.Value.Date;
-        if (_dateRange?.End is not null)
-            _filter.EndDate = _dateRange.End.Value.Date.AddDays(1).AddSeconds(-1);
+        // InspectedAt 은 UTC 저장(InspectionItemEndpoints) — 로컬 날짜를 UTC 로 변환해 보내야
+        // KST 하루 조회가 당일 09:00~익일 08:59 로 밀리지 않는다 (QueryDate 주석 참조)
+        if (_startDate is not null)
+            _filter.StartDate = QueryDate.StartUtc(_startDate);
+        if (_endDate is not null)
+            _filter.EndDate = QueryDate.EndUtc(_endDate);
     }
 
     private string BuildQueryString()

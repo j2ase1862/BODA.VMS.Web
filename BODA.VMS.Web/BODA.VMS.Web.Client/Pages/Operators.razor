@@ -226,7 +226,7 @@
     private string _search = "";
     private int? _filterClientId;
     private DateTime? _filterStart = DateTime.Today.AddDays(-7);
-    private DateTime? _filterEnd = DateTime.Today.AddDays(1);
+    private DateTime? _filterEnd = DateTime.Today; // 종료일 하루 끝 포함은 QueryDate.EndUtc 가 처리
 
     protected override async Task OnInitializedAsync()
     {
@@ -269,8 +269,8 @@
         _loadingSessions = true;
         var q = new List<string> { "limit=200" };
         if (_filterClientId.HasValue) q.Add($"clientId={_filterClientId}");
-        if (_filterStart.HasValue) q.Add($"startDate={_filterStart.Value:yyyy-MM-ddTHH:mm:ss}");
-        if (_filterEnd.HasValue) q.Add($"endDate={_filterEnd.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_filterStart.HasValue) q.Add($"startDate={QueryDate.StartUtc(_filterStart)!.Value:yyyy-MM-ddTHH:mm:ss}");
+        if (_filterEnd.HasValue) q.Add($"endDate={QueryDate.EndUtc(_filterEnd)!.Value:yyyy-MM-ddTHH:mm:ss}");
         _sessions = await Api.GetAsync<List<OperatorSessionDto>>(
             $"/api/operators/sessions?" + string.Join("&", q)) ?? new();
         _loadingSessions = false;
